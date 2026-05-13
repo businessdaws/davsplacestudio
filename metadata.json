@@ -1,0 +1,13 @@
+{
+  "name": "Davsplace Studio",
+  "description": "Transform Your Digital Vision - Platform Bisnis Digital Creative Creative & Kreator Indonesia",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI-powered search",
+    "3D Hero Section",
+    "Supabase Integrated CMS"
+  ]
+}
