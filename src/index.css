@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", sans-serif;
+
+  --color-bg-primary: #0A0A0A;
+  --color-bg-secondary: #111111;
+  --color-bg-tertiary: #1A1A1A;
+  --color-accent-yellow: #F5C518;
+  --color-accent-yellow-bright: #FFD700;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
+  --color-border-subtle: #2A2A2A;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold tracking-tight;
+  }
+
+  .glow-yellow {
+    box-shadow: 0 0 20px rgba(245, 197, 24, 0.15);
+  }
+
+  .glass-card {
+    @apply bg-bg-secondary/80 backdrop-blur-md border border-border-subtle;
+  }
+}
+
+/* Custom Scrollbar for Dark Mode */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-bg-primary;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border-subtle rounded-full hover:bg-accent-yellow/50 transition-colors;
+}
