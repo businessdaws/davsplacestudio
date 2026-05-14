@@ -11,6 +11,8 @@ export default function AdminLogin() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const [diagInfo, setDiagInfo] = useState<string | null>(null);
+
   useEffect(() => {
     // Check session on mount to handle redirect back from OAuth
     const checkSession = async () => {
@@ -19,29 +21,38 @@ export default function AdminLogin() {
         setLoading(true);
         try {
           const user = session.user;
+          const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
+          const isKnownAdmin = user.email && adminEmails.includes(user.email);
+
           let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
 
-          // Auto-create for known admins
-          const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
-          if ((profileError?.code === 'PGRST116' || !profile) && user.email && adminEmails.includes(user.email)) {
-            const { data: newProfile, error: createError } = await supabase
+          // Auto-create/fix for known admins if profile is missing or wrong
+          if (isKnownAdmin && (profileError || !profile || profile.role !== 'admin')) {
+            console.log('Known admin detected, fixing profile...');
+            const { data: fixedProfile, error: fixError } = await supabase
               .from('profiles')
-              .insert([{ id: user.id, role: 'admin', full_name: user.user_metadata?.full_name || 'Admin' }])
+              .upsert({ 
+                id: user.id, 
+                role: 'admin', 
+                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
+                updated_at: new Date().toISOString()
+              })
               .select('role')
               .single();
-            if (!createError) {
-              profile = newProfile;
+            
+            if (!fixError) {
+              profile = fixedProfile;
               profileError = null;
             }
           }
 
-          if (profileError || profile?.role !== 'admin') {
+          if (!isKnownAdmin && (profileError || profile?.role !== 'admin')) {
             await supabase.auth.signOut();
-            setError(`Akses Ditolak: Profil admin tidak ditemukan untuk UID ${user.id.slice(0, 8)}...`);
+            setError(`Akses Ditolak: Email ${user.email} tidak terdaftar sebagai admin.`);
           } else {
             navigate('/admin/dashboard');
           }
@@ -56,6 +67,17 @@ export default function AdminLogin() {
 
     checkSession();
   }, [navigate]);
+
+  const testSupabase = async () => {
+    setDiagInfo('Mengecek koneksi...');
+    try {
+      const { count, error } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      setDiagInfo(`Koneksi OK! Terdeteksi ${count} profil di database.`);
+    } catch (err: any) {
+      setDiagInfo(`Error: ${err.message || 'Gagal terhubung ke Supabase'}`);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +95,9 @@ export default function AdminLogin() {
       const user = data.user;
       if (!user) throw new Error('User not found after login');
 
+      const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
+      const isKnownAdmin = user.email && adminEmails.includes(user.email);
+
       // Check if user is admin in profiles table
       let { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -80,29 +105,28 @@ export default function AdminLogin() {
         .eq('id', user.id)
         .single();
 
-      // If no profile exists, and it's a "known" admin email, create it
-      const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
-      if ((profileError?.code === 'PGRST116' || !profile) && user.email && adminEmails.includes(user.email)) {
-        const { data: newProfile, error: createError } = await supabase
+      // Auto-fix for known admins
+      if (isKnownAdmin && (profileError || !profile || profile.role !== 'admin')) {
+        const { data: fixedProfile, error: fixError } = await supabase
           .from('profiles')
-          .insert([
-            { id: user.id, role: 'admin', full_name: user.user_metadata?.full_name || 'Admin' }
-          ])
+          .upsert({ 
+            id: user.id, 
+            role: 'admin', 
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
+            updated_at: new Date().toISOString()
+          })
           .select('role')
           .single();
         
-        if (!createError) {
-          profile = newProfile;
+        if (!fixError) {
+          profile = fixedProfile;
           profileError = null;
-        } else {
-          console.error('Failed to create admin profile:', createError);
         }
       }
 
-      if (profileError || profile?.role !== 'admin') {
+      if (!isKnownAdmin && (profileError || profile?.role !== 'admin')) {
         await supabase.auth.signOut();
-        console.error('Profile check failed:', { profileError, profile, userId: user.id });
-        throw new Error(`Akses Ditolak: Profil admin tidak ditemukan untuk UID ${user.id.slice(0, 8)}... Pastikan email Anda terdaftar sebagai admin.`);
+        throw new Error(`Akses Ditolak: Akun ${user.email} tidak memiliki hak akses admin.`);
       }
 
       navigate('/admin/dashboard');
@@ -223,6 +247,23 @@ export default function AdminLogin() {
               </>
             )}
           </button>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-border-subtle">
+          <button 
+            onClick={testSupabase}
+            className="text-[10px] font-bold text-text-secondary hover:text-accent-yellow transition-colors underline"
+          >
+            Bermasalah dengan database? Klik untuk Cek Koneksi
+          </button>
+          {diagInfo && (
+            <div className="mt-2 p-3 bg-bg-tertiary rounded-lg text-[10px] font-mono text-accent-yellow break-all">
+              {diagInfo}
+              <div className="mt-1 text-text-secondary">
+                Origin Anda: {window.location.origin}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 text-center text-[8px] text-text-secondary font-bold uppercase tracking-widest opacity-30">
