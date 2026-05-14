@@ -1,4 +1,7 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { supabase } from '../lib/supabase';
+import { Link } from 'react-router-dom';
 import { 
   Instagram, 
   Youtube, 
@@ -50,6 +53,34 @@ const socials = [
 ];
 
 export default function TentangSection() {
+  const [usefulLinks, setUsefulLinks] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchLinks = async () => {
+      try {
+        const { data } = await supabase.from('useful_links').select('*').order('created_at', { ascending: true });
+        if (data && data.length > 0) {
+          setUsefulLinks(data);
+        } else {
+          setUsefulLinks([
+            { name: 'Portfolio Overview', url: '/portofolio' },
+            { name: 'Price List & Services', url: '/kolaborasi' },
+            { name: 'Our Blog / Articles', url: '/artikel' },
+            { name: 'Business Inquiry', url: 'mailto:hello@davsplace.studio' }
+          ]);
+        }
+      } catch (e) {
+        setUsefulLinks([
+          { name: 'Portfolio Overview', url: '/portofolio' },
+          { name: 'Price List & Services', url: '/kolaborasi' },
+          { name: 'Our Blog / Articles', url: '/artikel' },
+          { name: 'Business Inquiry', url: 'mailto:hello@davsplace.studio' }
+        ]);
+      }
+    };
+    fetchLinks();
+  }, []);
+
   return (
     <section id="tentang" className="py-32 px-6 bg-bg-primary overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -60,21 +91,57 @@ export default function TentangSection() {
             viewport={{ once: true }}
           >
             <p className="text-accent-yellow font-bold uppercase tracking-[0.3em] text-xs mb-4">Tentang Kami</p>
-            <h2 className="text-5xl md:text-7xl font-display font-black leading-tight mb-8">
+            <h2 className="text-5xl md:text-7xl font-display font-extrabold leading-tight mb-8 uppercase tracking-tighter">
               KAMI ADALAH <br />
               <span className="text-accent-yellow">CREATIVE HUB</span> <br />
               MASA DEPAN
             </h2>
             <p className="text-text-secondary text-lg leading-relaxed mb-8 max-w-xl">
-              Davsplace Studio bukan sekadar agensi kreatif. Kami adalah mitra strategis bagi brand dan kreator yang ingin mendobrak batasan digital melalui estetika futuristik dan teknologi terkini.
+              Davsplace Studio adalah creative engine yang berfokus pada transformasi digital. Kami membantu brand dan kreator lokal naik kelas melalui desain futuristik, produksi konten premium, dan strategi pemasaran digital yang berdampak nyata. 
+              Visi kami adalah menjadi jembatan antara ide kreatif dan eksekusi teknologi kelas dunia.
             </p>
+            
+            {/* Quick Link Hub */}
+            <div className="mb-12">
+              <h4 className="text-xs font-black uppercase tracking-widest text-text-secondary mb-4 flex items-center gap-2">
+                <div className="w-1 h-1 bg-accent-yellow rounded-full" />
+                Useful Links
+              </h4>
+              <div className="flex flex-col gap-2">
+                {usefulLinks.map((link, idx) => {
+                  const isExternal = link.url.startsWith('https') || link.url.startsWith('mailto:');
+                  return isExternal ? (
+                    <a 
+                      key={idx}
+                      href={link.url}
+                      target={link.url.startsWith('https') ? "_blank" : undefined}
+                      rel={link.url.startsWith('https') ? "noreferrer" : undefined}
+                      className="group flex items-center justify-between p-4 bg-bg-secondary border border-border-subtle rounded-xl hover:border-accent-yellow transition-all active:scale-[0.98]"
+                    >
+                      <span className="text-sm font-bold">{link.name}</span>
+                      <ArrowRight className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow group-hover:translate-x-1 transition-all" />
+                    </a>
+                  ) : (
+                    <Link 
+                      key={idx}
+                      to={link.url}
+                      className="group flex items-center justify-between p-4 bg-bg-secondary border border-border-subtle rounded-xl hover:border-accent-yellow transition-all active:scale-[0.98]"
+                    >
+                      <span className="text-sm font-bold">{link.name}</span>
+                      <ArrowRight className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow group-hover:translate-x-1 transition-all" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-4">
               <div className="px-6 py-3 bg-bg-secondary border border-border-subtle rounded-xl">
-                <span className="text-accent-yellow font-black block text-2xl">2020</span>
+                <span className="text-accent-yellow font-display font-bold block text-2xl">2020</span>
                 <span className="text-[10px] text-text-secondary uppercase font-bold tracking-widest">Tahun Berdiri</span>
               </div>
               <div className="px-6 py-3 bg-bg-secondary border border-border-subtle rounded-xl">
-                <span className="text-accent-yellow font-black block text-2xl">500+</span>
+                <span className="text-accent-yellow font-display font-bold block text-2xl">500+</span>
                 <span className="text-[10px] text-text-secondary uppercase font-bold tracking-widest">Asset Kreatif</span>
               </div>
             </div>
@@ -115,26 +182,42 @@ export default function TentangSection() {
           </div>
         </div>
 
-        {/* Global Connection CTA */}
+        {/* Business Collaboration CTA */}
         <motion.div
+          id="kolaborasi"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-bg-tertiary border border-border-subtle rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-accent-yellow transition-all duration-500"
+          className="bg-bg-tertiary border border-border-subtle rounded-3xl p-8 md:p-16 flex flex-col items-center text-center gap-8 group hover:border-accent-yellow transition-all duration-500 relative overflow-hidden"
         >
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-accent-yellow rounded-xl flex items-center justify-center shrink-0">
-              <Github className="w-8 h-8 text-bg-primary" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-display font-bold">Open for Collaboration</h3>
-              <p className="text-text-secondary text-sm">Lihat kode kami atau berkolaborasi di proyek open-source.</p>
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-accent-yellow/5 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-yellow/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
+
+          <div className="max-w-3xl relative z-10">
+            <p className="text-accent-yellow font-bold uppercase tracking-[0.4em] text-[10px] mb-6">Partnership & Inquiry</p>
+            <h3 className="text-4xl md:text-6xl font-display font-extrabold mb-8 tracking-tighter uppercase leading-[0.9]">
+              LET'S <span className="italic">COLLABORATE</span> ON SOMETHING BIG
+            </h3>
+            <p className="text-text-secondary text-lg mb-12">
+              Kami membuka peluang kolaborasi untuk event kreatif, kampanye brand, peluncuran produk inovatif, hingga pembuatan company profile perusahaan yang berkelas dan futuristik. 
+              Jadikan brand Anda sebagai pemain utama di industri digital.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <a 
+                href="https://wa.me/6282200000000"
+                className="w-full sm:w-auto px-10 py-5 bg-white text-bg-primary font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-accent-yellow transition-all transform active:scale-95"
+              >
+                MULAI KOLABORASI
+                <ArrowRight className="w-5 h-5" />
+              </a>
+              <div className="text-left hidden sm:block">
+                <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Email Response</p>
+                <p className="text-sm font-medium">hello@davsplace.studio</p>
+              </div>
             </div>
           </div>
-          <button className="px-8 py-4 bg-white text-bg-primary font-black rounded-xl flex items-center gap-3 hover:bg-accent-yellow transition-colors w-full md:w-auto justify-center">
-            FOLLOW US ON GITHUB
-            <ArrowRight className="w-5 h-5" />
-          </button>
         </motion.div>
       </div>
     </section>

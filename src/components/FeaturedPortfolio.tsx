@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { ExternalLink, PlayCircle } from 'lucide-react';
 
 const portfolios = [
@@ -53,7 +54,7 @@ export default function FeaturedPortfolio() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
           <div>
             <p className="text-accent-yellow font-bold uppercase tracking-[0.3em] text-xs mb-4">Karya Pilihan</p>
-            <h2 className="text-4xl md:text-5xl font-display font-black leading-tight">PORTOFOLIO TERBARU</h2>
+            <h2 className="text-4xl md:text-5xl font-display font-bold leading-tight">PORTOFOLIO TERBARU</h2>
           </div>
           <p className="text-text-secondary max-w-sm">
             Kumpulan proyek yang telah kami selesaikan dengan penuh dedikasi dan inovasi untuk klien kami.
@@ -79,10 +80,10 @@ export default function FeaturedPortfolio() {
               {/* Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8">
                 <div className="translate-y-8 group-hover:translate-y-0 transition-transform duration-500">
-                  <span className="px-3 py-1 bg-accent-yellow text-bg-primary text-[10px] font-black rounded-lg mb-4 inline-block tracking-widest uppercase">
+                  <span className="px-3 py-1 bg-accent-yellow text-bg-primary text-[10px] font-accent rounded-lg mb-4 inline-block tracking-widest uppercase">
                     {item.category}
                   </span>
-                  <h3 className="text-2xl font-display font-bold text-white mb-6">
+                  <h3 className="text-2xl font-display font-bold text-white mb-6 font-display font-medium">
                     {item.title}
                   </h3>
                   
@@ -97,9 +98,9 @@ export default function FeaturedPortfolio() {
         </div>
 
         <div className="mt-16 flex justify-center">
-          <button className="px-10 py-4 border border-border-subtle rounded-xl font-bold hover:bg-white hover:text-bg-primary transition-all duration-300">
+          <Link to="/portofolio" className="px-10 py-4 border border-border-subtle rounded-xl font-bold hover:bg-white hover:text-bg-primary transition-all duration-300">
             Lihat Semua Portofolio
-          </button>
+          </Link>
         </div>
       </div>
     </section>

@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Stars, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
 import * as THREE from 'three';
 
@@ -85,45 +86,45 @@ export default function HeroSection() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="max-w-3xl text-center md:text-left mx-auto md:mx-0"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-xs font-bold mb-6 tracking-wider uppercase">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-[10px] font-accent mb-6 tracking-wide uppercase">
             <span className="w-2 h-2 bg-accent-yellow rounded-full animate-pulse" />
             Digital Creative Solution
           </div>
           
-          <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-black leading-[0.9] mb-8 tracking-tighter uppercase">
-            TRANSFORM YOUR <br />
+          <h1 className="text-5xl sm:text-7xl md:text-[8rem] font-display font-extrabold leading-[0.85] mb-8 tracking-tighter uppercase">
+            ELEVATE YOUR <br />
             <span className="text-accent-yellow">DIGITAL VISION</span>
           </h1>
           
-          <p className="text-base md:text-2xl text-text-secondary font-medium leading-relaxed mb-12 max-w-2xl mx-auto md:mx-0">
+          <p className="text-base md:text-xl text-text-secondary font-sans leading-relaxed mb-12 max-w-2xl mx-auto md:mx-0">
             Platform bisnis digital untuk kreator & brand lokal Indonesia yang ingin tampil berkelas dan futuristik.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center md:justify-start">
-            <button className="w-full sm:w-auto px-8 py-4 bg-accent-yellow text-bg-primary font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-accent-yellow-bright transition-all group active:scale-95">
+            <Link to="/kolaborasi" className="w-full sm:w-auto px-8 py-4 bg-accent-yellow text-bg-primary font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-accent-yellow-bright transition-all group active:scale-95 font-medium tracking-tight">
               Mulai Sekarang
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            </Link>
             
-            <button className="w-full sm:w-auto px-8 py-4 bg-bg-secondary border border-border-subtle text-text-primary font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95">
+            <Link to="/portofolio" className="w-full sm:w-auto px-8 py-4 bg-bg-secondary border border-border-subtle text-text-primary font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95 font-medium tracking-tight">
               <Play className="w-5 h-5 text-accent-yellow fill-accent-yellow" />
               Lihat Portofolio
-            </button>
+            </Link>
           </div>
 
           {/* Stats */}
           <div className="mt-16 sm:mt-20 flex flex-wrap justify-center md:justify-start gap-8 sm:gap-12 border-t border-border-subtle/50 pt-10">
             <div>
               <p className="text-2xl sm:text-3xl font-display font-black text-white">50+</p>
-              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-bold">Proyek Selesai</p>
+              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-sans">Proyek Selesai</p>
             </div>
             <div>
               <p className="text-2xl sm:text-3xl font-display font-black text-white">30+</p>
-              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-bold">Klien Puas</p>
+              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-sans">Klien Puas</p>
             </div>
             <div>
               <p className="text-2xl sm:text-3xl font-display font-black text-white">4</p>
-              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-bold">Layanan</p>
+              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-sans">Layanan</p>
             </div>
           </div>
         </motion.div>

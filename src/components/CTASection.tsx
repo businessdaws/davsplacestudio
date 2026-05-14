@@ -12,7 +12,7 @@ export default function CTASection() {
           
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
             <div className="max-w-2xl">
-              <h2 className="text-4xl md:text-6xl font-display font-black text-bg-primary leading-[1.1] mb-6">
+              <h2 className="text-4xl md:text-6xl font-display font-extrabold text-bg-primary leading-[1.1] mb-6 uppercase tracking-tighter">
                 SIAP TRANSFORMASI <br />
                 BRAND DIGITALMU?
               </h2>

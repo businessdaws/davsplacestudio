@@ -1,74 +1,93 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Lock, Mail, Loader2, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, Loader2, ArrowLeft, Chrome } from 'lucide-react';
 
 export default function AdminLogin() {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleAuth = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check session on mount to handle redirect back from OAuth
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setLoading(true);
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError || profile?.role !== 'admin') {
+            await supabase.auth.signOut();
+            setError('Anda tidak memiliki akses admin atau data profil belum dibuat di Supabase.');
+          } else {
+            navigate('/admin/dashboard');
+          }
+        } catch (err: any) {
+          console.error('Session check error:', err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    checkSession();
+  }, [navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
-      if (isSignUp) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (authError) throw authError;
-        
-        if (authData.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{ 
-              id: authData.user.id, 
-              full_name: fullName, 
-              role: 'admin' // Set as admin by default for the first user
-            }]);
-          
-          if (profileError) {
-            console.error('Profile Error:', profileError);
-            throw new Error('User terdaftar tapi gagal membuat profil. Pastikan tabel "profiles" sudah dibuat di Supabase.');
-          }
-          setSuccess('Akun berhasil dibuat! Silakan cek email atau langsung login.');
-          setIsSignUp(false);
-        }
-      } else {
-        const { data, error: loginError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (loginError) throw loginError;
+      if (loginError) throw loginError;
 
-        // Check if user is admin in profiles table
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user?.id)
-          .single();
+      // Check if user is admin in profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user?.id)
+        .single();
 
-        if (profileError || profile?.role !== 'admin') {
-          await supabase.auth.signOut();
-          throw new Error('Anda tidak memiliki akses admin atau data profil belum dibuat.');
-        }
-
-        navigate('/admin/dashboard');
+      if (profileError || profile?.role !== 'admin') {
+        await supabase.auth.signOut();
+        throw new Error('Anda tidak memiliki akses admin atau data profil belum dibuat di Supabase.');
       }
+
+      navigate('/admin/dashboard');
     } catch (err: any) {
       setError(err.message);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/admin/login`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -92,7 +111,7 @@ export default function AdminLogin() {
           <div className="w-16 h-16 bg-accent-yellow rounded-xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(245,197,24,0.3)]">
             <Lock className="w-8 h-8 text-bg-primary" />
           </div>
-          <h1 className="text-3xl font-display font-black mb-2">{isSignUp ? 'DAFTAR ADMIN' : 'ADMIN LOGIN'}</h1>
+          <h1 className="text-3xl font-display font-black mb-2">ADMIN LOGIN</h1>
           <p className="text-text-secondary text-sm font-medium">Davsplace Studio Management Portal</p>
         </div>
 
@@ -102,28 +121,7 @@ export default function AdminLogin() {
           </div>
         )}
 
-        {success && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-500 text-xs font-medium text-center">
-            {success}
-          </div>
-        )}
-
-        <form onSubmit={handleAuth} className="space-y-4">
-          {isSignUp && (
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Full Name</label>
-              <input 
-                type="text" 
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                style={{ fontSize: '16px' }}
-                className="w-full bg-bg-tertiary border border-border-subtle py-3 px-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
-                placeholder="Davs Admin"
-              />
-            </div>
-          )}
-
+        <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Email Address</label>
             <div className="relative">
@@ -161,16 +159,31 @@ export default function AdminLogin() {
             disabled={loading}
             className="w-full py-4 mt-4 bg-accent-yellow text-bg-primary font-black rounded-xl shadow-xl hover:bg-accent-yellow-bright transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'DAFTAR SEKARANG' : 'MASUK KE DASHBOARD')}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'MASUK KE DASHBOARD'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border-subtle"></div>
+            </div>
+            <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
+              <span className="bg-bg-secondary px-2 text-text-secondary">Atau</span>
+            </div>
+          </div>
+
           <button 
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-xs font-bold text-text-secondary hover:text-accent-yellow transition-colors"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full py-4 bg-bg-tertiary border border-border-subtle text-text-primary font-bold rounded-xl hover:border-accent-yellow transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
           >
-            {isSignUp ? 'Sudah punya akun? Login di sini' : 'Belum punya akun admin? Daftar Akun Pertama'}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+              <>
+                <Chrome className="w-5 h-5" />
+                MASUK DENGAN GOOGLE
+              </>
+            )}
           </button>
         </div>
 

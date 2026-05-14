@@ -29,7 +29,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -42,7 +42,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-2xl bg-bg-secondary border border-border-subtle rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full h-full sm:h-auto max-w-2xl bg-bg-secondary border border-border-subtle rounded-none sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           >
             {/* Header */}
             <div className="p-8 border-b border-border-subtle flex items-center justify-between">
@@ -67,7 +67,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
             </div>
 
             {/* Content */}
-            <div className="p-8">
+            <div className="p-4 sm:p-8 flex-1 overflow-y-auto">
               <form onSubmit={handleSearch} className="relative mb-8">
                 <input
                   autoFocus
@@ -75,6 +75,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Butuh jasa apa? Atau cari artikel..."
+                  style={{ fontSize: '16px' }}
                   className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-4 px-6 pr-16 text-lg focus:border-accent-yellow focus:ring-1 focus:ring-accent-yellow transition-all outline-none"
                 />
                 <button 

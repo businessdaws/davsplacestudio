@@ -1,23 +1,29 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, Search, Moon, Sun, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../stores/useAppStore';
 import { cn } from '../lib/utils';
 
 const navLinks = [
-  { name: 'Beranda', href: '#' },
-  { name: 'Artikel', href: '#artikel' },
-  { name: 'Event', href: '#event' },
-  { name: 'Portofolio', href: '#portofolio' },
-  { name: 'Kolaborasi', href: '#kolaborasi' },
-  { name: 'Tentang', href: '#tentang' },
+  { name: 'Beranda', href: '/' },
+  { name: 'Artikel', href: '/artikel' },
+  { name: 'Portofolio', href: '/portofolio' },
+  { name: 'Kolaborasi', href: '/kolaborasi' },
+  { name: 'Tentang', href: '/tentang' },
 ];
 
 export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }) {
   const { isMenuOpen, setMenuOpen, theme, toggleTheme } = useAppStore();
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path: string) => {
+    if (path === '/' && location.pathname === '/') return true;
+    if (path !== '/' && location.pathname.startsWith(path)) return true;
+    return false;
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -34,26 +40,32 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2 group">
+        <Link to="/" className="flex items-center gap-2 group">
           <div className="w-10 h-10 bg-accent-yellow rounded-md flex items-center justify-center font-display font-black text-bg-primary text-xl group-hover:scale-110 transition-transform">
             D
           </div>
           <span className="font-display font-bold text-xl tracking-tighter sm:block hidden">
             Davsplace<span className="text-accent-yellow">.Studio</span>
           </span>
-        </a>
+        </Link>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.name}
-              href={link.href}
-              className="text-sm font-medium text-text-secondary hover:text-accent-yellow transition-colors relative group"
+              to={link.href}
+              className={cn(
+                "text-xs font-medium transition-colors relative group font-medium uppercase tracking-tight",
+                isActive(link.href) ? "text-accent-yellow" : "text-text-secondary hover:text-accent-yellow"
+              )}
             >
               {link.name}
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent-yellow transition-all group-hover:w-full" />
-            </a>
+              <span className={cn(
+                "absolute -bottom-1 left-0 h-0.5 bg-accent-yellow transition-all",
+                isActive(link.href) ? "w-full" : "w-0 group-hover:w-full"
+              )} />
+            </Link>
           ))}
         </div>
 
@@ -73,7 +85,7 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
           </button>
           <button 
             onClick={() => navigate('/admin/login')}
-            className="px-5 py-2 bg-accent-yellow text-bg-primary font-bold rounded-lg text-sm hover:bg-accent-yellow-bright transition-all transform hover:scale-105 active:scale-95"
+            className="px-5 py-2 bg-accent-yellow text-bg-primary font-bold rounded-lg text-[10px] hover:bg-accent-yellow-bright transition-all transform hover:scale-105 active:scale-95 font-medium uppercase tracking-tight"
           >
             Masuk
           </button>
@@ -100,15 +112,18 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
             className="absolute top-full left-0 w-full bg-bg-secondary border-b border-border-subtle p-6 md:hidden flex flex-col gap-6"
           >
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
+                to={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="text-2xl font-display font-bold flex items-center justify-between group"
+                className={cn(
+                  "text-2xl font-display font-bold flex items-center justify-between group",
+                  isActive(link.href) ? "text-accent-yellow" : "text-text-primary"
+                )}
               >
                 {link.name}
                 <ChevronRight className="w-6 h-6 text-accent-yellow group-hover:translate-x-2 transition-transform" />
-              </a>
+              </Link>
             ))}
             <div className="pt-6 border-t border-border-subtle flex items-center justify-between">
               <button onClick={toggleTheme} className="flex items-center gap-2 text-text-secondary">

@@ -38,7 +38,7 @@ export default function MiniChatbot() {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-[100]">
+    <div className="fixed bottom-20 right-4 lg:bottom-8 lg:right-8 z-[100]">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -90,6 +90,7 @@ export default function MiniChatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ketik pertanyaan..."
+                style={{ fontSize: '16px' }}
                 className="flex-1 bg-bg-secondary border border-border-subtle rounded-xl px-4 py-3 text-sm focus:border-accent-yellow outline-none transition-all"
               />
               <button className="w-12 h-12 bg-accent-yellow rounded-lg flex items-center justify-center text-bg-primary hover:rotate-12 transition-transform">

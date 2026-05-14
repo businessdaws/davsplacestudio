@@ -35,11 +35,17 @@ export default function Footer() {
 
         {/* Links 1 */}
         <div>
-          <h4 className="font-display font-bold text-lg mb-6">Navigasi</h4>
+          <h4 className="font-display font-bold text-lg mb-6 uppercase tracking-tight">Navigasi</h4>
           <ul className="space-y-4">
-            {['Beranda', 'Artikel', 'Event', 'Portofolio', 'Layanan'].map((link) => (
-              <li key={link}>
-                <a href="#" className="text-text-secondary hover:text-accent-yellow transition-colors text-sm">{link}</a>
+            {[
+              { name: 'Beranda', path: '/' },
+              { name: 'Artikel', path: '/artikel' },
+              { name: 'Portofolio', path: '/portofolio' },
+              { name: 'Kolaborasi', path: '/kolaborasi' },
+              { name: 'Tentang', path: '/tentang' }
+            ].map((link) => (
+              <li key={link.name}>
+                <a href={link.path} className="text-text-secondary hover:text-accent-yellow transition-colors text-sm">{link.name}</a>
               </li>
             ))}
           </ul>

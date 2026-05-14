@@ -30,6 +30,11 @@ const CTASection = lazy(() => import('./components/CTASection'));
 // Pages
 const AdminLogin = lazy(() => import('./pages/admin/Login'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
+const ArticleDetailPage = lazy(() => import('./pages/ArticleDetailPage'));
+const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const CollabPage = lazy(() => import('./pages/CollabPage'));
 
 export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -50,7 +55,34 @@ export default function App() {
             </Suspense>
           } />
 
-          {/* Public Route */}
+          {/* New Page Routes */}
+          <Route path="/tentang" element={
+            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+              <AboutPage />
+            </Suspense>
+          } />
+          <Route path="/artikel" element={
+            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+              <ArticlesPage />
+            </Suspense>
+          } />
+          <Route path="/artikel/:slug" element={
+            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+              <ArticleDetailPage />
+            </Suspense>
+          } />
+          <Route path="/portofolio" element={
+            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+              <PortfolioPage />
+            </Suspense>
+          } />
+          <Route path="/kolaborasi" element={
+            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+              <CollabPage />
+            </Suspense>
+          } />
+
+          {/* Public Route (Home) */}
           <Route path="/" element={
             <>
               <Navbar onSearchClick={() => setIsSearchOpen(true)} />
@@ -97,7 +129,7 @@ export default function App() {
             </main>
 
               <Footer />
-              <MobileBottomNavbar />
+              <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
               <MiniChatbot />
             </>
           } />

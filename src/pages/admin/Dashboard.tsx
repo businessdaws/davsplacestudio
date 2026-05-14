@@ -15,9 +15,9 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
-type Tab = 'overview' | 'articles' | 'events';
+type Tab = 'overview' | 'articles' | 'events' | 'links';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -73,6 +73,7 @@ export default function AdminDashboard() {
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
           { id: 'articles', icon: FileText, label: 'Artikel' },
           { id: 'events', icon: Calendar, label: 'Event' },
+          { id: 'links', icon: ExternalLink, label: 'Useful Links' },
         ].map((item) => (
           <button
             key={item.id}
@@ -154,6 +155,7 @@ export default function AdminDashboard() {
                 {activeTab === 'overview' && 'Overview'}
                 {activeTab === 'articles' && 'Artikel'}
                 {activeTab === 'events' && 'Event'}
+                {activeTab === 'links' && 'Useful Links'}
               </h1>
               <p className="hidden md:block text-text-secondary text-sm font-medium">Selamat datang kembali, Admin Davsplace.</p>
             </div>
@@ -167,7 +169,129 @@ export default function AdminDashboard() {
         {activeTab === 'overview' && <OverviewGrid />}
         {activeTab === 'articles' && <ContentManager type="articles" />}
         {activeTab === 'events' && <ContentManager type="events" />}
+        {activeTab === 'links' && <LinksManager />}
       </main>
+    </div>
+  );
+}
+
+function LinksManager() {
+  const [links, setLinks] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [formData, setFormData] = useState({ name: '', url: '', icon_name: 'ArrowRight' });
+
+  const fetchLinks = async () => {
+    const { data } = await supabase.from('useful_links').select('*').order('created_at', { ascending: true });
+    setLinks(data || []);
+  };
+
+  useEffect(() => {
+    fetchLinks();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingItem) {
+      await supabase.from('useful_links').update(formData).eq('id', editingItem.id);
+    } else {
+      await supabase.from('useful_links').insert([formData]);
+    }
+    setIsModalOpen(false);
+    fetchLinks();
+  };
+
+  const openAdd = () => {
+    setEditingItem(null);
+    setFormData({ name: '', url: '', icon_name: 'ArrowRight' });
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (item: any) => {
+    setEditingItem(item);
+    setFormData({ name: item.name, url: item.url, icon_name: item.icon_name || 'ArrowRight' });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Hapus link ini?')) {
+      await supabase.from('useful_links').delete().eq('id', id);
+      fetchLinks();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-bg-secondary p-6 border border-border-subtle rounded-xl">
+        <div className="text-sm font-bold">{links.length} Total Links</div>
+        <button 
+          onClick={openAdd}
+          className="px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center gap-2 hover:scale-105 transition-transform"
+        >
+          <Plus className="w-5 h-5" />
+          TAMBAH LINK
+        </button>
+      </div>
+
+      <div className="bg-bg-secondary border border-border-subtle rounded-2xl overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-bg-tertiary/50 border-b border-border-subtle">
+            <tr>
+              <th className="px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Nama</th>
+              <th className="px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">URL</th>
+              <th className="px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-subtle">
+            {links.map((link) => (
+              <tr key={link.id} className="hover:bg-bg-tertiary/30 transition-colors">
+                <td className="px-8 py-6 font-bold">{link.name}</td>
+                <td className="px-8 py-6 text-sm text-text-secondary">{link.url}</td>
+                <td className="px-8 py-6">
+                  <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => openEdit(link)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(link.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl">
+            <h3 className="text-2xl font-display font-black mb-8 uppercase">{editingItem ? 'Edit' : 'Tambah'} Link</h3>
+            <form onSubmit={handleSave} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">Nama Link</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">URL (Hyperlink)</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={formData.url}
+                  onChange={(e) => setFormData({...formData, url: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                />
+              </div>
+              <div className="flex justify-end gap-4 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-bold text-text-secondary">Batal</button>
+                <button type="submit" className="px-10 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg">SIMPAN LINK</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -208,7 +332,16 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
   const [items, setItems] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ title: '', slug: '', content: '', is_published: false });
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    slug: '', 
+    content: '', 
+    is_published: false,
+    category: 'Desain',
+    image_url: '',
+    author: 'Admin Davs',
+    excerpt: ''
+  });
 
   const fetchData = async () => {
     const { data } = await supabase.from(type).select('*').order('created_at', { ascending: false });
@@ -231,13 +364,31 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
     
     setIsModalOpen(false);
     setEditingItem(null);
-    setFormData({ title: '', slug: '', content: '', is_published: false });
+    setFormData({ 
+      title: '', 
+      slug: '', 
+      content: '', 
+      is_published: false,
+      category: 'Desain',
+      image_url: '',
+      author: 'Admin Davs',
+      excerpt: ''
+    });
     fetchData();
   };
 
   const openAdd = () => {
     setEditingItem(null);
-    setFormData({ title: '', slug: '', content: '', is_published: false });
+    setFormData({ 
+      title: '', 
+      slug: '', 
+      content: '', 
+      is_published: false,
+      category: 'Desain',
+      image_url: '',
+      author: 'Admin Davs',
+      excerpt: '' 
+    });
     setIsModalOpen(true);
   };
 
@@ -247,7 +398,11 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
       title: item.title, 
       slug: item.slug, 
       content: item.content, 
-      is_published: item.is_published 
+      is_published: item.is_published,
+      category: item.category || 'Desain',
+      image_url: item.image_url || '',
+      author: item.author || 'Admin Davs',
+      excerpt: item.excerpt || ''
     });
     setIsModalOpen(true);
   };
@@ -350,6 +505,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
                     required 
                     value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    style={{ fontSize: '16px' }}
                     className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
                   />
                 </div>
@@ -360,18 +516,69 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
                     required 
                     value={formData.slug}
                     onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                    style={{ fontSize: '16px' }}
                     className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Kategori</label>
+                  <select 
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  >
+                    {['Desain', 'Video', 'Branding', 'Marketing', 'Tech', 'Creative'].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Penulis</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={formData.author}
+                    onChange={(e) => setFormData({...formData, author: e.target.value})}
+                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Konten</label>
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">Image URL (Unsplash/Direct Link)</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="https://images.unsplash.com/..."
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({...formData, image_url: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">Kutipan Singkat (Excerpt)</label>
                 <textarea 
-                  rows={6}
+                  rows={2}
+                  required
+                  value={formData.excerpt}
+                  onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">Konten Lengkap</label>
+                <textarea 
+                  rows={8}
                   required
                   value={formData.content}
                   onChange={(e) => setFormData({...formData, content: e.target.value})}
-                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  style={{ fontSize: '16px' }}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm"
                 />
               </div>
               <div className="flex items-center gap-2">
