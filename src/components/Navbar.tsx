@@ -28,7 +28,7 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
   return (
     <nav
       className={cn(
-        "fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 py-4",
+        "hidden lg:block fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 py-4",
         scrolled ? "bg-bg-primary/80 backdrop-blur-lg border-b border-border-subtle py-3" : "bg-transparent"
       )}
     >

@@ -37,7 +37,7 @@ export default function FeaturedEvents() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {events.map((event, i) => (
             <motion.div
               key={event.id}

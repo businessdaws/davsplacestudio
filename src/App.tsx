@@ -14,6 +14,8 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SearchModal from './components/SearchModal';
 import MiniChatbot from './components/MiniChatbot';
+import { MobileTopbar, MobileBottomNavbar } from './components/MobileNavigation';
+import { cn } from './lib/utils';
 
 // Lazy load sections for performance
 const HeroSection = lazy(() => import('./components/HeroSection'));
@@ -52,11 +54,17 @@ export default function App() {
           <Route path="/" element={
             <>
               <Navbar onSearchClick={() => setIsSearchOpen(true)} />
+              <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
               
-              <main>
-                <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-                  <HeroSection />
-                </Suspense>
+              <main className={cn(
+                "flex-1",
+                "pt-0 lg:pt-0", // Adjusted for fixed headers
+                "pb-20 lg:pb-0" // Bottom navbar space on mobile
+              )}>
+                <div className="pt-14 lg:pt-0"> {/* Mobile topbar offset */}
+                  <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+                    <HeroSection />
+                  </Suspense>
 
                 <Suspense fallback={<div className="h-32 bg-bg-secondary" />}>
                   <ClientMarquee />
@@ -85,9 +93,11 @@ export default function App() {
                 <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
                   <CTASection />
                 </Suspense>
-              </main>
+              </div>
+            </main>
 
               <Footer />
+              <MobileBottomNavbar />
               <MiniChatbot />
             </>
           } />

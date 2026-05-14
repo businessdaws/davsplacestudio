@@ -5,38 +5,67 @@ import { motion } from 'motion/react';
 import { Lock, Mail, Loader2, ArrowLeft } from 'lucide-react';
 
 export default function AdminLogin() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      if (isSignUp) {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (authError) throw authError;
+        
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ 
+              id: authData.user.id, 
+              full_name: fullName, 
+              role: 'admin' // Set as admin by default for the first user
+            }]);
+          
+          if (profileError) {
+            console.error('Profile Error:', profileError);
+            throw new Error('User terdaftar tapi gagal membuat profil. Pastikan tabel "profiles" sudah dibuat di Supabase.');
+          }
+          setSuccess('Akun berhasil dibuat! Silakan cek email atau langsung login.');
+          setIsSignUp(false);
+        }
+      } else {
+        const { data, error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) throw error;
+        if (loginError) throw loginError;
 
-      // Check if user is admin in profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user?.id)
-        .single();
+        // Check if user is admin in profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user?.id)
+          .single();
 
-      if (profileError || profile?.role !== 'admin') {
-        await supabase.auth.signOut();
-        throw new Error('Anda tidak memiliki akses admin.');
+        if (profileError || profile?.role !== 'admin') {
+          await supabase.auth.signOut();
+          throw new Error('Anda tidak memiliki akses admin atau data profil belum dibuat.');
+        }
+
+        navigate('/admin/dashboard');
       }
-
-      navigate('/admin/dashboard');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -63,42 +92,65 @@ export default function AdminLogin() {
           <div className="w-16 h-16 bg-accent-yellow rounded-xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(245,197,24,0.3)]">
             <Lock className="w-8 h-8 text-bg-primary" />
           </div>
-          <h1 className="text-3xl font-display font-black mb-2">ADMIN LOGIN</h1>
+          <h1 className="text-3xl font-display font-black mb-2">{isSignUp ? 'DAFTAR ADMIN' : 'ADMIN LOGIN'}</h1>
           <p className="text-text-secondary text-sm font-medium">Davsplace Studio Management Portal</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium text-center">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-medium text-center">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-black uppercase tracking-widest text-text-secondary ml-1">Email Address</label>
+        {success && (
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-500 text-xs font-medium text-center">
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={handleAuth} className="space-y-4">
+          {isSignUp && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Full Name</label>
+              <input 
+                type="text" 
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                style={{ fontSize: '16px' }}
+                className="w-full bg-bg-tertiary border border-border-subtle py-3 px-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
+                placeholder="Davs Admin"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Email Address</label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
               <input 
                 type="email" 
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-bg-tertiary border border-border-subtle py-4 pl-12 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
+                style={{ fontSize: '16px' }}
+                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
                 placeholder="admin@davsplace.studio"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-black uppercase tracking-widest text-text-secondary ml-1">Password</label>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Password</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
               <input 
                 type="password" 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-bg-tertiary border border-border-subtle py-4 pl-12 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
+                style={{ fontSize: '16px' }}
+                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
                 placeholder="••••••••"
               />
             </div>
@@ -107,13 +159,22 @@ export default function AdminLogin() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full py-5 bg-accent-yellow text-bg-primary font-black rounded-xl shadow-xl hover:bg-accent-yellow-bright transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-4 mt-4 bg-accent-yellow text-bg-primary font-black rounded-xl shadow-xl hover:bg-accent-yellow-bright transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'MASUK KE DASHBOARD'}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'DAFTAR SEKARANG' : 'MASUK KE DASHBOARD')}
           </button>
         </form>
 
-        <div className="mt-8 text-center text-[10px] text-text-secondary font-bold uppercase tracking-widest opacity-50">
+        <div className="mt-6 text-center">
+          <button 
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-xs font-bold text-text-secondary hover:text-accent-yellow transition-colors"
+          >
+            {isSignUp ? 'Sudah punya akun? Login di sini' : 'Belum punya akun admin? Daftar Akun Pertama'}
+          </button>
+        </div>
+
+        <div className="mt-8 text-center text-[8px] text-text-secondary font-bold uppercase tracking-widest opacity-30">
           Davsplace Studio &copy; 2024
         </div>
       </motion.div>
