@@ -1,28 +1,29 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Calendar, MapPin, ArrowRight, Video, Wifi } from 'lucide-react';
-
-const events = [
-  {
-    id: 1,
-    title: 'Content Creator Masterclass 2024',
-    date: '25 Juni 2024',
-    location: 'Online Workshop',
-    type: 'online',
-    price: 'Rp 149.000',
-    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=600&h=400&auto=format&fit=crop'
-  },
-  {
-    id: 2,
-    title: 'Creative Networking Night Jakarta',
-    date: '12 Juli 2024',
-    location: 'Davsplace Space, Jakarta',
-    type: 'offline',
-    price: 'Free',
-    image: 'https://images.unsplash.com/photo-1540575861501-7c0011e74de5?q=80&w=600&h=400&auto=format&fit=crop'
-  }
-];
+import { Calendar as CalendarIcon, MapPin, ArrowRight, Video, Wifi } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function FeaturedEvents() {
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+      
+      if (data) setEvents(data);
+      setLoading(false);
+    };
+    fetchEvents();
+  }, []);
+
+  if (loading) return null;
+
   return (
     <section id="event" className="py-32 px-6 bg-bg-secondary border-y border-border-subtle">
       <div className="max-w-7xl mx-auto">
@@ -37,8 +38,8 @@ export default function FeaturedEvents() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {events.map((event, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 min-h-[400px]">
+          {events.length > 0 ? events.map((event, i) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
@@ -46,8 +47,8 @@ export default function FeaturedEvents() {
               viewport={{ once: true }}
               className="group bg-bg-primary border border-border-subtle rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl hover:border-accent-yellow transition-all duration-500"
             >
-              <div className="relative w-full md:w-1/2 aspect-square md:aspect-auto">
-                <img src={event.image} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="relative w-full md:w-1/2 aspect-square md:aspect-auto bg-bg-tertiary">
+                <img src={event.image_url || 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=600&h=400&auto=format&fit=crop'} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute top-4 left-4">
                   <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 text-white font-bold flex items-center gap-2 text-xs">
                     {event.type === 'online' ? <Video className="w-4 h-4 text-accent-yellow" /> : <Wifi className="w-4 h-4 text-accent-yellow" />}
@@ -58,13 +59,13 @@ export default function FeaturedEvents() {
 
               <div className="w-full md:w-1/2 p-10 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-2xl font-display font-bold mb-6 group-hover:text-accent-yellow transition-colors leading-tight">
+                  <h3 className="text-2xl font-display font-bold mb-6 group-hover:text-accent-yellow transition-colors leading-tight truncate">
                     {event.title}
                   </h3>
                   
                   <div className="space-y-4 mb-8">
                     <div className="flex items-center gap-3 text-text-secondary">
-                      <Calendar className="w-5 h-5 text-accent-yellow" />
+                      <CalendarIcon className="w-5 h-5 text-accent-yellow" />
                       <span className="text-sm font-medium">{event.date}</span>
                     </div>
                     <div className="flex items-center gap-3 text-text-secondary">
@@ -82,7 +83,11 @@ export default function FeaturedEvents() {
                 </div>
               </div>
             </motion.div>
-          ))}
+          )) : (
+            <div className="col-span-full py-20 text-center text-text-secondary italic">
+              Belum ada event mendatang yang dijadwalkan.
+            </div>
+          )}
         </div>
       </div>
     </section>

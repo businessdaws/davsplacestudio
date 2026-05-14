@@ -1,53 +1,30 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, PlayCircle } from 'lucide-react';
-
-const portfolios = [
-  {
-    id: 1,
-    title: 'Modern Brand Identity - TechVibe',
-    category: 'Desain',
-    image: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&h=600&auto=format&fit=crop',
-    type: 'photo'
-  },
-  {
-    id: 2,
-    title: 'Cinematic Commercial Reel 2024',
-    category: 'Video',
-    image: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800&h=600&auto=format&fit=crop',
-    type: 'video'
-  },
-  {
-    id: 3,
-    title: 'Product Photography - Luxe Watch',
-    category: 'Dokumentasi',
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=800&h=600&auto=format&fit=crop',
-    type: 'photo'
-  },
-  {
-    id: 4,
-    title: 'Startup Growth Strategy - Nexus',
-    category: 'Konsultasi',
-    image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?q=80&w=800&h=600&auto=format&fit=crop',
-    type: 'photo'
-  },
-  {
-    id: 5,
-    title: 'Social Media Campaign - Kreative',
-    category: 'Desain',
-    image: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=800&h=600&auto=format&fit=crop',
-    type: 'photo'
-  },
-  {
-    id: 6,
-    title: 'Event Highlights - Music Festival',
-    category: 'Video',
-    image: 'https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=800&h=600&auto=format&fit=crop',
-    type: 'video'
-  }
-];
+import { supabase } from '../lib/supabase';
 
 export default function FeaturedPortfolio() {
+  const [portfolios, setPortfolios] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('portfolios')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+      
+      if (data) setPortfolios(data);
+      setLoading(false);
+    };
+    fetchPortfolio();
+  }, []);
+
+  if (loading) return null;
+
   return (
     <section id="portofolio" className="py-32 px-6 bg-bg-primary">
       <div className="max-w-7xl mx-auto">
@@ -61,8 +38,8 @@ export default function FeaturedPortfolio() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-          {portfolios.map((item, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 min-h-[400px]">
+          {portfolios.length > 0 ? portfolios.map((item, i) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, y: 30 }}
@@ -72,7 +49,7 @@ export default function FeaturedPortfolio() {
               className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-bg-tertiary"
             >
               <img 
-                src={item.image} 
+                src={item.image_url || 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&h=600&auto=format&fit=crop'} 
                 alt={item.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
@@ -94,7 +71,11 @@ export default function FeaturedPortfolio() {
                 </div>
               </div>
             </motion.div>
-          ))}
+          )) : (
+            <div className="col-span-full py-20 text-center text-text-secondary italic">
+              Sepertinya belum ada portofolio yang dipublikasikan.
+            </div>
+          )}
         </div>
 
         <div className="mt-16 flex justify-center">

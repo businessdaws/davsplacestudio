@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type Tab = 'overview' | 'articles' | 'events' | 'links';
+type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -72,6 +72,7 @@ export default function AdminDashboard() {
         {[
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
           { id: 'articles', icon: FileText, label: 'Artikel' },
+          { id: 'portfolios', icon: TrendingUp, label: 'Portofolio' },
           { id: 'events', icon: Calendar, label: 'Event' },
           { id: 'links', icon: ExternalLink, label: 'Useful Links' },
         ].map((item) => (
@@ -154,6 +155,7 @@ export default function AdminDashboard() {
               <h1 className="text-2xl md:text-4xl font-display font-black uppercase tracking-tight">
                 {activeTab === 'overview' && 'Overview'}
                 {activeTab === 'articles' && 'Artikel'}
+                {activeTab === 'portfolios' && 'Portofolio'}
                 {activeTab === 'events' && 'Event'}
                 {activeTab === 'links' && 'Useful Links'}
               </h1>
@@ -168,6 +170,7 @@ export default function AdminDashboard() {
 
         {activeTab === 'overview' && <OverviewGrid />}
         {activeTab === 'articles' && <ContentManager type="articles" />}
+        {activeTab === 'portfolios' && <ContentManager type="portfolios" />}
         {activeTab === 'events' && <ContentManager type="events" />}
         {activeTab === 'links' && <LinksManager />}
       </main>
@@ -297,28 +300,47 @@ function LinksManager() {
 }
 
 function OverviewGrid() {
+  const [counts, setCounts] = useState({ articles: 0, events: 0, portfolios: 0, links: 0 });
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const [{ count: articles }, { count: events }, { count: portfolios }, { count: links }] = await Promise.all([
+        supabase.from('articles').select('*', { count: 'exact', head: true }),
+        supabase.from('events').select('*', { count: 'exact', head: true }),
+        supabase.from('portfolios').select('*', { count: 'exact', head: true }),
+        supabase.from('useful_links').select('*', { count: 'exact', head: true }),
+      ]);
+      setCounts({
+        articles: articles || 0,
+        events: events || 0,
+        portfolios: portfolios || 0,
+        links: links || 0
+      });
+    };
+    fetchCounts();
+  }, []);
+
   const stats = [
-    { label: 'Total Pesanan', value: '128', icon: Users, color: 'text-blue-500' },
-    { label: 'Revenue', value: 'Rp 45.2M', icon: TrendingUp, color: 'text-green-500' },
-    { label: 'Artikel Aktif', value: '42', icon: FileText, color: 'text-yellow-500' },
-    { label: 'Event Mendatang', value: '4', icon: Calendar, color: 'text-purple-500' },
+    { label: 'Total Artikel', value: counts.articles.toString(), icon: FileText, color: 'text-yellow-500' },
+    { label: 'Event Aktif', value: counts.events.toString(), icon: Calendar, color: 'text-purple-500' },
+    { label: 'Portofolio', value: counts.portfolios.toString(), icon: TrendingUp, color: 'text-blue-500' },
+    { label: 'Useful Links', value: counts.links.toString(), icon: ExternalLink, color: 'text-green-500' },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
       {stats.map((stat, i) => (
         <motion.div
           key={i}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.1 }}
-          className="bg-bg-secondary border border-border-subtle p-4 md:p-8 rounded-2xl"
+          className="bg-bg-secondary border border-border-subtle p-6 md:p-8 rounded-2xl hover:border-accent-yellow/50 transition-all"
         >
           <div className="flex items-center justify-between mb-4">
             <div className={`p-2 md:p-3 rounded-xl bg-bg-tertiary ${stat.color}`}>
               <stat.icon className="w-5 h-5 md:w-6 md:h-6" />
             </div>
-            <span className="hidden sm:inline-block text-[10px] font-black text-green-500 bg-green-500/10 px-2 py-1 rounded-full">+12%</span>
           </div>
           <p className="text-text-secondary text-[10px] md:text-xs font-black uppercase tracking-widest mb-1 truncate">{stat.label}</p>
           <h3 className="text-xl md:text-3xl font-display font-black">{stat.value}</h3>
@@ -328,20 +350,34 @@ function OverviewGrid() {
   );
 }
 
-function ContentManager({ type }: { type: 'articles' | 'events' }) {
+function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }) {
   const [items, setItems] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ 
-    title: '', 
-    slug: '', 
-    content: '', 
-    is_published: false,
-    category: 'Desain',
-    image_url: '',
-    author: 'Admin Davs',
-    excerpt: ''
-  });
+  
+  const getInitialFormData = () => {
+    switch (type) {
+      case 'articles':
+        return { 
+          title: '', slug: '', content: '', is_published: false,
+          category: 'Desain', image_url: '', author: 'Admin Davs', excerpt: ''
+        };
+      case 'events':
+        return { 
+          title: '', date: '', location: '', type: 'online', 
+          price: 'Free', image_url: '', is_published: true, content: ''
+        };
+      case 'portfolios':
+        return { 
+          title: '', category: 'Desain', image_url: '', 
+          type: 'photo', is_published: true 
+        };
+      default:
+        return {};
+    }
+  };
+
+  const [formData, setFormData] = useState<any>(getInitialFormData());
 
   const fetchData = async () => {
     const { data } = await supabase.from(type).select('*').order('created_at', { ascending: false });
@@ -350,6 +386,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
 
   useEffect(() => {
     fetchData();
+    setFormData(getInitialFormData());
   }, [type]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -357,53 +394,32 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
     const payload = { ...formData, updated_at: new Date().toISOString() };
     
     if (editingItem) {
-      await supabase.from(type).update(payload).eq('id', editingItem.id);
+      const { error } = await supabase.from(type).update(payload).eq('id', editingItem.id);
+      if (error) alert(error.message);
     } else {
-      await supabase.from(type).insert([payload]);
+      const { error } = await supabase.from(type).insert([payload]);
+      if (error) alert(error.message);
     }
     
     setIsModalOpen(false);
     setEditingItem(null);
-    setFormData({ 
-      title: '', 
-      slug: '', 
-      content: '', 
-      is_published: false,
-      category: 'Desain',
-      image_url: '',
-      author: 'Admin Davs',
-      excerpt: ''
-    });
+    setFormData(getInitialFormData());
     fetchData();
   };
 
   const openAdd = () => {
     setEditingItem(null);
-    setFormData({ 
-      title: '', 
-      slug: '', 
-      content: '', 
-      is_published: false,
-      category: 'Desain',
-      image_url: '',
-      author: 'Admin Davs',
-      excerpt: '' 
-    });
+    setFormData(getInitialFormData());
     setIsModalOpen(true);
   };
 
   const openEdit = (item: any) => {
     setEditingItem(item);
-    setFormData({ 
-      title: item.title, 
-      slug: item.slug, 
-      content: item.content, 
-      is_published: item.is_published,
-      category: item.category || 'Desain',
-      image_url: item.image_url || '',
-      author: item.author || 'Admin Davs',
-      excerpt: item.excerpt || ''
+    const data: any = {};
+    Object.keys(getInitialFormData()).forEach(key => {
+      data[key] = item[key] ?? (getInitialFormData() as any)[key];
     });
+    setFormData(data);
     setIsModalOpen(true);
   };
 
@@ -417,13 +433,15 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-bg-secondary p-6 border border-border-subtle rounded-xl">
-        <div className="text-sm font-bold">{items.length} Total {type === 'articles' ? 'Artikel' : 'Event'}</div>
+        <div className="text-sm font-bold">
+          {items.length} Total {type === 'articles' ? 'Artikel' : type === 'events' ? 'Event' : 'Portofolio'}
+        </div>
         <button 
           onClick={openAdd}
           className="px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center gap-2 hover:scale-105 transition-transform"
         >
           <Plus className="w-5 h-5" />
-          TAMBAH {type === 'articles' ? 'ARTIKEL' : 'EVENT'}
+          TAMBAH {type.toUpperCase().slice(0, -1)}
         </button>
       </div>
 
@@ -432,7 +450,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
           <table className="w-full text-left min-w-[600px] md:min-w-0">
             <thead className="bg-bg-tertiary/50 border-b border-border-subtle">
               <tr>
-                <th className="px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Judul</th>
+                <th className="px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Judul / Nama</th>
                 <th className="px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Status</th>
                 <th className="hidden md:table-cell px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Tanggal</th>
                 <th className="px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary text-right">Aksi</th>
@@ -442,8 +460,9 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-bg-tertiary/30 transition-colors group">
                   <td className="px-4 md:px-8 py-6">
-                    <div className="font-bold text-white group-hover:text-accent-yellow transition-colors truncate max-w-[150px] md:max-w-none">{item.title}</div>
-                    <div className="text-xs text-text-secondary mt-1">/{item.slug}</div>
+                    <div className="font-bold text-white group-hover:text-accent-yellow transition-colors truncate max-w-[200px] md:max-w-none">{item.title}</div>
+                    {item.slug && <div className="text-xs text-text-secondary mt-1">/{item.slug}</div>}
+                    {item.category && <div className="text-[10px] text-accent-yellow mt-1 uppercase font-black">{item.category}</div>}
                   </td>
                   <td className="px-4 md:px-8 py-6">
                     <span className={`px-2 md:px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
@@ -485,125 +504,161 @@ function ContentManager({ type }: { type: 'articles' | 'events' }) {
         </div>
       </div>
 
-      {/* Basic Modal Form */}
+      {/* Flexible Modal Form */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-2xl bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl"
+            className="w-full max-w-2xl bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <h3 className="text-2xl font-display font-black mb-8 uppercase">
-              {editingItem ? 'Edit' : 'Tambah'} {type === 'articles' ? 'Artikel' : 'Event'}
+              {editingItem ? 'Edit' : 'Tambah'} {type === 'articles' ? 'Artikel' : type === 'events' ? 'Event' : 'Portofolio'}
             </h3>
             <form onSubmit={handleSave} className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Judul</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    style={{ fontSize: '16px' }}
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Slug</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={formData.slug}
-                    onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                    style={{ fontSize: '16px' }}
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                  />
-                </div>
+              {/* Common Field: Title */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">Judul / Nama Proyek</label>
+                <input 
+                  type="text" required value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Kategori</label>
-                  <select 
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                  >
-                    {['Desain', 'Video', 'Branding', 'Marketing', 'Tech', 'Creative'].map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+              {type === 'articles' && (
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Slug</label>
+                    <input 
+                      type="text" required value={formData.slug}
+                      onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Penulis</label>
+                    <input 
+                      type="text" required value={formData.author}
+                      onChange={(e) => setFormData({...formData, author: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Penulis</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={formData.author}
-                    onChange={(e) => setFormData({...formData, author: e.target.value})}
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                  />
+              )}
+
+              {type === 'events' && (
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Tanggal Event</label>
+                    <input 
+                      type="text" required placeholder="12 Juli 2024" value={formData.date}
+                      onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Tipe</label>
+                    <select 
+                      value={formData.type}
+                      onChange={(e) => setFormData({...formData, type: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    >
+                      <option value="online">Online</option>
+                      <option value="offline">Offline</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Lokasi</label>
+                    <input 
+                      type="text" required placeholder="Jakarta / Zoom" value={formData.location}
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Harga</label>
+                    <input 
+                      type="text" required placeholder="Free / Rp 100.000" value={formData.price}
+                      onChange={(e) => setFormData({...formData, price: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {(type === 'articles' || type === 'portfolios') && (
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Kategori</label>
+                    <select 
+                      value={formData.category}
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    >
+                      {['Desain', 'Video', 'Branding', 'Marketing', 'Tech', 'Creative', 'Dokumentasi', 'Konsultasi'].map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {type === 'portfolios' && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase text-text-secondary ml-1">Media Type</label>
+                      <select 
+                        value={formData.type}
+                        onChange={(e) => setFormData({...formData, type: e.target.value})}
+                        className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                      >
+                        <option value="photo">Photo / Project</option>
+                        <option value="video">Video Reel</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Image URL (Unsplash/Direct Link)</label>
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">Image URL</label>
                 <input 
-                  type="text" 
-                  required 
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.image_url}
+                  type="text" required placeholder="https://..." value={formData.image_url}
                   onChange={(e) => setFormData({...formData, image_url: e.target.value})}
                   className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Kutipan Singkat (Excerpt)</label>
-                <textarea 
-                  rows={2}
-                  required
-                  value={formData.excerpt}
-                  onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
-                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                />
-              </div>
+              {type === 'articles' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Excerpt</label>
+                  <textarea 
+                    rows={2} required value={formData.excerpt}
+                    onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
+                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  />
+                </div>
+              )}
 
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Konten Lengkap</label>
-                <textarea 
-                  rows={8}
-                  required
-                  value={formData.content}
-                  onChange={(e) => setFormData({...formData, content: e.target.value})}
-                  style={{ fontSize: '16px' }}
-                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm"
-                />
-              </div>
+              {(type === 'articles' || type === 'events') && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Deskripsi / Konten</label>
+                  <textarea 
+                    rows={6} required value={formData.content}
+                    onChange={(e) => setFormData({...formData, content: e.target.value})}
+                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm"
+                  />
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <input 
-                  type="checkbox" 
-                  id="pub"
-                  checked={formData.is_published}
+                  type="checkbox" id="pub" checked={formData.is_published}
                   onChange={(e) => setFormData({...formData, is_published: e.target.checked})}
                 />
-                <label htmlFor="pub" className="text-sm font-bold">Publish Sekarang</label>
+                <label htmlFor="pub" className="text-sm font-bold uppercase tracking-widest">Publish</label>
               </div>
+
               <div className="flex justify-end gap-4 pt-4">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 font-bold text-text-secondary hover:text-white transition-colors"
-                >
-                  Batal
-                </button>
-                <button 
-                  type="submit"
-                  className="px-10 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg hover:bg-accent-yellow-bright transition-all"
-                >
-                  SIMPAN KONTEN
-                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-bold text-text-secondary">Batal</button>
+                <button type="submit" className="px-10 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg">SIMPAN</button>
               </div>
             </form>
           </motion.div>

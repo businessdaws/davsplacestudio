@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { Instagram, Youtube, Twitter, Mail, MapPin, Phone } from 'lucide-react';
+import { Instagram, Youtube, Twitter, Mail, MapPin, Phone, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -86,8 +87,12 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto pt-10 border-t border-border-subtle flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-text-secondary font-medium">
         <p>&copy; {currentYear} Davsplace Studio. All rights reserved.</p>
         <div className="flex items-center gap-8">
-          <a href="#" className="hover:text-accent-yellow">Syarat & Ketentuan</a>
-          <a href="#" className="hover:text-accent-yellow">Kebijakan Privasi</a>
+          <a href="#" className="hover:text-accent-yellow transition-colors">Syarat & Ketentuan</a>
+          <a href="#" className="hover:text-accent-yellow transition-colors">Kebijakan Privasi</a>
+          <Link to="/admin/login" className="flex items-center gap-1.5 px-3 py-1 bg-bg-tertiary border border-border-subtle rounded-lg hover:border-accent-yellow transition-all group">
+            <Lock className="w-3 h-3 group-hover:text-accent-yellow" />
+            <span className="text-[10px] uppercase font-black tracking-widest group-hover:text-accent-yellow">Admin</span>
+          </Link>
         </div>
       </div>
     </footer>
