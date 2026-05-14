@@ -18,15 +18,30 @@ export default function AdminLogin() {
       if (session?.user) {
         setLoading(true);
         try {
-          const { data: profile, error: profileError } = await supabase
+          const user = session.user;
+          let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('role')
-            .eq('id', session.user.id)
+            .eq('id', user.id)
             .single();
+
+          // Auto-create for known admins
+          const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
+          if ((profileError?.code === 'PGRST116' || !profile) && user.email && adminEmails.includes(user.email)) {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert([{ id: user.id, role: 'admin', full_name: user.user_metadata?.full_name || 'Admin' }])
+              .select('role')
+              .single();
+            if (!createError) {
+              profile = newProfile;
+              profileError = null;
+            }
+          }
 
           if (profileError || profile?.role !== 'admin') {
             await supabase.auth.signOut();
-            setError('Anda tidak memiliki akses admin atau data profil belum dibuat di Supabase.');
+            setError(`Akses Ditolak: Profil admin tidak ditemukan untuk UID ${user.id.slice(0, 8)}...`);
           } else {
             navigate('/admin/dashboard');
           }
@@ -55,16 +70,39 @@ export default function AdminLogin() {
 
       if (loginError) throw loginError;
 
+      const user = data.user;
+      if (!user) throw new Error('User not found after login');
+
       // Check if user is admin in profiles table
-      const { data: profile, error: profileError } = await supabase
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', data.user?.id)
+        .eq('id', user.id)
         .single();
+
+      // If no profile exists, and it's a "known" admin email, create it
+      const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
+      if ((profileError?.code === 'PGRST116' || !profile) && user.email && adminEmails.includes(user.email)) {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([
+            { id: user.id, role: 'admin', full_name: user.user_metadata?.full_name || 'Admin' }
+          ])
+          .select('role')
+          .single();
+        
+        if (!createError) {
+          profile = newProfile;
+          profileError = null;
+        } else {
+          console.error('Failed to create admin profile:', createError);
+        }
+      }
 
       if (profileError || profile?.role !== 'admin') {
         await supabase.auth.signOut();
-        throw new Error('Anda tidak memiliki akses admin atau data profil belum dibuat di Supabase.');
+        console.error('Profile check failed:', { profileError, profile, userId: user.id });
+        throw new Error(`Akses Ditolak: Profil admin tidak ditemukan untuk UID ${user.id.slice(0, 8)}... Pastikan email Anda terdaftar sebagai admin.`);
       }
 
       navigate('/admin/dashboard');

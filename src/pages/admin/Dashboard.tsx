@@ -34,13 +34,15 @@ export default function AdminDashboard() {
       }
 
       // Re-verify role
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
-      if (profile?.role !== 'admin') {
+      if (error || profile?.role !== 'admin') {
+        console.error('Permission denied. Profile:', profile, 'Error:', error);
+        await supabase.auth.signOut();
         navigate('/admin/login');
         return;
       }
