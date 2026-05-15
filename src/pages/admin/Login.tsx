@@ -24,7 +24,8 @@ export default function AdminLogin() {
       setLoading(true);
       try {
         const user = session.user;
-        const isAdminEmail = user.email && ADMIN_EMAILS.includes(user.email);
+        const normalizedEmail = user.email?.toLowerCase();
+        const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
 
         // Cek apakah email ada di daftar admin
         if (!isAdminEmail) {
@@ -67,7 +68,12 @@ export default function AdminLogin() {
       }
     };
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) checkSession();
+    });
+
     checkSession();
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const [email, setEmail] = useState('');
@@ -87,7 +93,8 @@ export default function AdminLogin() {
       if (loginError) throw loginError;
 
       const user = data.user;
-      const isAdminEmail = user?.email && ADMIN_EMAILS.includes(user.email);
+      const normalizedEmail = user?.email?.toLowerCase();
+      const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
 
       if (!isAdminEmail) {
         await supabase.auth.signOut();
@@ -102,6 +109,9 @@ export default function AdminLogin() {
       }, { onConflict: 'id' });
 
       if (upsertError) {
+        if (upsertError.message.includes('recursion')) {
+          throw new Error('Terjadi kesalahan pada Database (Infinite Recursion). Silakan perbarui RLS Policy di Supabase menggunakan script di initial_schema.sql');
+        }
         throw new Error(`Gagal Sinkronisasi Profil: ${upsertError.message}`);
       }
 

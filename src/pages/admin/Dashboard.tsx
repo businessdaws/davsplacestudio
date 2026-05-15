@@ -19,6 +19,11 @@ import { motion, AnimatePresence } from 'motion/react';
 
 type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links';
 
+// ✅ Matching list from Login.tsx
+const ADMIN_EMAILS = [
+  'businessdaws@gmail.com',
+];
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
@@ -31,18 +36,53 @@ export default function AdminDashboard() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('No user found in Dashboard, redirecting to login');
         navigate('/admin/login');
         return;
       }
 
-      // Re-verify role
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      const normalizedEmail = user.email?.toLowerCase();
+      const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
 
-      if (error || profile?.role !== 'admin') {
+      // Re-verify role from DB
+      let profileResult;
+      try {
+        profileResult = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+      } catch (err: any) {
+        profileResult = { data: null, error: err };
+      }
+
+      const { data: profile, error } = profileResult;
+      
+      if (error?.message?.includes('recursion')) {
+        setAccessDenied('Database Error: Infinite Recursion detected. Silakan perbarui RLS Policy di Supabase menggunakan script terbaru di initial_schema.sql.');
+        setLoading(false);
+        return;
+      }
+
+      // If DB says not admin but email is whitelisted, try to FIX it
+      if (isAdminEmail && (error || profile?.role !== 'admin')) {
+        console.log('Admin email detected but DB role missing. Attempting auto-sync...');
+        const { error: syncError } = await supabase.from('profiles').upsert({
+          id: user.id,
+          role: 'admin',
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
+        }, { onConflict: 'id' });
+
+        if (!syncError) {
+          console.log('Auto-sync success!');
+          setLoading(false);
+          return;
+        } else {
+          console.error('Auto-sync failed:', syncError);
+        }
+      }
+
+      if (!isAdminEmail && (error || profile?.role !== 'admin')) {
         const msg = error ? `Database error: ${error.message}` : `Akses Ditolak: Role Anda adalah "${profile?.role || 'tidak diketahui'}"`;
         console.error('Permission denied:', msg);
         setAccessDenied(msg);
@@ -54,6 +94,22 @@ export default function AdminDashboard() {
 
     checkUser();
   }, [navigate]);
+
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+
+  useEffect(() => {
+    const checkDb = async () => {
+      try {
+        const { error } = await supabase.from('profiles').select('count', { head: true });
+        if (error) throw error;
+        setDbStatus('connected');
+      } catch (err) {
+        console.error('DB Connection error:', err);
+        setDbStatus('error');
+      }
+    };
+    checkDb();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -188,7 +244,16 @@ export default function AdminDashboard() {
                 {activeTab === 'events' && 'Event'}
                 {activeTab === 'links' && 'Useful Links'}
               </h1>
-              <p className="hidden md:block text-text-secondary text-sm font-medium">Selamat datang kembali, Admin Davsplace.</p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className={`w-2 h-2 rounded-full ${
+                  dbStatus === 'connected' ? 'bg-green-500' : 
+                  dbStatus === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                }`} />
+                <p className="text-text-secondary text-xs font-medium">
+                  {dbStatus === 'connected' ? 'Database Connected' : 
+                   dbStatus === 'error' ? 'Database Connection Error' : 'Checking Connection...'}
+                </p>
+              </div>
             </div>
           </div>
           <button className="p-3 md:px-6 md:py-3 bg-bg-tertiary border border-border-subtle rounded-xl font-bold flex items-center gap-2 hover:border-accent-yellow transition-all active:scale-95">
@@ -383,6 +448,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
   const [items, setItems] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   
   const getInitialFormData = () => {
     switch (type) {
@@ -398,8 +464,8 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
         };
       case 'portfolios':
         return { 
-          title: '', category: 'Desain', image_url: '', 
-          type: 'photo', is_published: true 
+          title: '', category: 'Desain', image_url: '', video_url: '',
+          type: 'photo', is_published: true, description: '' 
         };
       default:
         return {};
@@ -420,20 +486,38 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { ...formData, updated_at: new Date().toISOString() };
+    setLoading(true);
     
-    if (editingItem) {
-      const { error } = await supabase.from(type).update(payload).eq('id', editingItem.id);
-      if (error) alert(error.message);
-    } else {
-      const { error } = await supabase.from(type).insert([payload]);
-      if (error) alert(error.message);
+    // Default payload
+    const payload = { ...formData };
+    
+    // Only tables that have updated_at according to initial_schema.sql
+    if (type === 'articles') {
+      (payload as any).updated_at = new Date().toISOString();
     }
     
-    setIsModalOpen(false);
-    setEditingItem(null);
-    setFormData(getInitialFormData());
-    fetchData();
+    try {
+      let result;
+      if (editingItem) {
+        result = await supabase.from(type).update(payload).eq('id', editingItem.id);
+      } else {
+        result = await supabase.from(type).insert([payload]);
+      }
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
+      setIsModalOpen(false);
+      setEditingItem(null);
+      setFormData(getInitialFormData());
+      await fetchData();
+    } catch (err: any) {
+      console.error('Error saving data:', err);
+      alert(`Gagal menyimpan: ${err.message || 'Cek koneksi database'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openAdd = () => {
@@ -616,7 +700,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                 </div>
               )}
 
-              {(type === 'articles' || type === 'portfolios') && (
+              {type === 'portfolios' && (
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-black uppercase text-text-secondary ml-1">Kategori</label>
@@ -630,24 +714,33 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                       ))}
                     </select>
                   </div>
-                  {type === 'portfolios' && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-text-secondary ml-1">Media Type</label>
-                      <select 
-                        value={formData.type}
-                        onChange={(e) => setFormData({...formData, type: e.target.value})}
-                        className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                      >
-                        <option value="photo">Photo / Project</option>
-                        <option value="video">Video Reel</option>
-                      </select>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Media Type</label>
+                    <select 
+                      value={formData.type}
+                      onChange={(e) => setFormData({...formData, type: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    >
+                      <option value="photo">Photo / Project</option>
+                      <option value="video">Video Reel</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {type === 'portfolios' && formData.type === 'video' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Video URL (YouTube/Vimeo)</label>
+                  <input 
+                    type="text" placeholder="https://youtube.com/watch?v=..." value={formData.video_url}
+                    onChange={(e) => setFormData({...formData, video_url: e.target.value})}
+                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  />
                 </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Image URL</label>
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">Image URL {type === 'portfolios' && '(Thumbnail)'}</label>
                 <input 
                   type="text" required placeholder="https://..." value={formData.image_url}
                   onChange={(e) => setFormData({...formData, image_url: e.target.value})}
@@ -666,11 +759,11 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                 </div>
               )}
 
-              {(type === 'articles' || type === 'events') && (
+              {(type === 'articles' || type === 'events' || type === 'portfolios') && (
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase text-text-secondary ml-1">Deskripsi / Konten</label>
                   <textarea 
-                    rows={6} required value={formData.content}
+                    rows={6} required={type !== 'portfolios'} value={formData.content}
                     onChange={(e) => setFormData({...formData, content: e.target.value})}
                     className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm"
                   />

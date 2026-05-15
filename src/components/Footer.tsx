@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Instagram, Youtube, Twitter, Mail, MapPin, Phone, Lock } from 'lucide-react';
+import { Instagram, Youtube, Twitter, Mail, MapPin, Phone, Lock, AtSign, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Footer() {
@@ -22,15 +22,38 @@ export default function Footer() {
             Transform Your Digital Vision. Platform bisnis digital untuk kreator & brand lokal Indonesia yang mengutamakan kreativitas dan teknologi.
           </p>
           <div className="flex items-center gap-4">
-            {[Instagram, Youtube, Twitter].map((Icon, i) => (
-              <a 
-                key={i} 
-                href="#" 
-                className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center text-text-secondary hover:text-accent-yellow hover:bg-accent-yellow/10 transition-all"
-              >
-                <Icon className="w-5 h-5" />
-              </a>
-            ))}
+            <a 
+              href="https://instagram.com/davsplace.studio" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center text-text-secondary hover:text-accent-yellow hover:bg-accent-yellow/10 transition-all"
+            >
+              <Instagram className="w-5 h-5" />
+            </a>
+            <a 
+              href="https://www.tiktok.com/@dvs.media?is_from_webapp=1&sender_device=pc" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center text-text-secondary hover:text-accent-yellow hover:bg-accent-yellow/10 transition-all"
+            >
+              <Video className="w-5 h-5" />
+            </a>
+            <a 
+              href="https://youtube.com/@davsplacestudio?si=bgJZLa7VzaccCkON" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center text-text-secondary hover:text-accent-yellow hover:bg-accent-yellow/10 transition-all"
+            >
+              <Youtube className="w-5 h-5" />
+            </a>
+            <a 
+              href="https://threads.net/@davsplace.studio" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-lg bg-bg-tertiary flex items-center justify-center text-text-secondary hover:text-accent-yellow hover:bg-accent-yellow/10 transition-all"
+            >
+              <AtSign className="w-5 h-5" />
+            </a>
           </div>
         </div>
 

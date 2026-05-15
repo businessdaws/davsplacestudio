@@ -10,6 +10,18 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- HELPER FOR RLS (To avoid recursion)
+CREATE OR REPLACE FUNCTION is_admin() 
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN (
+    SELECT (role = 'admin')
+    FROM profiles
+    WHERE id = auth.uid()
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- KATEGORI
 CREATE TABLE IF NOT EXISTS categories (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -118,7 +130,16 @@ ALTER TABLE client_logos ENABLE ROW LEVEL SECURITY;
 -- Utility function to drop policy and recreate safely
 DO $$
 BEGIN
-    -- PROFILES
+    -- CLEANUP POTENTIAL RECURSIVE POLICIES
+    DROP POLICY IF EXISTS "Admins can manage articles" ON articles;
+    DROP POLICY IF EXISTS "Admins can manage services" ON services;
+    DROP POLICY IF EXISTS "Admins can manage events" ON events;
+    DROP POLICY IF EXISTS "Admins can manage portfolios" ON portfolios;
+    DROP POLICY IF EXISTS "Admins can manage useful_links" ON useful_links;
+    DROP POLICY IF EXISTS "Admin access" ON profiles;
+    DROP POLICY IF EXISTS "Admins can manage profiles" ON profiles;
+
+    -- PROFILES (KEEP IT SIMPLE: OWN ACCESS + PUBLIC SELECT)
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public profiles are viewable by everyone') THEN
         CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
     END IF;
@@ -129,7 +150,7 @@ BEGIN
         CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
     END IF;
 
-    -- READ ACCESS FOR ALL TABLES (ANON/AUTHENTICATED)
+    -- READ ACCESS FOR ALL TABLES
     PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view articles') OR 
     (CREATE POLICY "Anyone can view articles" ON articles FOR SELECT USING (true));
     
@@ -151,35 +172,29 @@ BEGIN
     PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view client_logos') OR 
     (CREATE POLICY "Anyone can view client_logos" ON client_logos FOR SELECT USING (true));
 
-    -- ADMIN FULL ACCESS (ALL TABLES)
-    -- We assume 'admin' role in profiles table
-    -- Since RLS is row-based, checking if the current user profile is admin
-    -- Helper to check if current user is admin
-    -- (Need to be careful with recursion if checking profile table itself)
-
+    -- ADMIN FULL ACCESS (USING is_admin() function to avoid recursion)
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage articles') THEN
-        CREATE POLICY "Admins can manage articles" ON articles FOR ALL 
-        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+        CREATE POLICY "Admins can manage articles" ON articles FOR ALL USING (is_admin());
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage services') THEN
-        CREATE POLICY "Admins can manage services" ON services FOR ALL 
-        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+        CREATE POLICY "Admins can manage services" ON services FOR ALL USING (is_admin());
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage events') THEN
-        CREATE POLICY "Admins can manage events" ON events FOR ALL 
-        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+        CREATE POLICY "Admins can manage events" ON events FOR ALL USING (is_admin());
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage portfolios') THEN
-        CREATE POLICY "Admins can manage portfolios" ON portfolios FOR ALL 
-        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+        CREATE POLICY "Admins can manage portfolios" ON portfolios FOR ALL USING (is_admin());
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage useful_links') THEN
-        CREATE POLICY "Admins can manage useful_links" ON useful_links FOR ALL 
-        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+        CREATE POLICY "Admins can manage useful_links" ON useful_links FOR ALL USING (is_admin());
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage profiles') THEN
+        CREATE POLICY "Admins can manage profiles" ON profiles FOR ALL USING (is_admin());
     END IF;
 
 END

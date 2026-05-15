@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, PlayCircle } from 'lucide-react';
+import { ExternalLink, PlayCircle, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function FeaturedPortfolio() {
   const [portfolios, setPortfolios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+  const getEmbedUrl = (url: string) => {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}?autoplay=1`;
+    }
+    return url;
+  };
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -64,9 +75,16 @@ export default function FeaturedPortfolio() {
                     {item.title}
                   </h3>
                   
-                  <button className="flex items-center gap-2 text-sm font-bold text-accent-yellow">
+                  <button 
+                    onClick={() => {
+                      if (item.type === 'video' && item.video_url) {
+                        setSelectedVideo(item.video_url);
+                      }
+                    }}
+                    className="flex items-center gap-2 text-sm font-bold text-accent-yellow"
+                  >
                     {item.type === 'video' ? <PlayCircle className="w-5 h-5" /> : <ExternalLink className="w-5 h-5" />}
-                    LIHAT DETAIL
+                    {item.type === 'video' ? 'TONTON VIDEO' : 'LIHAT DETAIL'}
                   </button>
                 </div>
               </div>
@@ -84,6 +102,40 @@ export default function FeaturedPortfolio() {
           </Link>
         </div>
       </div>
+
+      {/* Video Modal Overlay */}
+      <AnimatePresence>
+        {selectedVideo && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/95 backdrop-blur-md"
+            onClick={() => setSelectedVideo(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setSelectedVideo(null)}
+                className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black text-white rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <iframe 
+                src={getEmbedUrl(selectedVideo)}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
