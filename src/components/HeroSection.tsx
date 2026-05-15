@@ -91,39 +91,39 @@ export default function HeroSection() {
             Digital Creative Solution
           </div>
           
-          <h1 className="text-5xl sm:text-7xl md:text-[8.5rem] font-display font-black leading-[0.85] mb-8 tracking-tighter uppercase">
-            ELEVATE YOUR <br />
+          <h1 className="text-[2.5rem] xs:text-5xl sm:text-7xl md:text-[8.5rem] font-display font-black leading-[0.9] sm:leading-[0.85] mb-6 sm:mb-8 tracking-tighter uppercase">
+            ELEVATE YOUR <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-yellow via-accent-yellow-bright to-accent-yellow-dark">DIGITAL VISION</span>
           </h1>
           
-          <p className="text-base md:text-xl text-text-secondary font-medium leading-relaxed mb-12 max-w-2xl mx-auto md:mx-0">
+          <p className="text-sm md:text-xl text-text-secondary font-medium leading-relaxed mb-10 sm:mb-12 max-w-2xl mx-auto md:mx-0">
             Platform bisnis digital untuk kreator & brand lokal Indonesia yang ingin tampil berkelas, futuristik, dan mendunia.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center md:justify-start">
-            <Link to="/kolaborasi" className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-white transition-all group active:scale-95 tracking-widest text-xs">
+            <Link to="/kolaborasi" className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-white transition-all group active:scale-95 tracking-widest text-[10px] sm:text-xs">
               Mulai Project
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             
-            <Link to="/portofolio" className="w-full sm:w-auto px-10 py-5 bg-bg-secondary/50 backdrop-blur-sm border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95 tracking-widest text-xs">
+            <Link to="/portofolio" className="w-full sm:w-auto px-10 py-5 bg-bg-secondary/50 backdrop-blur-sm border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95 tracking-widest text-[10px] sm:text-xs">
               Portfolio
             </Link>
           </div>
 
           {/* Stats */}
-          <div className="mt-16 sm:mt-24 flex flex-wrap justify-center md:justify-start gap-12 sm:gap-20 border-t border-border-subtle/50 pt-12">
+          <div className="mt-12 sm:mt-24 flex flex-wrap justify-center md:justify-start gap-8 sm:gap-20 border-t border-border-subtle/50 pt-8 sm:pt-12">
             <div className="group cursor-default">
               <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">50+</p>
-              <p className="text-[10px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Proyek Selesai</p>
+              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Project</p>
             </div>
             <div className="group cursor-default">
               <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">30+</p>
-              <p className="text-[10px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Klien Puas</p>
+              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Client</p>
             </div>
             <div className="group cursor-default">
               <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">4</p>
-              <p className="text-[10px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Main Service</p>
+              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Service</p>
             </div>
           </div>
         </motion.div>

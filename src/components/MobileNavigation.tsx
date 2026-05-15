@@ -94,7 +94,7 @@ export function MobileBottomNavbar({ onSearchClick }: { onSearchClick: () => voi
   };
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around h-16 bg-bg-primary/95 backdrop-blur-md border-t border-border-subtle pb-[env(safe-area-inset-bottom)] px-1">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around h-16 bg-bg-primary/95 backdrop-blur-md border-t border-border-subtle pb-[env(safe-area-inset-bottom)] px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
       {navItems.map((item) => {
         const active = isActive(item.path);
         return (
@@ -102,18 +102,22 @@ export function MobileBottomNavbar({ onSearchClick }: { onSearchClick: () => voi
             key={item.id}
             onClick={() => handleNav(item)}
             className={cn(
-              'flex flex-col items-center justify-center gap-1 min-w-[60px] py-1 rounded-xl transition-all relative active:scale-95',
-              active ? 'text-accent-yellow' : 'text-text-secondary'
+              'flex flex-col items-center justify-center gap-1 min-w-[54px] py-1 rounded-xl transition-all relative active:scale-90',
+              active ? 'text-accent-yellow' : 'text-text-secondary hover:text-white'
             )}
           >
-            <item.icon className="w-5 h-5" />
-            <span className="text-[9px] font-bold tracking-tight">{item.label}</span>
-            {active && (
-              <motion.div 
-                layoutId="activeTab"
-                className="absolute -bottom-1 w-1 h-1 rounded-full bg-accent-yellow" 
-              />
-            )}
+            <div className={cn(
+              "p-1.5 rounded-lg transition-colors",
+              active ? "bg-accent-yellow/10" : ""
+            )}>
+              <item.icon className={cn("w-5 h-5", active ? "stroke-[2.5]" : "stroke-2")} />
+            </div>
+            <span className={cn(
+              "text-[9px] font-black uppercase tracking-tighter",
+              active ? "opacity-100" : "opacity-60"
+            )}>
+              {item.label}
+            </span>
           </button>
         );
       })}
@@ -121,10 +125,12 @@ export function MobileBottomNavbar({ onSearchClick }: { onSearchClick: () => voi
       {/* Search Button */}
       <button
         onClick={onSearchClick}
-        className="flex flex-col items-center justify-center gap-1 min-w-[60px] py-1 text-text-secondary active:text-accent-yellow active:scale-95 transition-all"
+        className="flex flex-col items-center justify-center gap-1 min-w-[54px] py-1 text-text-secondary active:text-accent-yellow active:scale-90 transition-all"
       >
-        <Search className="w-5 h-5" />
-        <span className="text-[9px] font-bold tracking-tight">Cari</span>
+        <div className="p-1.5">
+          <Search className="w-5 h-5 stroke-2" />
+        </div>
+        <span className="text-[9px] font-black uppercase tracking-tighter opacity-60">Cari</span>
       </button>
     </nav>
   );

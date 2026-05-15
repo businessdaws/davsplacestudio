@@ -145,39 +145,39 @@ export default function ServicesSection() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-4xl bg-bg-secondary border border-border-subtle rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-4xl bg-bg-secondary border border-border-subtle rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
             >
               <button 
                 onClick={() => setSelectedService(null)}
-                className="absolute top-6 right-6 z-20 p-2 hover:bg-bg-tertiary rounded-full transition-colors text-text-secondary"
+                className="absolute top-4 right-4 md:top-6 md:right-6 z-20 p-2 hover:bg-bg-tertiary rounded-full transition-colors text-text-secondary"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
               <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border-subtle overflow-y-auto custom-scrollbar">
                 {/* Info Panel */}
-                <div className="w-full lg:w-1/2 p-8 md:p-12 space-y-8">
-                  <div className="w-16 h-16 bg-accent-yellow rounded-2xl flex items-center justify-center text-bg-primary mb-8 shadow-lg shadow-accent-yellow/20">
-                    <selectedService.icon className="w-8 h-8" />
+                <div className="w-full lg:w-1/2 p-6 md:p-12 space-y-6 md:space-y-8">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-accent-yellow rounded-xl md:rounded-2xl flex items-center justify-center text-bg-primary shadow-lg shadow-accent-yellow/20">
+                    <selectedService.icon className="w-6 h-6 md:w-8 md:h-8" />
                   </div>
                   
                   <div>
-                    <h3 className="text-4xl md:text-5xl font-display font-black uppercase tracking-tighter mb-4">{selectedService.title}</h3>
-                    <p className="text-text-primary text-base md:text-lg leading-relaxed font-sans mb-8">
+                    <h3 className="text-2xl md:text-5xl font-display font-black uppercase tracking-tighter mb-2 md:mb-4">{selectedService.title}</h3>
+                    <p className="text-sm md:text-base text-text-primary leading-relaxed font-sans opacity-90">
                       {selectedService.detailedDescription}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 pb-8">
-                    <div className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle">
-                      <Zap className="w-5 h-5 text-accent-yellow mb-2" />
-                      <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Waktu Pengerjaan</p>
-                      <p className="font-bold text-sm">3 - 10 Hari Kerja</p>
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div className="p-3 md:p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                      <Zap className="w-4 h-4 text-accent-yellow mb-1 md:mb-2" />
+                      <p className="text-[8px] md:text-[10px] font-black uppercase text-text-secondary tracking-widest">Waktu</p>
+                      <p className="font-bold text-[10px] md:text-sm">3-10 Hari</p>
                     </div>
-                    <div className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle">
-                      <MessageSquare className="w-5 h-5 text-accent-yellow mb-2" />
-                      <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Konsultasi</p>
-                      <p className="font-bold text-sm">Gratis 24/7</p>
+                    <div className="p-3 md:p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                      <MessageSquare className="w-4 h-4 text-accent-yellow mb-1 md:mb-2" />
+                      <p className="text-[8px] md:text-[10px] font-black uppercase text-text-secondary tracking-widest">Konsultasi</p>
+                      <p className="font-bold text-[10px] md:text-sm">Gratis 24/7</p>
                     </div>
                   </div>
 
@@ -185,22 +185,22 @@ export default function ServicesSection() {
                     href={`https://wa.me/${settings.whatsapp}?text=Halo Davsplace Studio, saya tertarik dengan layanan ${selectedService.title}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 w-full py-4 bg-accent-yellow text-bg-primary font-black rounded-2xl flex items-center justify-center gap-2 hover:scale-105 transition-transform text-center uppercase tracking-widest text-sm"
+                    className="w-full py-4 bg-accent-yellow text-bg-primary font-black rounded-xl md:rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-center uppercase tracking-widest text-xs md:text-sm"
                   >
-                    Konsultasi Sekarang
-                    <ArrowUpRight className="w-5 h-5" />
+                    Mulai Kolaborasi
+                    <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5" />
                   </a>
                 </div>
 
                 {/* Features & Benefits Panel */}
-                <div className="w-full lg:w-1/2 p-8 md:p-12 bg-bg-tertiary/30 space-y-12">
-                  <div className="space-y-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-yellow">Fitur & Layanan</h4>
+                <div className="w-full lg:w-1/2 p-6 md:p-12 bg-bg-tertiary/30 space-y-8 md:space-y-12">
+                  <div className="space-y-4 md:space-y-6">
+                    <h4 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-accent-yellow">Fitur Unggulan</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedService.features.map((feature) => (
                         <span 
                           key={feature}
-                          className="px-4 py-2 bg-bg-secondary border border-border-subtle rounded-xl text-xs font-bold text-text-primary"
+                          className="px-3 py-1.5 bg-bg-secondary border border-border-subtle rounded-lg text-[10px] md:text-xs font-bold text-text-primary"
                         >
                           {feature}
                         </span>
@@ -208,25 +208,25 @@ export default function ServicesSection() {
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-yellow">Keuntungan Untuk Anda</h4>
-                    <ul className="space-y-4">
+                  <div className="space-y-4 md:space-y-6">
+                    <h4 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-accent-yellow">Keuntungan</h4>
+                    <ul className="space-y-3 md:space-y-4">
                       {selectedService.benefits.map((benefit) => (
-                        <li key={benefit} className="flex items-start gap-3 text-sm font-bold text-text-primary font-sans leading-relaxed">
-                          <CheckCircle2 className="w-5 h-5 text-accent-yellow shrink-0 mt-0.5" />
+                        <li key={benefit} className="flex items-start gap-3 text-xs md:text-sm font-bold text-text-primary font-sans leading-relaxed">
+                          <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-accent-yellow shrink-0 mt-0.5" />
                           {benefit}
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  <div className="p-6 bg-bg-primary/50 rounded-2xl border border-dashed border-border-subtle flex items-center gap-4">
-                    <div className="w-12 h-12 bg-bg-secondary rounded-xl flex items-center justify-center border border-border-subtle shrink-0">
-                      <Clock className="w-6 h-6 text-text-secondary" />
+                  <div className="p-4 md:p-6 bg-bg-primary/50 rounded-xl border border-dashed border-border-subtle flex items-center gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-bg-secondary rounded-lg flex items-center justify-center border border-border-subtle shrink-0">
+                      <Clock className="w-5 h-5 text-text-secondary" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-1">Mulai Hari Ini</p>
-                      <p className="text-xs font-medium text-text-primary">Amankan slot pengerjaan Anda sekarang sebelum penuh.</p>
+                      <p className="text-[8px] md:text-[10px] font-black uppercase text-text-secondary tracking-widest mb-1">Cepat & Tepat</p>
+                      <p className="text-[9px] md:text-[11px] font-medium text-text-primary opacity-80 leading-tight">Proses pengerjaan terjadwal dengan deadline yang pasti.</p>
                     </div>
                   </div>
                 </div>

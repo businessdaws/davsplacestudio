@@ -117,18 +117,18 @@ export default function FeaturedPortfolio() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-5xl bg-bg-secondary rounded-[2rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[500px]"
+              className="relative w-full max-w-5xl bg-bg-secondary rounded-2xl md:rounded-[2rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row max-h-full overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               <button 
                 onClick={() => setSelectedItem(null)}
-                className="absolute top-6 right-6 z-20 p-3 bg-bg-primary/50 hover:bg-bg-primary text-white rounded-full transition-colors"
+                className="absolute top-4 right-4 md:top-6 md:right-6 z-20 p-2 md:p-3 bg-bg-primary/50 hover:bg-bg-primary text-white rounded-full transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
               {/* Media Section */}
-              <div className="w-full lg:w-3/5 bg-black flex items-center justify-center min-h-[300px]">
+              <div className="w-full lg:w-3/5 bg-black flex items-center justify-center min-h-[250px] md:min-h-[400px]">
                 {selectedItem.type === 'video' ? (
                   <iframe 
                     src={getEmbedUrl(selectedItem.video_url)}
@@ -146,41 +146,29 @@ export default function FeaturedPortfolio() {
               </div>
 
               {/* Content Section */}
-              <div className="w-full lg:w-2/5 p-8 md:p-12 flex flex-col justify-center bg-bg-secondary">
-                <div className="space-y-6">
+              <div className="w-full lg:w-2/5 p-6 md:p-12 flex flex-col justify-center bg-bg-secondary">
+                <div className="space-y-4 md:space-y-6">
                   <div>
-                    <span className="px-3 py-1 bg-accent-yellow/10 text-accent-yellow text-[10px] font-black rounded-lg mb-4 inline-block tracking-widest uppercase border border-accent-yellow/20">
+                    <span className="px-2 md:px-3 py-1 bg-accent-yellow/10 text-accent-yellow text-[8px] md:text-[10px] font-black rounded-lg mb-2 md:mb-4 inline-block tracking-widest uppercase border border-accent-yellow/20">
                       {selectedItem.category}
                     </span>
-                    <h3 className="text-3xl md:text-4xl font-display font-black uppercase leading-tight">
+                    <h3 className="text-2xl md:text-4xl font-display font-black uppercase leading-tight">
                       {selectedItem.title}
                     </h3>
                   </div>
 
-                  <div className="space-y-4">
-                    <p className="text-text-secondary leading-relaxed font-sans">
+                  <div className="space-y-3 md:space-y-4">
+                    <p className="text-xs md:text-base text-text-secondary leading-relaxed font-sans">
                       {selectedItem.description || 'Tidak ada deskripsi tersedia untuk proyek ini.'}
                     </p>
                     
-                    {selectedItem.client && (
-                      <div className="pt-6 border-t border-border-subtle">
-                        <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-1">CLIENT</p>
-                        <p className="font-display font-bold uppercase">{selectedItem.client}</p>
+                    {selectedItem.client_name && (
+                      <div className="pt-4 md:pt-6 border-t border-border-subtle">
+                        <p className="text-[8px] md:text-[10px] font-black uppercase text-text-secondary tracking-widest mb-1">CLIENT</p>
+                        <p className="font-display font-bold text-sm md:text-base uppercase">{selectedItem.client_name}</p>
                       </div>
                     )}
                   </div>
-
-                  {selectedItem.link && (
-                    <a 
-                      href={selectedItem.link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-8 py-4 bg-accent-yellow text-bg-primary font-black rounded-xl hover:scale-105 transition-transform"
-                    >
-                      LIHAT LIVE PROJECT
-                      <ExternalLink className="w-5 h-5" />
-                    </a>
-                  )}
                 </div>
               </div>
             </motion.div>
