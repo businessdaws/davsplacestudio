@@ -800,6 +800,13 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
     }
   };
 
+  const getYouTubeID = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
   const [formData, setFormData] = useState<any>(getInitialFormData());
 
   const fetchData = async () => {
@@ -1126,27 +1133,51 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
               )}
 
               {type === 'portfolios' && formData.type === 'video' && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Video URL (YouTube/Vimeo)</label>
-                  <input 
-                    type="text" placeholder="https://youtube.com/watch?v=..." value={formData.video_url}
-                    onChange={(e) => setFormData({...formData, video_url: e.target.value})}
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Video URL (YouTube/Vimeo)</label>
+                    <input 
+                      type="text" placeholder="https://youtube.com/watch?v=..." value={formData.video_url}
+                      onChange={(e) => setFormData({...formData, video_url: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                    <p className="text-[10px] text-text-secondary italic ml-1">Masukkan link video YouTube atau Vimeo untuk ditampilkan di portofolio.</p>
+                  </div>
+                  
+                  {getYouTubeID(formData.video_url) && (
+                    <div className="bg-bg-tertiary border border-border-subtle rounded-xl overflow-hidden aspect-video">
+                      <iframe 
+                        src={`https://www.youtube.com/embed/${getYouTubeID(formData.video_url)}`}
+                        className="w-full h-full"
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Image URL {type === 'portfolios' && '(Thumbnail)'}</label>
-                <div className="flex gap-4">
-                  <input 
-                    type="text" required placeholder="https://..." value={type === 'articles' ? formData.cover_image : formData.image_url}
-                    onChange={(e) => setFormData({...formData, [type === 'articles' ? 'cover_image' : 'image_url']: e.target.value})}
-                    className="flex-1 bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                  />
+                <label className="text-xs font-black uppercase text-text-secondary ml-1">
+                  {type === 'articles' ? 'URL Gambar Cover' : type === 'events' ? 'URL Banner Event' : 'URL Thumbnail / Gambar'}
+                </label>
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-4">
+                    <input 
+                      type="text" required placeholder="https://..." value={type === 'articles' ? formData.cover_image : formData.image_url}
+                      onChange={(e) => setFormData({...formData, [type === 'articles' ? 'cover_image' : 'image_url']: e.target.value})}
+                      className="flex-1 bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
                   {(type === 'articles' ? formData.cover_image : formData.image_url) && (
-                    <div className="w-12 h-12 rounded-lg border border-border-subtle overflow-hidden bg-white/5">
-                      <img src={type === 'articles' ? formData.cover_image : formData.image_url} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    <div className="relative group w-full aspect-video md:aspect-[3/1] bg-bg-tertiary border border-border-subtle rounded-2xl overflow-hidden shadow-inner">
+                      <div className="absolute inset-0 flex items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity">
+                        <TrendingUp className="w-12 h-12" />
+                      </div>
+                      <img 
+                        src={type === 'articles' ? formData.cover_image : formData.image_url} 
+                        className="relative z-10 w-full h-full object-cover" 
+                        onError={(e) => (e.currentTarget.style.display = 'none')} 
+                      />
                     </div>
                   )}
                 </div>
@@ -1165,12 +1196,23 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
 
               {(type === 'articles' || type === 'events' || type === 'portfolios') && (
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Deskripsi / Konten</label>
-                  <textarea 
-                    rows={6} required={type !== 'portfolios'} value={formData.content}
-                    onChange={(e) => setFormData({...formData, content: e.target.value})}
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm"
-                  />
+                  <label className="text-xs font-black uppercase text-text-secondary ml-1">
+                    {type === 'articles' ? 'Konten Artikel' : type === 'events' ? 'Deskripsi Event' : 'Deskripsi Proyek'}
+                  </label>
+                  {type === 'portfolios' ? (
+                    <textarea 
+                      rows={6} value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-sans text-sm"
+                    />
+                  ) : (
+                    <textarea 
+                      rows={6} required value={formData.content}
+                      onChange={(e) => setFormData({...formData, content: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-sans text-sm"
+                    />
+                  )}
+                  <p className="text-[10px] text-text-secondary italic ml-1">Gunakan bahasa yang menarik untuk menjelaskan detail konten ini.</p>
                 </div>
               )}
 
