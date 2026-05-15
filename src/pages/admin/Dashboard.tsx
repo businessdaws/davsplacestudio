@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { 
   collection, 
@@ -37,7 +37,10 @@ type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links' | 'catego
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
+  'davsplacestudio@gmail.com',
   'businessdaws@gmail.com',
+  'admin@davs.studio',
+  'fajarmuniri@gmail.com'
 ];
 
 export default function AdminDashboard() {
@@ -293,10 +296,14 @@ function LinksManager() {
   const [formData, setFormData] = useState({ title: '', url: '', icon: 'ArrowRight', sort_order: 0, is_active: true });
 
   const fetchLinks = async () => {
-    const q = query(collection(db, 'useful_links'), orderBy('sort_order', 'asc'));
-    const querySnapshot = await getDocs(q);
-    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setLinks(data || []);
+    try {
+      const q = query(collection(db, 'useful_links'), orderBy('sort_order', 'asc'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLinks(data || []);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, 'useful_links');
+    }
   };
 
   useEffect(() => {
@@ -305,17 +312,21 @@ function LinksManager() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingItem) {
-      await updateDoc(doc(db, 'useful_links', editingItem.id), formData);
-    } else {
-      await addDoc(collection(db, 'useful_links'), {
-        ...formData,
-        sort_order: links.length,
-        created_at: serverTimestamp()
-      });
+    try {
+      if (editingItem) {
+        await updateDoc(doc(db, 'useful_links', editingItem.id), formData);
+      } else {
+        await addDoc(collection(db, 'useful_links'), {
+          ...formData,
+          sort_order: links.length,
+          created_at: serverTimestamp()
+        });
+      }
+      setIsModalOpen(false);
+      fetchLinks();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'useful_links');
     }
-    setIsModalOpen(false);
-    fetchLinks();
   };
 
   const openAdd = () => {
@@ -338,8 +349,12 @@ function LinksManager() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Hapus link ini?')) {
-      await deleteDoc(doc(db, 'useful_links', id));
-      fetchLinks();
+      try {
+        await deleteDoc(doc(db, 'useful_links', id));
+        fetchLinks();
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `useful_links/${id}`);
+      }
     }
   };
 
@@ -450,22 +465,19 @@ function OverviewGrid() {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const [articles, events, portfolios, links, categories, logos] = await Promise.all([
-          getCountFromServer(collection(db, 'articles')),
-          getCountFromServer(collection(db, 'events')),
-          getCountFromServer(collection(db, 'portfolios')),
-          getCountFromServer(collection(db, 'useful_links')),
-          getCountFromServer(collection(db, 'categories')),
-          getCountFromServer(collection(db, 'client_logos')),
-        ]);
-        setCounts({
-          articles: articles.data().count || 0,
-          events: events.data().count || 0,
-          portfolios: portfolios.data().count || 0,
-          links: links.data().count || 0,
-          categories: categories.data().count || 0,
-          logos: logos.data().count || 0
+        const collectionsList = ['articles', 'events', 'portfolios', 'useful_links', 'categories', 'client_logos'];
+        const results = await Promise.allSettled(
+          collectionsList.map(name => getCountFromServer(collection(db, name)))
+        );
+
+        const newCounts = { ...counts };
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            const name = collectionsList[index];
+            (newCounts as any)[name === 'useful_links' ? 'links' : name === 'client_logos' ? 'logos' : name] = result.value.data().count;
+          }
         });
+        setCounts(newCounts);
       } catch (err) {
         console.error('Fetch counts error:', err);
       }
@@ -512,23 +524,31 @@ function CategoriesManager() {
   const [formData, setFormData] = useState({ name: '', slug: '', type: 'artikel', description: '', icon: '', color: '#FACC15' });
 
   const fetchData = async () => {
-    const q = query(collection(db, 'categories'), orderBy('name', 'asc'));
-    const querySnapshot = await getDocs(q);
-    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setCategories(data);
+    try {
+      const q = query(collection(db, 'categories'), orderBy('name', 'asc'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCategories(data);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, 'categories');
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingItem) {
-      await updateDoc(doc(db, 'categories', editingItem.id), formData);
-    } else {
-      await addDoc(collection(db, 'categories'), { ...formData, created_at: serverTimestamp() });
+    try {
+      if (editingItem) {
+        await updateDoc(doc(db, 'categories', editingItem.id), formData);
+      } else {
+        await addDoc(collection(db, 'categories'), { ...formData, created_at: serverTimestamp() });
+      }
+      setIsModalOpen(false);
+      fetchData();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'categories');
     }
-    setIsModalOpen(false);
-    fetchData();
   };
 
   const openAdd = () => {
@@ -545,8 +565,12 @@ function CategoriesManager() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Hapus kategori ini?')) {
-      await deleteDoc(doc(db, 'categories', id));
-      fetchData();
+      try {
+        await deleteDoc(doc(db, 'categories', id));
+        fetchData();
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `categories/${id}`);
+      }
     }
   };
 
@@ -637,23 +661,31 @@ function LogosManager() {
   const [formData, setFormData] = useState({ company_name: '', logo_url: '', website_url: '', sort_order: 0, is_active: true });
 
   const fetchData = async () => {
-    const q = query(collection(db, 'client_logos'), orderBy('sort_order', 'asc'));
-    const querySnapshot = await getDocs(q);
-    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setLogos(data);
+    try {
+      const q = query(collection(db, 'client_logos'), orderBy('sort_order', 'asc'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLogos(data);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, 'client_logos');
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingItem) {
-      await updateDoc(doc(db, 'client_logos', editingItem.id), formData);
-    } else {
-      await addDoc(collection(db, 'client_logos'), { ...formData, created_at: serverTimestamp() });
+    try {
+      if (editingItem) {
+        await updateDoc(doc(db, 'client_logos', editingItem.id), formData);
+      } else {
+        await addDoc(collection(db, 'client_logos'), { ...formData, created_at: serverTimestamp() });
+      }
+      setIsModalOpen(false);
+      fetchData();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'client_logos');
     }
-    setIsModalOpen(false);
-    fetchData();
   };
 
   const openAdd = () => {
@@ -670,8 +702,12 @@ function LogosManager() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Hapus logo ini?')) {
-      await deleteDoc(doc(db, 'client_logos', id));
-      fetchData();
+      try {
+        await deleteDoc(doc(db, 'client_logos', id));
+        fetchData();
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `client_logos/${id}`);
+      }
     }
   };
 
@@ -767,20 +803,24 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
   const [formData, setFormData] = useState<any>(getInitialFormData());
 
   const fetchData = async () => {
-    // Fetch Items
-    const q = query(collection(db, type), orderBy('created_at', 'desc'));
-    const querySnapshot = await getDocs(q);
-    const data = querySnapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data(),
-      created_at: (doc.data() as any).created_at?.toDate?.()?.toISOString() || new Date().toISOString()
-    }));
-    setItems(data || []);
+    try {
+      // Fetch Items
+      const q = query(collection(db, type), orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data(),
+        created_at: (doc.data() as any).created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+      }));
+      setItems(data || []);
 
-    // Fetch Categories for dropdowns
-    const cq = query(collection(db, 'categories'), where('type', '==', type === 'articles' ? 'artikel' : 'portofolio'));
-    const cSnapshot = await getDocs(cq);
-    setCategories(cSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      // Fetch Categories for dropdowns
+      const cq = query(collection(db, 'categories'), where('type', '==', type === 'articles' ? 'artikel' : 'portofolio'));
+      const cSnapshot = await getDocs(cq);
+      setCategories(cSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, type);
+    }
   };
 
   useEffect(() => {
@@ -820,8 +860,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
       setFormData(getInitialFormData());
       await fetchData();
     } catch (err: any) {
-      console.error('Error saving data:', err);
-      alert(`Gagal menyimpan: ${err.message || 'Cek koneksi database'}`);
+      handleFirestoreError(err, OperationType.WRITE, type);
     } finally {
       setLoading(false);
     }
@@ -845,8 +884,12 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
 
   const handleDelete = async (id: string) => {
     if (confirm('Hapus konten ini?')) {
-      await deleteDoc(doc(db, type, id));
-      fetchData();
+      try {
+        await deleteDoc(doc(db, type, id));
+        fetchData();
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `${type}/${id}`);
+      }
     }
   };
 

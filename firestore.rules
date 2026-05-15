@@ -8,6 +8,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Allow connectivity test
+    match /test/connection {
+      allow read: if true;
+    }
+
     // --- HELPER FUNCTIONS ---
     
     function isSignedIn() {
@@ -24,7 +29,17 @@ service cloud.firestore {
     
     // Check if user is an admin by looking up the profiles collection
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin') ||
+        (request.auth.token.email_verified == true && 
+         request.auth.token.email in [
+           'davsplacestudio@gmail.com', 
+           'businessdaws@gmail.com', 
+           'admin@davs.studio', 
+           'fajarmuniri@gmail.com'
+         ])
+      );
     }
 
     function isValidId(id) {

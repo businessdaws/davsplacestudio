@@ -15,8 +15,10 @@ import { Shield, ArrowLeft, Loader2, Mail, Lock } from 'lucide-react';
 
 // ✅ Daftar email yang diizinkan sebagai admin
 const ADMIN_EMAILS = [
+  'davsplacestudio@gmail.com',
   'businessdaws@gmail.com',
-  // tambahkan email admin lain di sini jika perlu
+  'admin@davs.studio',
+  'fajarmuniri@gmail.com'
 ];
 
 export default function AdminLogin() {
@@ -87,8 +89,20 @@ export default function AdminLogin() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       await syncProfile(userCredential.user);
     } catch (err: any) {
-      setError(err.message === 'Firebase: Error (auth/user-not-found).' ? 'Email tidak terdaftar.' : 
-                err.message === 'Firebase: Error (auth/wrong-password).' ? 'Password salah.' : err.message);
+      console.error('Login error:', err);
+      if (err.message?.includes('auth/unauthorized-domain')) {
+        setError(
+          'DOMAIN TIDAK TEROTORISASI: Link aplikasi ini belum didaftarkan di Firebase Console. ' +
+          'Silakan masuk ke Firebase Console > Authentication > Settings > Authorized Domains, lalu tambahkan domain: ' +
+          window.location.hostname
+        );
+      } else if (err.message === 'Firebase: Error (auth/user-not-found).') {
+        setError('Email tidak terdaftar.');
+      } else if (err.message === 'Firebase: Error (auth/wrong-password).') {
+        setError('Password salah.');
+      } else {
+        setError(err.message || 'Terjadi kesalahan saat login.');
+      }
       setLoading(false);
     }
   };
@@ -100,7 +114,16 @@ export default function AdminLogin() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (err: any) {
-      setError(err.message || 'Gagal login dengan Google.');
+      console.error('Google login error:', err);
+      if (err.message?.includes('auth/unauthorized-domain')) {
+        setError(
+          'DOMAIN TIDAK TEROTORISASI: Link aplikasi ini belum didaftarkan di Firebase Console. ' +
+          'Silakan masuk ke Firebase Console > Authentication > Settings > Authorized Domains, lalu tambahkan domain: ' +
+          window.location.hostname
+        );
+      } else {
+        setError(err.message || 'Gagal login dengan Google.');
+      }
       setLoading(false);
     }
   };
