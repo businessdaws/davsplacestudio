@@ -82,9 +82,9 @@ export default function FeaturedPortfolio() {
                     {item.title}
                   </h3>
                   
-                  <div className="flex items-center gap-2 text-sm font-bold text-accent-yellow">
-                    {item.type === 'video' ? <PlayCircle className="w-5 h-5" /> : <ExternalLink className="w-5 h-5" />}
-                    {item.type === 'video' ? 'TONTON VIDEO' : 'LIHAT DETAIL'}
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-accent-yellow">
+                    {item.type === 'video' ? <PlayCircle className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
+                    {item.type === 'video' ? 'Play Video' : 'View Detail'}
                   </div>
                 </div>
               </div>

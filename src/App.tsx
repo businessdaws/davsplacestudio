@@ -36,12 +36,15 @@ const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const CollabPage = lazy(() => import('./pages/CollabPage'));
 const SocialMediaGenerator = lazy(() => import('./pages/SocialMediaGenerator'));
 
+import { SettingsProvider } from './context/SettingsContext';
+
 export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
-    <Router>
-      <div className="min-h-screen bg-bg-primary selection:bg-accent-yellow/30 selection:text-accent-yellow overflow-x-hidden">
+    <SettingsProvider>
+      <Router>
+        <div className="min-h-screen bg-bg-primary selection:bg-accent-yellow/30 selection:text-accent-yellow overflow-x-hidden">
         <Routes>
           {/* Admin Routes */}
           <Route path="/admin/login" element={
@@ -142,7 +145,8 @@ export default function App() {
         <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       </div>
     </Router>
-  );
+  </SettingsProvider>
+ );
 }
 
 

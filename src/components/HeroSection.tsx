@@ -91,40 +91,39 @@ export default function HeroSection() {
             Digital Creative Solution
           </div>
           
-          <h1 className="text-5xl sm:text-7xl md:text-[8rem] font-display font-extrabold leading-[0.85] mb-8 tracking-tighter uppercase">
+          <h1 className="text-5xl sm:text-7xl md:text-[8.5rem] font-display font-black leading-[0.85] mb-8 tracking-tighter uppercase">
             ELEVATE YOUR <br />
-            <span className="text-accent-yellow">DIGITAL VISION</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-yellow via-accent-yellow-bright to-accent-yellow-dark">DIGITAL VISION</span>
           </h1>
           
-          <p className="text-base md:text-xl text-text-secondary font-sans leading-relaxed mb-12 max-w-2xl mx-auto md:mx-0">
-            Platform bisnis digital untuk kreator & brand lokal Indonesia yang ingin tampil berkelas dan futuristik.
+          <p className="text-base md:text-xl text-text-secondary font-medium leading-relaxed mb-12 max-w-2xl mx-auto md:mx-0">
+            Platform bisnis digital untuk kreator & brand lokal Indonesia yang ingin tampil berkelas, futuristik, dan mendunia.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center md:justify-start">
-            <Link to="/kolaborasi" className="w-full sm:w-auto px-8 py-4 bg-accent-yellow text-bg-primary font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-accent-yellow-bright transition-all group active:scale-95 font-medium tracking-tight">
-              Mulai Sekarang
+            <Link to="/kolaborasi" className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-white transition-all group active:scale-95 tracking-widest text-xs">
+              Mulai Project
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             
-            <Link to="/portofolio" className="w-full sm:w-auto px-8 py-4 bg-bg-secondary border border-border-subtle text-text-primary font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95 font-medium tracking-tight">
-              <Play className="w-5 h-5 text-accent-yellow fill-accent-yellow" />
-              Lihat Portofolio
+            <Link to="/portofolio" className="w-full sm:w-auto px-10 py-5 bg-bg-secondary/50 backdrop-blur-sm border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95 tracking-widest text-xs">
+              Portfolio
             </Link>
           </div>
 
           {/* Stats */}
-          <div className="mt-16 sm:mt-20 flex flex-wrap justify-center md:justify-start gap-8 sm:gap-12 border-t border-border-subtle/50 pt-10">
-            <div>
-              <p className="text-2xl sm:text-3xl font-display font-black text-white">50+</p>
-              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-sans">Proyek Selesai</p>
+          <div className="mt-16 sm:mt-24 flex flex-wrap justify-center md:justify-start gap-12 sm:gap-20 border-t border-border-subtle/50 pt-12">
+            <div className="group cursor-default">
+              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">50+</p>
+              <p className="text-[10px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Proyek Selesai</p>
             </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-display font-black text-white">30+</p>
-              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-sans">Klien Puas</p>
+            <div className="group cursor-default">
+              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">30+</p>
+              <p className="text-[10px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Klien Puas</p>
             </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-display font-black text-white">4</p>
-              <p className="text-[10px] sm:text-xs text-text-secondary uppercase tracking-widest font-sans">Layanan</p>
+            <div className="group cursor-default">
+              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">4</p>
+              <p className="text-[10px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Main Service</p>
             </div>
           </div>
         </motion.div>

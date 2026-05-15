@@ -140,6 +140,37 @@
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["company_name", "logo_url"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Contact form submissions/prospects",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "company": { "type": "string" },
+        "type": { "type": "string" },
+        "message": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global application configuration",
+      "type": "object",
+      "properties": {
+        "whatsapp": { "type": "string" },
+        "instagram": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "maintenance_mode": { "type": "boolean" },
+        "promo_text": { "type": "string" },
+        "running_text_enabled": { "type": "boolean" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -174,6 +205,14 @@
     "client_logos": {
       "schema": "ClientLogo",
       "description": "Partner logos"
+    },
+    "leads": {
+      "schema": "Lead",
+      "description": "Business inquiries"
+    },
+    "site_settings": {
+      "schema": "SiteSettings",
+      "description": "Site configuration"
     }
   }
 }

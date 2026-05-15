@@ -65,29 +65,41 @@ export default function FeaturedEvents() {
                 </div>
               </div>
 
-              <div className="w-full md:w-1/2 p-10 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-2xl font-display font-bold mb-6 group-hover:text-accent-yellow transition-colors leading-tight truncate">
+              <div className="w-full md:w-1/2 p-10 flex flex-col justify-between relative">
+                {/* Decoration */}
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                  <CalendarIcon className="w-32 h-32" />
+                </div>
+
+                <div className="relative z-10">
+                  <h3 className="text-3xl font-display font-black mb-8 group-hover:text-accent-yellow transition-colors leading-tight uppercase tracking-tight line-clamp-2">
                     {event.title}
                   </h3>
                   
-                  <div className="space-y-4 mb-8">
-                    <div className="flex items-center gap-3 text-text-secondary">
-                      <CalendarIcon className="w-5 h-5 text-accent-yellow" />
-                      <span className="text-sm font-medium">{event.date}</span>
+                  <div className="space-y-6 mb-12">
+                    <div className="flex items-center gap-4 text-text-secondary">
+                      <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-accent-yellow">
+                        <CalendarIcon className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-bold uppercase tracking-widest">{event.date}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-text-secondary">
-                      <MapPin className="w-5 h-5 text-accent-yellow" />
-                      <span className="text-sm font-medium">{event.location}</span>
+                    <div className="flex items-center gap-4 text-text-secondary">
+                      <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-accent-yellow">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-bold uppercase tracking-widest">{event.location}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-8 border-t border-border-subtle">
-                  <span className="text-xl font-display font-black text-white">{event.price}</span>
-                  <button className="px-6 py-2.5 bg-accent-yellow text-bg-primary font-black rounded-lg text-xs uppercase tracking-wider hover:bg-accent-yellow-bright transition-all">
-                    Daftar Sekarang
-                  </button>
+                <div className="relative z-10 flex items-center justify-between pt-8 border-t border-border-subtle group-hover:border-accent-yellow transition-colors">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-1">Ticket</span>
+                    <span className="text-2xl font-display font-black text-white">{event.price}</span>
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-accent-yellow flex items-center justify-center text-bg-primary group-hover:bg-white transition-all group-hover:scale-110 shadow-lg shadow-accent-yellow/10">
+                    <ArrowRight className="w-6 h-6" />
+                  </div>
                 </div>
               </div>
             </motion.div>

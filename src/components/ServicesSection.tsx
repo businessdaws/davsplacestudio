@@ -62,8 +62,11 @@ const services = [
   }
 ];
 
+import { useSettings } from '../context/SettingsContext';
+
 export default function ServicesSection() {
   const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
+  const { settings } = useSettings();
 
   return (
     <section className="py-24 md:py-32 bg-bg-primary overflow-hidden">
@@ -179,7 +182,7 @@ export default function ServicesSection() {
                   </div>
 
                   <a 
-                    href={`https://wa.me/6285156434442?text=Halo Davsplace Studio, saya tertarik dengan layanan ${selectedService.title}`}
+                    href={`https://wa.me/${settings.whatsapp}?text=Halo Davsplace Studio, saya tertarik dengan layanan ${selectedService.title}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 w-full py-4 bg-accent-yellow text-bg-primary font-black rounded-2xl flex items-center justify-center gap-2 hover:scale-105 transition-transform text-center uppercase tracking-widest text-sm"

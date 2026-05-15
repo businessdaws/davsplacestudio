@@ -29,11 +29,20 @@ import {
   ExternalLink,
   ChevronRight,
   TrendingUp,
-  Users
+  Users,
+  Upload,
+  X,
+  MessageSquare,
+  Clock,
+  Zap,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links' | 'categories' | 'logos';
+type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links' | 'categories' | 'logos' | 'leads' | 'settings';
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
@@ -160,12 +169,14 @@ export default function AdminDashboard() {
       <nav className="flex-1 space-y-2">
         {[
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
+          { id: 'leads', icon: MessageSquare, label: 'Inbound Leads' },
           { id: 'articles', icon: FileText, label: 'Artikel' },
           { id: 'portfolios', icon: TrendingUp, label: 'Portofolio' },
           { id: 'events', icon: Calendar, label: 'Event' },
           { id: 'links', icon: ExternalLink, label: 'Useful Links' },
           { id: 'categories', icon: Settings, label: 'Kategori' },
           { id: 'logos', icon: Users, label: 'Client Logos' },
+          { id: 'settings', icon: Settings, label: 'Site Settings' },
         ].map((item) => (
           <button
             key={item.id}
@@ -243,15 +254,17 @@ export default function AdminDashboard() {
               <LayoutDashboard className="w-6 h-6 text-accent-yellow" />
             </button>
             <div>
-              <h1 className="text-2xl md:text-4xl font-display font-black uppercase tracking-tight">
-                {activeTab === 'overview' && 'Overview'}
-                {activeTab === 'articles' && 'Artikel'}
-                {activeTab === 'portfolios' && 'Portofolio'}
-                {activeTab === 'events' && 'Event'}
-                {activeTab === 'links' && 'Useful Links'}
-                {activeTab === 'categories' && 'Kategori'}
-                {activeTab === 'logos' && 'Client Logos'}
-              </h1>
+                <h1 className="text-2xl md:text-4xl font-display font-black uppercase tracking-tight">
+                  {activeTab === 'overview' && 'Overview'}
+                  {activeTab === 'leads' && 'Inbound Leads'}
+                  {activeTab === 'articles' && 'Artikel'}
+                  {activeTab === 'portfolios' && 'Portofolio'}
+                  {activeTab === 'events' && 'Event'}
+                  {activeTab === 'links' && 'Useful Links'}
+                  {activeTab === 'categories' && 'Kategori'}
+                  {activeTab === 'logos' && 'Client Logos'}
+                  {activeTab === 'settings' && 'Site Settings'}
+                </h1>
               <div className="flex flex-col mt-1">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
@@ -278,13 +291,254 @@ export default function AdminDashboard() {
         </header>
 
         {activeTab === 'overview' && <OverviewGrid />}
+        {activeTab === 'leads' && <LeadsManager />}
         {activeTab === 'articles' && <ContentManager type="articles" />}
         {activeTab === 'portfolios' && <ContentManager type="portfolios" />}
         {activeTab === 'events' && <ContentManager type="events" />}
         {activeTab === 'links' && <LinksManager />}
         {activeTab === 'categories' && <CategoriesManager />}
         {activeTab === 'logos' && <LogosManager />}
+        {activeTab === 'settings' && <SettingsManager />}
       </main>
+    </div>
+  );
+}
+
+function LeadsManager() {
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLeads = async () => {
+    try {
+      const q = query(collection(db, 'leads'), orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLeads(data);
+    } catch (error) {
+      console.error('Fetch leads error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchLeads(); }, []);
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Hapus lead ini?')) {
+      try {
+        await deleteDoc(doc(db, 'leads', id));
+        fetchLeads();
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `leads/${id}`);
+      }
+    }
+  };
+
+  if (loading) return <div className="py-20 text-center uppercase font-black text-text-secondary tracking-widest animate-pulse">Loading Leads...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-bg-secondary p-6 border border-border-subtle rounded-xl flex justify-between items-center">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary">Client Inquiries</h3>
+        <span className="px-3 py-1 bg-accent-yellow/10 text-accent-yellow text-[10px] font-black rounded-lg">{leads.length} TOTAL</span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {leads.map((lead) => (
+          <div key={lead.id} className="bg-bg-secondary border border-border-subtle p-6 rounded-2xl hover:border-accent-yellow transition-all group">
+            <div className="flex flex-col md:flex-row justify-between gap-6">
+              <div className="space-y-4 flex-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-2 py-0.5 bg-bg-tertiary text-accent-yellow text-[10px] font-black uppercase rounded border border-border-subtle">{lead.type || 'Inquiry'}</span>
+                  <h4 className="text-xl font-bold">{lead.name}</h4>
+                  <span className="text-xs text-text-secondary">({lead.email})</span>
+                </div>
+                <p className="text-sm text-text-secondary leading-relaxed bg-bg-primary/30 p-4 rounded-xl border border-border-subtle/50 italic">
+                  "{lead.message}"
+                </p>
+                <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                  <div className="flex items-center gap-2"><Clock className="w-3 h-3" /> {new Date(lead.created_at?.toDate?.() || Date.now()).toLocaleString('id-ID')}</div>
+                  <div className="flex items-center gap-2"><Briefcase className="w-3 h-3" /> {lead.company || 'Personal'}</div>
+                </div>
+              </div>
+              <div className="flex md:flex-col gap-2 shrink-0">
+                <a 
+                  href={`mailto:${lead.email}`}
+                  className="flex-1 md:flex-none px-6 py-2 bg-accent-yellow text-bg-primary text-[10px] font-black rounded-lg text-center uppercase tracking-widest hover:bg-white transition-all shadow-lg shadow-accent-yellow/10"
+                >
+                  Reply Email
+                </a>
+                <button 
+                  onClick={() => handleDelete(lead.id)}
+                  className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {leads.length === 0 && (
+          <div className="py-32 text-center bg-bg-secondary border border-border-subtle rounded-2xl border-dashed">
+            <MessageSquare className="w-12 h-12 text-text-secondary mx-auto mb-4 opacity-20" />
+            <p className="text-text-secondary font-sans italic">Belum ada pesan masuk dari klien.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SettingsManager() {
+  const [settings, setSettings] = useState<any>({
+    whatsapp: '',
+    instagram: '',
+    email: '',
+    address: '',
+    maintenance_mode: false,
+    promo_text: '',
+    running_text_enabled: true
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchSettings = async () => {
+    try {
+      const docRef = doc(db, 'site_settings', 'global');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setSettings(docSnap.data());
+      } else {
+        // Init default settings if not exists
+        await setDoc(docRef, settings);
+      }
+    } catch (error) {
+      console.error('Fetch settings error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchSettings(); }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'site_settings', 'global'), {
+        ...settings,
+        updated_at: serverTimestamp()
+      }, { merge: true });
+      alert('Pengaturan berhasil disimpan!');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'site_settings/global');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="py-20 text-center uppercase font-black text-text-secondary tracking-widest animate-pulse">Loading Settings...</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <form onSubmit={handleSave} className="space-y-8">
+        <div className="bg-bg-secondary border border-border-subtle rounded-2xl overflow-hidden">
+          <div className="px-8 py-5 bg-bg-tertiary/50 border-b border-border-subtle flex items-center gap-3">
+            <Zap className="w-5 h-5 text-accent-yellow" />
+            <h3 className="text-sm font-black uppercase tracking-widest">General Configuration</h3>
+          </div>
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-text-secondary ml-1">WhatsApp Number</label>
+                <input 
+                  type="text" 
+                  value={settings.whatsapp}
+                  onChange={(e) => setSettings({...settings, whatsapp: e.target.value})}
+                  placeholder="e.g. 628123456789"
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-text-secondary ml-1">Instagram URL</label>
+                <input 
+                  type="text" 
+                  value={settings.instagram}
+                  onChange={(e) => setSettings({...settings, instagram: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-text-secondary ml-1">Business Email</label>
+                <input 
+                  type="email" 
+                  value={settings.email}
+                  onChange={(e) => setSettings({...settings, email: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-text-secondary ml-1">Office Address</label>
+                <input 
+                  type="text" 
+                  value={settings.address}
+                  onChange={(e) => setSettings({...settings, address: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-bg-secondary border border-border-subtle rounded-2xl overflow-hidden">
+          <div className="px-8 py-5 bg-bg-tertiary/50 border-b border-border-subtle flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-accent-yellow" />
+            <h3 className="text-sm font-black uppercase tracking-widest">Promotion & UI</h3>
+          </div>
+          <div className="p-8 space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-text-secondary ml-1">Promo / Running Text</label>
+              <textarea 
+                rows={3}
+                value={settings.promo_text}
+                onChange={(e) => setSettings({...settings, promo_text: e.target.value})}
+                placeholder="Teks yang akan muncul di running bar..."
+                className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow"
+              />
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="running-enabled"
+                  checked={settings.running_text_enabled}
+                  onChange={(e) => setSettings({...settings, running_text_enabled: e.target.checked})}
+                />
+                <label htmlFor="running-enabled" className="text-xs font-bold uppercase tracking-widest">Enable Running Text</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="maintenance"
+                  checked={settings.maintenance_mode}
+                  onChange={(e) => setSettings({...settings, maintenance_mode: e.target.checked})}
+                />
+                <label htmlFor="maintenance" className="text-xs font-bold uppercase tracking-widest text-red-500">Maintenance Mode</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button 
+            type="submit" 
+            disabled={saving}
+            className="px-12 py-4 bg-accent-yellow text-bg-primary font-black rounded-2xl uppercase tracking-widest hover:scale-105 transition-all disabled:opacity-50 shadow-xl shadow-accent-yellow/20"
+          >
+            {saving ? 'Saving...' : 'SIMPAN SEMUA PERUBAHAN'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -777,6 +1031,8 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pub' | 'draft'>('all');
   
   const getInitialFormData = () => {
     switch (type) {
@@ -805,6 +1061,22 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) { // 1MB Limit
+      alert('Ukuran file terlalu besar! Maksimal 1MB untuk performa terbaik.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData({ ...formData, [field]: reader.result });
+    };
+    reader.readAsDataURL(file);
   };
 
   const [formData, setFormData] = useState<any>(getInitialFormData());
@@ -873,6 +1145,15 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
     }
   };
 
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         item.slug?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'pub' && item.is_published) || 
+                         (statusFilter === 'draft' && !item.is_published);
+    return matchesSearch && matchesStatus;
+  });
+
   const openAdd = () => {
     setEditingItem(null);
     setFormData(getInitialFormData());
@@ -902,17 +1183,39 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-bg-secondary p-6 border border-border-subtle rounded-xl">
-        <div className="text-sm font-bold">
-          {items.length} Total {type === 'articles' ? 'Artikel' : type === 'events' ? 'Event' : 'Portofolio'}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-bg-secondary p-6 border border-border-subtle rounded-xl items-center">
+        <div className="md:col-span-5 relative">
+          <input 
+            type="text"
+            placeholder="Cari judul atau slug..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-accent-yellow text-sm"
+          />
+          <LayoutDashboard className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
-        <button 
-          onClick={openAdd}
-          className="px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center gap-2 hover:scale-105 transition-transform"
-        >
-          <Plus className="w-5 h-5" />
-          TAMBAH {type.toUpperCase().slice(0, -1)}
-        </button>
+
+        <div className="md:col-span-3">
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2.5 px-4 outline-none focus:border-accent-yellow text-sm"
+          >
+            <option value="all">Semua Status</option>
+            <option value="pub">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-4 flex justify-end">
+          <button 
+            onClick={openAdd}
+            className="w-full md:w-auto px-6 py-2.5 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center justify-center gap-2 hover:scale-105 transition-transform text-sm"
+          >
+            <Plus className="w-5 h-5" />
+            TAMBAH {type.toUpperCase().slice(0, -1)}
+          </button>
+        </div>
       </div>
 
       <div className="bg-bg-secondary border border-border-subtle rounded-2xl overflow-hidden">
@@ -928,7 +1231,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <tr key={item.id} className="hover:bg-bg-tertiary/30 transition-colors group">
                   <td className="px-4 md:px-8 py-6">
                     <div className="w-12 h-12 rounded-lg bg-bg-tertiary border border-border-subtle overflow-hidden">
@@ -1156,31 +1459,56 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                 </div>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <label className="text-xs font-black uppercase text-text-secondary ml-1">
-                  {type === 'articles' ? 'URL Gambar Cover' : type === 'events' ? 'URL Banner Event' : 'URL Thumbnail / Gambar'}
+                  {type === 'articles' ? 'Gambar Cover' : type === 'events' ? 'Banner Event' : 'Thumbnail / Gambar'}
                 </label>
-                <div className="flex flex-col gap-4">
-                  <div className="flex gap-4">
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-text-secondary uppercase ml-1">Opsi 1: Upload File</p>
+                    <div className="relative group cursor-pointer">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, type === 'articles' ? 'cover_image' : 'image_url')}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="w-full bg-bg-tertiary border-2 border-dashed border-border-subtle rounded-xl py-8 px-4 flex flex-col items-center justify-center gap-2 group-hover:border-accent-yellow transition-all">
+                        <Upload className="w-6 h-6 text-text-secondary group-hover:text-accent-yellow" />
+                        <span className="text-xs font-bold text-text-secondary">Pilih Gambar</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-text-secondary uppercase ml-1">Opsi 2: Link URL</p>
                     <input 
-                      type="text" required placeholder="https://..." value={type === 'articles' ? formData.cover_image : formData.image_url}
+                      type="text" placeholder="https://..." value={type === 'articles' ? formData.cover_image : formData.image_url}
                       onChange={(e) => setFormData({...formData, [type === 'articles' ? 'cover_image' : 'image_url']: e.target.value})}
-                      className="flex-1 bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 h-[94px] outline-none focus:border-accent-yellow transition-all"
                     />
                   </div>
-                  {(type === 'articles' ? formData.cover_image : formData.image_url) && (
-                    <div className="relative group w-full aspect-video md:aspect-[3/1] bg-bg-tertiary border border-border-subtle rounded-2xl overflow-hidden shadow-inner">
-                      <div className="absolute inset-0 flex items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity">
-                        <TrendingUp className="w-12 h-12" />
-                      </div>
-                      <img 
-                        src={type === 'articles' ? formData.cover_image : formData.image_url} 
-                        className="relative z-10 w-full h-full object-cover" 
-                        onError={(e) => (e.currentTarget.style.display = 'none')} 
-                      />
-                    </div>
-                  )}
                 </div>
+
+                {(type === 'articles' ? formData.cover_image : formData.image_url) && (
+                  <div className="relative group w-full aspect-video md:aspect-[3/1] bg-bg-tertiary border border-border-subtle rounded-2xl overflow-hidden shadow-inner">
+                    <div className="absolute inset-0 flex items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity">
+                      <TrendingUp className="w-12 h-12" />
+                    </div>
+                    <img 
+                      src={type === 'articles' ? formData.cover_image : formData.image_url} 
+                      className="relative z-10 w-full h-full object-cover" 
+                      onError={(e) => (e.currentTarget.style.display = 'none')} 
+                    />
+                    <button 
+                      onClick={() => setFormData({...formData, [type === 'articles' ? 'cover_image' : 'image_url']: ''})}
+                      className="absolute top-4 right-4 z-20 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {type === 'articles' && (

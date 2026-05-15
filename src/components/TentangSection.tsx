@@ -53,8 +53,11 @@ const socials = [
   }
 ];
 
+import { useSettings } from '../context/SettingsContext';
+
 export default function TentangSection() {
   const [usefulLinks, setUsefulLinks] = useState<any[]>([]);
+  const { settings } = useSettings();
 
   useEffect(() => {
     const fetchLinks = async () => {
@@ -96,23 +99,22 @@ export default function TentangSection() {
             viewport={{ once: true }}
           >
             <p className="text-accent-yellow font-bold uppercase tracking-[0.3em] text-xs mb-4">Tentang Kami</p>
-            <h2 className="text-5xl md:text-7xl font-display font-extrabold leading-tight mb-8 uppercase tracking-tighter">
-              KAMI ADALAH <br />
-              <span className="text-accent-yellow">CREATIVE HUB</span> <br />
-              MASA DEPAN
+            <h2 className="text-5xl md:text-8xl font-display font-black leading-[0.9] mb-10 uppercase tracking-tighter">
+              WE ARE <br />
+              <span className="text-accent-yellow">CREATIVE</span> <br />
+              ENGINE.
             </h2>
-            <p className="text-text-secondary text-lg leading-relaxed mb-8 max-w-xl">
+            <p className="text-text-secondary text-lg md:text-xl leading-relaxed mb-12 max-w-xl font-sans font-medium">
               Davsplace Studio adalah creative engine yang berfokus pada transformasi digital. Kami membantu brand dan kreator lokal naik kelas melalui desain futuristik, produksi konten premium, dan strategi pemasaran digital yang berdampak nyata. 
-              Visi kami adalah menjadi jembatan antara ide kreatif dan eksekusi teknologi kelas dunia.
             </p>
             
             {/* Quick Link Hub */}
-            <div className="mb-12">
-              <h4 className="text-xs font-black uppercase tracking-widest text-text-secondary mb-4 flex items-center gap-2">
-                <div className="w-1 h-1 bg-accent-yellow rounded-full" />
+            <div className="mb-16">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-yellow mb-6 flex items-center gap-3">
+                <div className="w-8 h-px bg-accent-yellow" />
                 Useful Links
               </h4>
-              <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {usefulLinks.map((link, idx) => {
                   const isExternal = link.url.startsWith('https') || link.url.startsWith('mailto:');
                   return isExternal ? (
@@ -121,18 +123,18 @@ export default function TentangSection() {
                       href={link.url}
                       target={link.url.startsWith('https') ? "_blank" : undefined}
                       rel={link.url.startsWith('https') ? "noreferrer" : undefined}
-                      className="group flex items-center justify-between p-4 bg-bg-secondary border border-border-subtle rounded-xl hover:border-accent-yellow transition-all active:scale-[0.98]"
+                      className="group flex items-center justify-between p-5 bg-bg-secondary border border-border-subtle rounded-2xl hover:border-accent-yellow transition-all active:scale-[0.98] shadow-sm hover:shadow-accent-yellow/5"
                     >
-                      <span className="text-sm font-bold">{link.title || link.name}</span>
+                      <span className="text-xs font-black uppercase tracking-widest">{link.title || link.name}</span>
                       <ArrowRight className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow group-hover:translate-x-1 transition-all" />
                     </a>
                   ) : (
                     <Link 
                       key={idx}
                       to={link.url}
-                      className="group flex items-center justify-between p-4 bg-bg-secondary border border-border-subtle rounded-xl hover:border-accent-yellow transition-all active:scale-[0.98]"
+                      className="group flex items-center justify-between p-5 bg-bg-secondary border border-border-subtle rounded-2xl hover:border-accent-yellow transition-all active:scale-[0.98] shadow-sm hover:shadow-accent-yellow/5"
                     >
-                      <span className="text-sm font-bold">{link.title || link.name}</span>
+                      <span className="text-xs font-black uppercase tracking-widest">{link.title || link.name}</span>
                       <ArrowRight className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow group-hover:translate-x-1 transition-all" />
                     </Link>
                   );
@@ -211,7 +213,7 @@ export default function TentangSection() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <a 
-                href="https://wa.me/6282200000000"
+                href={`https://wa.me/${settings.whatsapp}`}
                 className="w-full sm:w-auto px-10 py-5 bg-white text-bg-primary font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-accent-yellow transition-all transform active:scale-95"
               >
                 MULAI KOLABORASI
@@ -219,7 +221,7 @@ export default function TentangSection() {
               </a>
               <div className="text-left hidden sm:block">
                 <p className="text-xs font-bold uppercase tracking-widest text-text-secondary">Email Response</p>
-                <p className="text-sm font-medium">hello@davsplace.studio</p>
+                <p className="text-sm font-medium">{settings.email}</p>
               </div>
             </div>
           </div>

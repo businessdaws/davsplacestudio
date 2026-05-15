@@ -106,6 +106,17 @@ service cloud.firestore {
              data.logo_url is string && data.logo_url.size() > 0;
     }
 
+    function isValidLead(data) {
+      return data.keys().hasAll(['name', 'email', 'message']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.email is string && data.email.size() > 0 &&
+             data.message is string && data.message.size() > 0;
+    }
+
+    function isValidSiteSettings(data) {
+      return true; // Simple allow-all for site settings structure if admin
+    }
+
     // --- COLLECTION RULES ---
 
     match /profiles/{userId} {
@@ -149,6 +160,17 @@ service cloud.firestore {
     match /client_logos/{logoId} {
       allow read: if true;
       allow write: if isAdmin() && isValidClientLogo(incoming());
+    }
+
+    match /leads/{leadId} {
+      allow create: if isValidLead(incoming());
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin();
+    }
+
+    match /site_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSiteSettings(incoming());
     }
   }
 }

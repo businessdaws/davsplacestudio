@@ -1,42 +1,60 @@
 import { motion } from 'motion/react';
-import { Briefcase } from 'lucide-react';
+import { MessageSquare, Zap, Target } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useSettings } from '../context/SettingsContext';
 
 export default function CTASection() {
+  const { settings } = useSettings();
+  
   return (
-    <section className="py-32 px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="relative bg-accent-yellow rounded-2xl p-12 md:p-24 overflow-hidden text-center md:text-left">
-          {/* Abstract Decorations */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+    <section className="py-24 md:py-32 bg-bg-primary overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="relative bg-bg-tertiary/50 border border-border-subtle rounded-[2.5rem] p-8 md:p-20 overflow-hidden group">
+          {/* Background Accents */}
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-accent-yellow/5 blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-1/4 h-1/2 bg-accent-yellow/5 blur-[100px] pointer-events-none" />
           
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-            <div className="max-w-2xl">
-              <h2 className="text-4xl md:text-6xl font-display font-extrabold text-bg-primary leading-[1.1] mb-6 uppercase tracking-tighter">
-                SIAP TRANSFORMASI <br />
-                BRAND DIGITALMU?
-              </h2>
-              <p className="text-bg-primary/70 text-lg md:text-xl font-medium">
-                Konsultasi gratis, tanpa komitmen. Tim kami siap membantu mewujudkan visi kreatif Anda menjadi nyata.
-              </p>
-            </div>
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="w-16 h-16 bg-accent-yellow rounded-2xl flex items-center justify-center text-bg-primary mb-10 shadow-xl shadow-accent-yellow/20"
+            >
+              <Target className="w-8 h-8" />
+            </motion.div>
 
-            <div className="flex flex-col gap-4 w-full md:w-auto shrink-0">
+            <h2 className="text-4xl md:text-7xl font-display font-black leading-tight uppercase tracking-tighter mb-8 max-w-4xl">
+              SIAP MEMBAWA BRAND ANDA KE <span className="text-accent-yellow underline underline-offset-8">LEVEL</span> BERIKUTNYA?
+            </h2>
+            
+            <p className="text-lg md:text-xl text-text-secondary max-w-2xl mb-12 font-sans leading-relaxed">
+              Konsultasikan ide brilian Anda dengan tim ahli kami dan mari kita ciptakan sesuatu yang luar biasa bersama-sama.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-6">
               <a 
-                href="https://wa.me/6282200000000" 
+                href={`https://wa.me/${settings.whatsapp}`} 
                 target="_blank"
-                rel="noreferrer"
-                className="px-8 py-5 bg-bg-primary text-white font-black rounded-xl flex items-center justify-center gap-3 hover:scale-105 transition-transform shadow-2xl"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 hover:bg-white hover:scale-105 transition-all text-sm tracking-widest"
               >
-                <div className="w-8 h-8 bg-accent-yellow rounded-lg flex items-center justify-center text-bg-primary">
-                  <Briefcase className="w-5 h-5 fill-current" />
-                </div>
-                HUBUNGI VIA WHATSAPP
+                MULAI KONSULTASI
+                <MessageSquare className="w-5 h-5" />
               </a>
-              <p className="text-center text-bg-primary/50 text-[10px] font-bold uppercase tracking-widest italic">
-                Biasanya membalas dalam kurang dari 1 jam
-              </p>
+              
+              <Link 
+                to="/kolaborasi" 
+                className="w-full sm:w-auto px-10 py-5 bg-bg-secondary border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 hover:border-accent-yellow transition-all text-sm tracking-widest"
+              >
+                PROPOSAL PROYEK
+                <Zap className="w-5 h-5 text-accent-yellow" />
+              </Link>
             </div>
+          </div>
+
+          <div className="absolute bottom-4 right-8 opacity-5 flex items-center gap-2 pointer-events-none">
+            <p className="text-[12rem] font-display font-black leading-none">DVS</p>
           </div>
         </div>
       </div>
