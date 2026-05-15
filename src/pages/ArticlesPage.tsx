@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { auth, db } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { CATEGORIES } from '../components/FeaturedArticles';
@@ -32,13 +33,22 @@ export default function ArticlesPage() {
   useEffect(() => {
     const fetchArticles = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-      
-      if (data) setArticles(data);
+      try {
+        const q = query(
+          collection(db, 'articles'),
+          where('is_published', '==', true),
+          orderBy('created_at', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data(),
+          created_at: (doc.data() as any).created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+        }));
+        if (data) setArticles(data);
+      } catch (err) {
+        console.error('Fetch articles error:', err);
+      }
       setLoading(false);
     };
     fetchArticles();
@@ -113,7 +123,7 @@ export default function ArticlesPage() {
               <div className="group relative grid grid-cols-1 lg:grid-cols-2 gap-8 bg-bg-secondary rounded-[2rem] overflow-hidden border border-border-subtle hover:border-accent-yellow transition-all duration-500">
                 <div className="relative aspect-[16/10] lg:aspect-auto overflow-hidden bg-bg-tertiary">
                   <img 
-                    src={featuredArticle.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
+                    src={featuredArticle.cover_image || featuredArticle.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
                     alt={featuredArticle.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
@@ -195,7 +205,7 @@ export default function ArticlesPage() {
                 >
                   <Link to={`/artikel/${article.slug}`} className="block relative aspect-[16/9] overflow-hidden">
                     <img 
-                      src={article.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=600&auto=format&fit=crop'} 
+                      src={article.cover_image || article.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=600&auto=format&fit=crop'} 
                       alt={article.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     />

@@ -14,16 +14,18 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../stores/useAppStore';
 import { cn } from '../lib/utils';
-import { supabase } from '../lib/supabase';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export function MobileTopbar({ onSearchClick }: { onSearchClick: () => void }) {
   const { theme, toggleTheme } = useAppStore();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
     });
+    return () => unsubscribe();
   }, []);
 
   return (

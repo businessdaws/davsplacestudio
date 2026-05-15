@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Calendar as CalendarIcon, MapPin, ArrowRight, Video, Wifi } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
 export default function FeaturedEvents() {
   const [events, setEvents] = useState<any[]>([]);
@@ -10,13 +11,18 @@ export default function FeaturedEvents() {
   useEffect(() => {
     const fetchEvents = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('events')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-      
-      if (data) setEvents(data);
+      try {
+        const q = query(
+          collection(db, 'events'),
+          where('is_published', '==', true),
+          orderBy('created_at', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (data) setEvents(data);
+      } catch (err) {
+        console.error('Fetch events error:', err);
+      }
       setLoading(false);
     };
     fetchEvents();

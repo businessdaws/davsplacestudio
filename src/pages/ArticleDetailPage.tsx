@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
@@ -27,14 +28,23 @@ export default function ArticleDetailPage() {
   useEffect(() => {
     const fetchArticle = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-      
-      if (data) {
-        setArticle(data);
+      try {
+        const q = query(
+          collection(db, 'articles'),
+          where('slug', '==', slug),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          setArticle({ 
+            id: doc.id, 
+            ...doc.data(),
+            created_at: (doc.data() as any).created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.error('Fetch article error:', err);
       }
       setLoading(false);
     };
@@ -125,7 +135,7 @@ export default function ArticleDetailPage() {
             {/* Featured Image */}
             <div className="aspect-[21/9] rounded-[2rem] overflow-hidden mb-16 border border-border-subtle bg-bg-tertiary">
               <img 
-                src={article.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
+                src={article.cover_image || article.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
                 alt={article.title}
                 className="w-full h-full object-cover"
               />

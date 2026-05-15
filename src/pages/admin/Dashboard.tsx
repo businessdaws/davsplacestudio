@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { auth, db } from '../../lib/firebase';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { 
+  collection, 
+  query, 
+  where,
+  getDocs, 
+  setDoc, 
+  doc, 
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+  orderBy,
+  serverTimestamp,
+  getCountFromServer
+} from 'firebase/firestore';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -17,7 +33,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links';
+type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links' | 'categories' | 'logos';
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
@@ -33,8 +49,7 @@ export default function AdminDashboard() {
   const [accessDenied, setAccessDenied] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         console.log('No user found in Dashboard, redirecting to login');
         navigate('/admin/login');
@@ -44,55 +59,40 @@ export default function AdminDashboard() {
       const normalizedEmail = user.email?.toLowerCase();
       const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
 
-      // Re-verify role from DB
-      let profileResult;
       try {
-        profileResult = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-      } catch (err: any) {
-        profileResult = { data: null, error: err };
-      }
+        const profileRef = doc(db, 'profiles', user.uid);
+        const profileSnap = await getDoc(profileRef);
+        const profile = profileSnap.data();
 
-      const { data: profile, error } = profileResult;
-      
-      if (error?.message?.includes('recursion')) {
-        setAccessDenied('Database Error: Infinite Recursion detected. Silakan perbarui RLS Policy di Supabase menggunakan script terbaru di initial_schema.sql.');
-        setLoading(false);
-        return;
-      }
-
-      // If DB says not admin but email is whitelisted, try to FIX it
-      if (isAdminEmail && (error || profile?.role !== 'admin')) {
-        console.log('Admin email detected but DB role missing. Attempting auto-sync...');
-        const { error: syncError } = await supabase.from('profiles').upsert({
-          id: user.id,
-          role: 'admin',
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
-        }, { onConflict: 'id' });
-
-        if (!syncError) {
-          console.log('Auto-sync success!');
+        // If DB says not admin but email is whitelisted, try to FIX it
+        if (isAdminEmail && (!profile || profile.role !== 'admin')) {
+          console.log('Admin email detected but DB role missing. Attempting auto-sync...');
+          await setDoc(profileRef, {
+            id: user.uid,
+            role: 'admin',
+            full_name: user.displayName || user.email?.split('@')[0] || 'Admin',
+            updated_at: serverTimestamp()
+          }, { merge: true });
+          
           setLoading(false);
           return;
-        } else {
-          console.error('Auto-sync failed:', syncError);
         }
-      }
 
-      if (!isAdminEmail && (error || profile?.role !== 'admin')) {
-        const msg = error ? `Database error: ${error.message}` : `Akses Ditolak: Role Anda adalah "${profile?.role || 'tidak diketahui'}"`;
-        console.error('Permission denied:', msg);
-        setAccessDenied(msg);
-        setLoading(false);
-        return;
+        if (!isAdminEmail && (!profile || profile.role !== 'admin')) {
+          const msg = `Akses Ditolak: Akun anda tidak terdaftar sebagai admin.`;
+          setAccessDenied(msg);
+          setLoading(false);
+          return;
+        }
+      } catch (err: any) {
+        console.error('Check user error:', err);
+        setAccessDenied(`Database Error: ${err.message}`);
       }
+      
       setLoading(false);
-    };
+    });
 
-    checkUser();
+    return () => unsubscribe();
   }, [navigate]);
 
   const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
@@ -100,8 +100,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const checkDb = async () => {
       try {
-        const { error } = await supabase.from('profiles').select('count', { head: true });
-        if (error) throw error;
+        // Test connection by trying to get count of profiles
+        const coll = collection(db, 'profiles');
+        await getCountFromServer(coll);
         setDbStatus('connected');
       } catch (err) {
         console.error('DB Connection error:', err);
@@ -112,7 +113,7 @@ export default function AdminDashboard() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     navigate('/admin/login');
   };
 
@@ -160,6 +161,8 @@ export default function AdminDashboard() {
           { id: 'portfolios', icon: TrendingUp, label: 'Portofolio' },
           { id: 'events', icon: Calendar, label: 'Event' },
           { id: 'links', icon: ExternalLink, label: 'Useful Links' },
+          { id: 'categories', icon: Settings, label: 'Kategori' },
+          { id: 'logos', icon: Users, label: 'Client Logos' },
         ].map((item) => (
           <button
             key={item.id}
@@ -243,6 +246,8 @@ export default function AdminDashboard() {
                 {activeTab === 'portfolios' && 'Portofolio'}
                 {activeTab === 'events' && 'Event'}
                 {activeTab === 'links' && 'Useful Links'}
+                {activeTab === 'categories' && 'Kategori'}
+                {activeTab === 'logos' && 'Client Logos'}
               </h1>
               <div className="flex flex-col mt-1">
                 <div className="flex items-center gap-2">
@@ -274,6 +279,8 @@ export default function AdminDashboard() {
         {activeTab === 'portfolios' && <ContentManager type="portfolios" />}
         {activeTab === 'events' && <ContentManager type="events" />}
         {activeTab === 'links' && <LinksManager />}
+        {activeTab === 'categories' && <CategoriesManager />}
+        {activeTab === 'logos' && <LogosManager />}
       </main>
     </div>
   );
@@ -283,10 +290,12 @@ function LinksManager() {
   const [links, setLinks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: '', url: '', icon_name: 'ArrowRight' });
+  const [formData, setFormData] = useState({ title: '', url: '', icon: 'ArrowRight', sort_order: 0, is_active: true });
 
   const fetchLinks = async () => {
-    const { data } = await supabase.from('useful_links').select('*').order('created_at', { ascending: true });
+    const q = query(collection(db, 'useful_links'), orderBy('sort_order', 'asc'));
+    const querySnapshot = await getDocs(q);
+    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setLinks(data || []);
   };
 
@@ -297,9 +306,13 @@ function LinksManager() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingItem) {
-      await supabase.from('useful_links').update(formData).eq('id', editingItem.id);
+      await updateDoc(doc(db, 'useful_links', editingItem.id), formData);
     } else {
-      await supabase.from('useful_links').insert([formData]);
+      await addDoc(collection(db, 'useful_links'), {
+        ...formData,
+        sort_order: links.length,
+        created_at: serverTimestamp()
+      });
     }
     setIsModalOpen(false);
     fetchLinks();
@@ -307,19 +320,25 @@ function LinksManager() {
 
   const openAdd = () => {
     setEditingItem(null);
-    setFormData({ name: '', url: '', icon_name: 'ArrowRight' });
+    setFormData({ title: '', url: '', icon: 'ArrowRight', sort_order: links.length, is_active: true });
     setIsModalOpen(true);
   };
 
   const openEdit = (item: any) => {
     setEditingItem(item);
-    setFormData({ name: item.name, url: item.url, icon_name: item.icon_name || 'ArrowRight' });
+    setFormData({ 
+      title: item.title || item.name || '', 
+      url: item.url, 
+      icon: item.icon || item.icon_name || 'ArrowRight',
+      sort_order: item.sort_order || 0,
+      is_active: item.is_active ?? true
+    });
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Hapus link ini?')) {
-      await supabase.from('useful_links').delete().eq('id', id);
+      await deleteDoc(doc(db, 'useful_links', id));
       fetchLinks();
     }
   };
@@ -349,8 +368,13 @@ function LinksManager() {
           <tbody className="divide-y divide-border-subtle">
             {links.map((link) => (
               <tr key={link.id} className="hover:bg-bg-tertiary/30 transition-colors">
-                <td className="px-8 py-6 font-bold">{link.name}</td>
-                <td className="px-8 py-6 text-sm text-text-secondary">{link.url}</td>
+                <td className="px-8 py-6">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold">{link.title || link.name}</span>
+                    {!link.is_active && <span className="px-1.5 py-0.5 rounded bg-bg-tertiary text-[8px] font-black uppercase text-text-secondary border border-border-subtle">Hidden</span>}
+                  </div>
+                </td>
+                <td className="px-8 py-6 text-sm text-text-secondary max-w-[200px] truncate">{link.url}</td>
                 <td className="px-8 py-6">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => openEdit(link)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><Edit className="w-4 h-4" /></button>
@@ -367,30 +391,50 @@ function LinksManager() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
           <div className="w-full max-w-md bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl">
             <h3 className="text-2xl font-display font-black mb-8 uppercase">{editingItem ? 'Edit' : 'Tambah'} Link</h3>
-            <form onSubmit={handleSave} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Nama Link</label>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary ml-1">Judul Link</label>
                 <input 
                   type="text" 
                   required 
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow transition-all"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">URL (Hyperlink)</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary ml-1">URL (Hyperlink)</label>
                 <input 
                   type="text" 
                   required 
                   value={formData.url}
                   onChange={(e) => setFormData({...formData, url: e.target.value})}
-                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow transition-all"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-text-secondary ml-1">Urutan</label>
+                  <input 
+                    type="number" 
+                    value={formData.sort_order}
+                    onChange={(e) => setFormData({...formData, sort_order: parseInt(e.target.value)})}
+                    className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow transition-all"
+                  />
+                </div>
+                <div className="flex items-center gap-2 pt-5">
+                  <input 
+                    type="checkbox" 
+                    id="link-active"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                  />
+                  <label htmlFor="link-active" className="text-[10px] font-black uppercase text-text-secondary">Aktif</label>
+                </div>
+              </div>
               <div className="flex justify-end gap-4 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-bold text-text-secondary">Batal</button>
-                <button type="submit" className="px-10 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg">SIMPAN LINK</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-text-secondary">Batal</button>
+                <button type="submit" className="px-8 py-2 bg-accent-yellow text-bg-primary font-black rounded-lg">SIMPAN</button>
               </div>
             </form>
           </div>
@@ -401,22 +445,30 @@ function LinksManager() {
 }
 
 function OverviewGrid() {
-  const [counts, setCounts] = useState({ articles: 0, events: 0, portfolios: 0, links: 0 });
+  const [counts, setCounts] = useState({ articles: 0, events: 0, portfolios: 0, links: 0, categories: 0, logos: 0 });
 
   useEffect(() => {
     const fetchCounts = async () => {
-      const [{ count: articles }, { count: events }, { count: portfolios }, { count: links }] = await Promise.all([
-        supabase.from('articles').select('*', { count: 'exact', head: true }),
-        supabase.from('events').select('*', { count: 'exact', head: true }),
-        supabase.from('portfolios').select('*', { count: 'exact', head: true }),
-        supabase.from('useful_links').select('*', { count: 'exact', head: true }),
-      ]);
-      setCounts({
-        articles: articles || 0,
-        events: events || 0,
-        portfolios: portfolios || 0,
-        links: links || 0
-      });
+      try {
+        const [articles, events, portfolios, links, categories, logos] = await Promise.all([
+          getCountFromServer(collection(db, 'articles')),
+          getCountFromServer(collection(db, 'events')),
+          getCountFromServer(collection(db, 'portfolios')),
+          getCountFromServer(collection(db, 'useful_links')),
+          getCountFromServer(collection(db, 'categories')),
+          getCountFromServer(collection(db, 'client_logos')),
+        ]);
+        setCounts({
+          articles: articles.data().count || 0,
+          events: events.data().count || 0,
+          portfolios: portfolios.data().count || 0,
+          links: links.data().count || 0,
+          categories: categories.data().count || 0,
+          logos: logos.data().count || 0
+        });
+      } catch (err) {
+        console.error('Fetch counts error:', err);
+      }
     };
     fetchCounts();
   }, []);
@@ -426,10 +478,12 @@ function OverviewGrid() {
     { label: 'Event Aktif', value: counts.events.toString(), icon: Calendar, color: 'text-purple-500' },
     { label: 'Portofolio', value: counts.portfolios.toString(), icon: TrendingUp, color: 'text-blue-500' },
     { label: 'Useful Links', value: counts.links.toString(), icon: ExternalLink, color: 'text-green-500' },
+    { label: 'Kategori', value: counts.categories.toString(), icon: Settings, color: 'text-orange-500' },
+    { label: 'Client Logos', value: counts.logos.toString(), icon: Users, color: 'text-pink-500' },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
       {stats.map((stat, i) => (
         <motion.div
           key={i}
@@ -451,8 +505,239 @@ function OverviewGrid() {
   );
 }
 
+function CategoriesManager() {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [formData, setFormData] = useState({ name: '', slug: '', type: 'artikel', description: '', icon: '', color: '#FACC15' });
+
+  const fetchData = async () => {
+    const q = query(collection(db, 'categories'), orderBy('name', 'asc'));
+    const querySnapshot = await getDocs(q);
+    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setCategories(data);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingItem) {
+      await updateDoc(doc(db, 'categories', editingItem.id), formData);
+    } else {
+      await addDoc(collection(db, 'categories'), { ...formData, created_at: serverTimestamp() });
+    }
+    setIsModalOpen(false);
+    fetchData();
+  };
+
+  const openAdd = () => {
+    setEditingItem(null);
+    setFormData({ name: '', slug: '', type: 'artikel', description: '', icon: '', color: '#FACC15' });
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (item: any) => {
+    setEditingItem(item);
+    setFormData({ name: item.name, slug: item.slug, type: item.type, description: item.description || '', icon: item.icon || '', color: item.color || '#FACC15' });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Hapus kategori ini?')) {
+      await deleteDoc(doc(db, 'categories', id));
+      fetchData();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-bg-secondary p-6 border border-border-subtle rounded-xl">
+        <div className="text-sm font-bold">{categories.length} Total Kategori</div>
+        <button onClick={openAdd} className="px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center gap-2 transition-transform hover:scale-105">
+          <Plus className="w-5 h-5" /> TAMBAH KATEGORI
+        </button>
+      </div>
+
+      <div className="bg-bg-secondary border border-border-subtle rounded-2xl overflow-hidden overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="bg-bg-tertiary/50 border-b border-border-subtle">
+            <tr>
+              <th className="px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Nama</th>
+              <th className="px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Tipe</th>
+              <th className="px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-subtle">
+            {categories.map((cat) => (
+              <tr key={cat.id} className="hover:bg-bg-tertiary/30 transition-colors">
+                <td className="px-8 py-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <span className="font-bold">{cat.name}</span>
+                  </div>
+                </td>
+                <td className="px-8 py-6 text-sm uppercase font-black text-text-secondary">{cat.type}</td>
+                <td className="px-8 py-6 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => openEdit(cat)} className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(cat.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl">
+            <h3 className="text-2xl font-display font-black mb-8 uppercase">{editingItem ? 'Edit' : 'Tambah'} Kategori</h3>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-text-secondary">Nama</label>
+                  <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-text-secondary">Slug</label>
+                  <input type="text" required value={formData.slug} onChange={(e) => setFormData({...formData, slug: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Tipe Konten</label>
+                <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow">
+                  <option value="artikel">Artikel</option>
+                  <option value="layanan">Layanan</option>
+                  <option value="portofolio">Portofolio</option>
+                  <option value="event">Event</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Warna</label>
+                <input type="color" value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} className="w-full h-10 bg-bg-tertiary border border-border-subtle rounded-lg p-1 outline-none" />
+              </div>
+              <div className="flex justify-end gap-4 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-text-secondary">Batal</button>
+                <button type="submit" className="px-8 py-2 bg-accent-yellow text-bg-primary font-black rounded-lg">SIMPAN</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LogosManager() {
+  const [logos, setLogos] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [formData, setFormData] = useState({ company_name: '', logo_url: '', website_url: '', sort_order: 0, is_active: true });
+
+  const fetchData = async () => {
+    const q = query(collection(db, 'client_logos'), orderBy('sort_order', 'asc'));
+    const querySnapshot = await getDocs(q);
+    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setLogos(data);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingItem) {
+      await updateDoc(doc(db, 'client_logos', editingItem.id), formData);
+    } else {
+      await addDoc(collection(db, 'client_logos'), { ...formData, created_at: serverTimestamp() });
+    }
+    setIsModalOpen(false);
+    fetchData();
+  };
+
+  const openAdd = () => {
+    setEditingItem(null);
+    setFormData({ company_name: '', logo_url: '', website_url: '', sort_order: logos.length, is_active: true });
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (item: any) => {
+    setEditingItem(item);
+    setFormData({ company_name: item.company_name, logo_url: item.logo_url, website_url: item.website_url || '', sort_order: item.sort_order || 0, is_active: item.is_active ?? true });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Hapus logo ini?')) {
+      await deleteDoc(doc(db, 'client_logos', id));
+      fetchData();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-bg-secondary p-6 border border-border-subtle rounded-xl">
+        <div className="text-sm font-bold">{logos.length} Total Logo</div>
+        <button onClick={openAdd} className="px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center gap-2 transition-transform hover:scale-105">
+          <Plus className="w-5 h-5" /> TAMBAH LOGO
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {logos.map((logo) => (
+          <div key={logo.id} className="bg-bg-secondary border border-border-subtle p-4 rounded-xl relative group">
+            <div className="aspect-square bg-white/5 rounded-lg flex items-center justify-center p-4 mb-3">
+              <img src={logo.logo_url} alt={logo.company_name} className="max-w-full max-h-full object-contain" />
+            </div>
+            <div className="text-[10px] font-black uppercase tracking-wider truncate mb-2">{logo.company_name}</div>
+            <div className="flex gap-2">
+              <button onClick={() => openEdit(logo)} className="flex-1 py-1.5 bg-blue-500/10 text-blue-500 rounded-lg text-xs font-bold hover:bg-blue-500 hover:text-white transition-all">Edit</button>
+              <button onClick={() => handleDelete(logo.id)} className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+        {logos.length === 0 && <div className="col-span-full py-20 text-center italic text-text-secondary">Belum ada logo klien.</div>}
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl">
+            <h3 className="text-2xl font-display font-black mb-8 uppercase">{editingItem ? 'Edit' : 'Tambah'} Logo</h3>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Nama Perusahaan</label>
+                <input type="text" required value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Logo URL</label>
+                <input type="text" required value={formData.logo_url} onChange={(e) => setFormData({...formData, logo_url: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-text-secondary">Urutan</label>
+                  <input type="number" value={formData.sort_order} onChange={(e) => setFormData({...formData, sort_order: parseInt(e.target.value)})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none" />
+                </div>
+                <div className="flex items-center gap-2 pt-5">
+                  <input type="checkbox" id="logo-active" checked={formData.is_active} onChange={(e) => setFormData({...formData, is_active: e.target.checked})} />
+                  <label htmlFor="logo-active" className="text-[10px] font-black uppercase">Aktif</label>
+                </div>
+              </div>
+              <div className="flex justify-end gap-4 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-text-secondary">Batal</button>
+                <button type="submit" className="px-8 py-2 bg-accent-yellow text-bg-primary font-black rounded-lg">SIMPAN</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }) {
   const [items, setItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -462,7 +747,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
       case 'articles':
         return { 
           title: '', slug: '', content: '', is_published: false,
-          category: 'Desain', image_url: '', author: 'Admin Davs', excerpt: ''
+          category_id: '', cover_image: '', author: 'Admin Davs', excerpt: '', tags: []
         };
       case 'events':
         return { 
@@ -471,8 +756,8 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
         };
       case 'portfolios':
         return { 
-          title: '', category: 'Desain', image_url: '', video_url: '',
-          type: 'photo', is_published: true, description: '' 
+          title: '', category: '', image_url: '', video_url: '',
+          type: 'photo', is_published: true, description: '', client_name: '' 
         };
       default:
         return {};
@@ -482,8 +767,20 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
   const [formData, setFormData] = useState<any>(getInitialFormData());
 
   const fetchData = async () => {
-    const { data } = await supabase.from(type).select('*').order('created_at', { ascending: false });
+    // Fetch Items
+    const q = query(collection(db, type), orderBy('created_at', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const data = querySnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(),
+      created_at: (doc.data() as any).created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+    }));
     setItems(data || []);
+
+    // Fetch Categories for dropdowns
+    const cq = query(collection(db, 'categories'), where('type', '==', type === 'articles' ? 'artikel' : 'portofolio'));
+    const cSnapshot = await getDocs(cq);
+    setCategories(cSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
   useEffect(() => {
@@ -498,21 +795,24 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
     // Default payload
     const payload = { ...formData };
     
-    // Only tables that have updated_at according to initial_schema.sql
-    if (type === 'articles') {
-      (payload as any).updated_at = new Date().toISOString();
+    // Enrich with Category Name if ID exists (for easier frontend filtering)
+    if (type === 'articles' && formData.category_id) {
+      const cat = categories.find(c => c.id === formData.category_id);
+      if (cat) payload.category = cat.name;
     }
     
     try {
-      let result;
       if (editingItem) {
-        result = await supabase.from(type).update(payload).eq('id', editingItem.id);
+        await updateDoc(doc(db, type, editingItem.id), {
+          ...payload,
+          updated_at: serverTimestamp()
+        });
       } else {
-        result = await supabase.from(type).insert([payload]);
-      }
-      
-      if (result.error) {
-        throw result.error;
+        await addDoc(collection(db, type), {
+          ...payload,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp()
+        });
       }
       
       setIsModalOpen(false);
@@ -545,7 +845,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
 
   const handleDelete = async (id: string) => {
     if (confirm('Hapus konten ini?')) {
-      await supabase.from(type).delete().eq('id', id);
+      await deleteDoc(doc(db, type, id));
       fetchData();
     }
   };
@@ -647,6 +947,34 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
               </div>
 
               {type === 'articles' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Kategori</label>
+                    <select 
+                      value={formData.category_id}
+                      onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    >
+                      <option value="">Pilih Kategori</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Tags (Pisahkan koma)</label>
+                    <input 
+                      type="text" 
+                      placeholder="Desain, Tech, Tips" 
+                      value={Array.isArray(formData.tags) ? formData.tags.join(', ') : ''}
+                      onChange={(e) => setFormData({...formData, tags: e.target.value.split(',').map((t: string) => t.trim())})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {type === 'articles' && (
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-black uppercase text-text-secondary ml-1">Slug</label>
@@ -716,8 +1044,9 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                       onChange={(e) => setFormData({...formData, category: e.target.value})}
                       className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
                     >
-                      {['Desain', 'Video', 'Branding', 'Marketing', 'Tech', 'Creative', 'Dokumentasi', 'Konsultasi'].map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
+                      <option value="">Pilih Kategori</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
                       ))}
                     </select>
                   </div>
@@ -731,6 +1060,14 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                       <option value="photo">Photo / Project</option>
                       <option value="video">Video Reel</option>
                     </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Nama Klien</label>
+                    <input 
+                      type="text" placeholder="Optional" value={formData.client_name}
+                      onChange={(e) => setFormData({...formData, client_name: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
                   </div>
                 </div>
               )}
@@ -748,11 +1085,18 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
 
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-text-secondary ml-1">Image URL {type === 'portfolios' && '(Thumbnail)'}</label>
-                <input 
-                  type="text" required placeholder="https://..." value={formData.image_url}
-                  onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                  className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                />
+                <div className="flex gap-4">
+                  <input 
+                    type="text" required placeholder="https://..." value={type === 'articles' ? formData.cover_image : formData.image_url}
+                    onChange={(e) => setFormData({...formData, [type === 'articles' ? 'cover_image' : 'image_url']: e.target.value})}
+                    className="flex-1 bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                  />
+                  {(type === 'articles' ? formData.cover_image : formData.image_url) && (
+                    <div className="w-12 h-12 rounded-lg border border-border-subtle overflow-hidden bg-white/5">
+                      <img src={type === 'articles' ? formData.cover_image : formData.image_url} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {type === 'articles' && (

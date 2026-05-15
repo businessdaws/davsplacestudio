@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { auth, db } from '../../lib/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut, 
+  signInWithPopup, 
+  GoogleAuthProvider,
+  User
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Shield, ArrowLeft, Loader2, Mail, Lock } from 'lucide-react';
@@ -15,65 +24,55 @@ export default function AdminLogin() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Handle redirect balik dari Google OAuth
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+  const syncProfile = async (user: User) => {
+    const normalizedEmail = user.email?.toLowerCase();
+    const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
 
-      setLoading(true);
-      try {
-        const user = session.user;
-        const normalizedEmail = user.email?.toLowerCase();
-        const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
+    // Cek apakah email ada di daftar admin
+    if (!isAdminEmail) {
+      await signOut(auth);
+      setError(`Akses ditolak. Akun ${user.email} tidak terdaftar sebagai admin.`);
+      setLoading(false);
+      return;
+    }
 
-        // Cek apakah email ada di daftar admin
-        if (!isAdminEmail) {
-          await supabase.auth.signOut();
-          setError(`Akses ditolak. Akun ${user.email} tidak terdaftar sebagai admin.`);
-          setLoading(false);
-          return;
-        }
+    try {
+      // Upsert profile sebagai admin
+      const profileRef = doc(db, 'profiles', user.uid);
+      await setDoc(profileRef, {
+        id: user.uid,
+        role: 'admin',
+        full_name: user.displayName || user.email?.split('@')[0] || 'Admin',
+        avatar_url: user.photoURL || '',
+        updated_at: serverTimestamp(),
+      }, { merge: true });
 
-        // Upsert profile sebagai admin
-        const { error: upsertError } = await supabase.from('profiles').upsert({
-          id: user.id,
-          role: 'admin',
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
-        }, { onConflict: 'id' });
+      // Verifikasi apakah role sudah benar-benar tersimpan
+      const profileSnap = await getDoc(profileRef);
+      const profileData = profileSnap.data();
 
-        if (upsertError) {
-          console.error('Upsert checkSession error:', upsertError);
-          setError(`Gagal menyimpan profil: ${upsertError.message}.`);
-          setLoading(false);
-          return;
-        }
-
-        // Verifikasi apakah role sudah benar-benar tersimpan
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.role === 'admin') {
-          navigate('/admin/dashboard');
-        } else {
-          setError('Data admin gagal divalidasi. Coba login kembali atau cek tabel profiles di Supabase.');
-          setLoading(false);
-        }
-      } catch (err: any) {
-        setError('Terjadi kesalahan sistem: ' + (err.message || 'Coba lagi.'));
+      if (profileData?.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        setError('Data admin gagal divalidasi. Coba login kembali.');
         setLoading(false);
       }
-    };
+    } catch (err: any) {
+      console.error('Sync Profile Error:', err);
+      setError('Gagal sinkronisasi profil: ' + (err.message || 'Coba lagi.'));
+      setLoading(false);
+    }
+  };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) checkSession();
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setLoading(true);
+        syncProfile(user);
+      }
     });
 
-    checkSession();
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, [navigate]);
 
   const [email, setEmail] = useState('');
@@ -85,46 +84,11 @@ export default function AdminLogin() {
     setError(null);
 
     try {
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (loginError) throw loginError;
-
-      const user = data.user;
-      const normalizedEmail = user?.email?.toLowerCase();
-      const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
-
-      if (!isAdminEmail) {
-        await supabase.auth.signOut();
-        throw new Error(`Akses Ditolak: Akun ${user?.email} tidak memiliki hak akses admin.`);
-      }
-
-      // Sync profile
-      const { error: upsertError } = await supabase.from('profiles').upsert({ 
-        id: user.id, 
-        role: 'admin', 
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin'
-      }, { onConflict: 'id' });
-
-      if (upsertError) {
-        if (upsertError.message.includes('recursion')) {
-          throw new Error('Terjadi kesalahan pada Database (Infinite Recursion). Silakan perbarui RLS Policy di Supabase menggunakan script di initial_schema.sql');
-        }
-        throw new Error(`Gagal Sinkronisasi Profil: ${upsertError.message}`);
-      }
-
-      // Double check role
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      if (profile?.role !== 'admin') {
-        throw new Error('Gagal memverifikasi hak akses admin di database.');
-      }
-
-      navigate('/admin/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await syncProfile(userCredential.user);
     } catch (err: any) {
-      setError(err.message);
-    } finally {
+      setError(err.message === 'Firebase: Error (auth/user-not-found).' ? 'Email tidak terdaftar.' : 
+                err.message === 'Firebase: Error (auth/wrong-password).' ? 'Password salah.' : err.message);
       setLoading(false);
     }
   };
@@ -133,17 +97,8 @@ export default function AdminLogin() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/admin/login`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'select_account',
-          },
-        },
-      });
-      if (error) throw error;
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
     } catch (err: any) {
       setError(err.message || 'Gagal login dengan Google.');
       setLoading(false);

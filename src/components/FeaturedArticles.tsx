@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight, User } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
 // Keeping CATEGORIES as export for ArticlesPage
 export const CATEGORIES = ['All', 'Desain', 'Video', 'Branding', 'Marketing', 'Tech', 'Creative'];
@@ -12,14 +13,19 @@ export default function FeaturedArticles() {
 
   useEffect(() => {
     const fetchArticles = async () => {
-      const { data } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .limit(3);
-      
-      if (data) setArticles(data);
+      try {
+        const q = query(
+          collection(db, 'articles'),
+          where('is_published', '==', true),
+          orderBy('created_at', 'desc'),
+          limit(3)
+        );
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (data) setArticles(data);
+      } catch (err) {
+        console.error('Fetch articles error:', err);
+      }
     };
     fetchArticles();
   }, []);
@@ -51,7 +57,7 @@ export default function FeaturedArticles() {
               <Link to={`/artikel/${article.slug}`}>
                 <div className="relative aspect-[3/2] rounded-2xl overflow-hidden mb-6 bg-bg-tertiary">
                   <img 
-                    src={article.image_url || 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=600&h=400&auto=format&fit=crop'} 
+                    src={article.cover_image || article.image_url || 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=600&h=400&auto=format&fit=crop'} 
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />

@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "full_name": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "phone": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Content categories",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "type": { "type": "string", "enum": ["artikel", "layanan", "portofolio", "event"] },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "type"]
+    },
+    "Article": {
+      "title": "Article",
+      "description": "Blog posts or news articles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "content": { "type": "string" },
+        "cover_image": { "type": "string" },
+        "category_id": { "type": "string" },
+        "author_id": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "is_featured": { "type": "boolean" },
+        "is_published": { "type": "boolean" },
+        "published_at": { "type": "string", "format": "date-time" },
+        "view_count": { "type": "number" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "content"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Offered services",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "short_description": { "type": "string" },
+        "description": { "type": "string" },
+        "cover_image": { "type": "string" },
+        "price_start": { "type": "number" },
+        "price_type": { "type": "string", "enum": ["fixed", "range", "custom"] },
+        "duration_estimate": { "type": "string" },
+        "features": { "type": "array", "items": { "type": "string" } },
+        "is_popular": { "type": "boolean" },
+        "is_active": { "type": "boolean" },
+        "whatsapp_url": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Company events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "location": { "type": "string" },
+        "image_url": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title"]
+    },
+    "Portfolio": {
+      "title": "Portfolio",
+      "description": "Project showcases",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "image_url": { "type": "string" },
+        "video_url": { "type": "string" },
+        "type": { "type": "string", "enum": ["photo", "video"] },
+        "client_name": { "type": "string" },
+        "category": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title"]
+    },
+    "UsefulLink": {
+      "title": "UsefulLink",
+      "description": "External links or navigation shortcuts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "icon": { "type": "string" },
+        "sort_order": { "type": "number" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "url"]
+    },
+    "ClientLogo": {
+      "title": "ClientLogo",
+      "description": "Logos of companies we've worked with",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "company_name": { "type": "string" },
+        "logo_url": { "type": "string" },
+        "website_url": { "type": "string" },
+        "sort_order": { "type": "number" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["company_name", "logo_url"]
+    }
+  },
+  "firestore": {
+    "profiles": {
+      "schema": "Profile",
+      "description": "User profiles"
+    },
+    "categories": {
+      "schema": "Category",
+      "description": "Content categories"
+    },
+    "articles": {
+      "schema": "Article",
+      "description": "Blog articles"
+    },
+    "services": {
+      "schema": "Service",
+      "description": "Our services"
+    },
+    "events": {
+      "schema": "Event",
+      "description": "Upcoming and past events"
+    },
+    "portfolios": {
+      "schema": "Portfolio",
+      "description": "Showcase projects"
+    },
+    "useful_links": {
+      "schema": "UsefulLink",
+      "description": "Useful resources"
+    },
+    "client_logos": {
+      "schema": "ClientLogo",
+      "description": "Partner logos"
+    }
+  }
+}

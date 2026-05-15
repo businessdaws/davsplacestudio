@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { 
   Instagram, 
@@ -58,7 +59,10 @@ export default function TentangSection() {
   useEffect(() => {
     const fetchLinks = async () => {
       try {
-        const { data } = await supabase.from('useful_links').select('*').order('created_at', { ascending: true });
+        const q = query(collection(db, 'useful_links'), orderBy('created_at', 'asc'));
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
         if (data && data.length > 0) {
           setUsefulLinks(data);
         } else {
@@ -70,6 +74,7 @@ export default function TentangSection() {
           ]);
         }
       } catch (e) {
+        console.error('Fetch links error:', e);
         setUsefulLinks([
           { name: 'Portfolio Overview', url: '/portofolio' },
           { name: 'Price List & Services', url: '/kolaborasi' },

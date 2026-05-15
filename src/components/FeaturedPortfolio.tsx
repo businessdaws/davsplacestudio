@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, PlayCircle, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 export default function FeaturedPortfolio() {
   const [portfolios, setPortfolios] = useState<any[]>([]);
@@ -22,13 +23,18 @@ export default function FeaturedPortfolio() {
   useEffect(() => {
     const fetchPortfolio = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('portfolios')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-      
-      if (data) setPortfolios(data);
+      try {
+        const q = query(
+          collection(db, 'portfolios'),
+          where('is_published', '==', true),
+          orderBy('created_at', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (data) setPortfolios(data);
+      } catch (err) {
+        console.error('Fetch portfolio error:', err);
+      }
       setLoading(false);
     };
     fetchPortfolio();
