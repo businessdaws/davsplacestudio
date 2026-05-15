@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Shield, ArrowLeft, Loader2 } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, Mail, Lock } from 'lucide-react';
 
 // ✅ Daftar email yang diizinkan sebagai admin
 const ADMIN_EMAILS = [
@@ -24,9 +24,10 @@ export default function AdminLogin() {
       setLoading(true);
       try {
         const user = session.user;
+        const isAdminEmail = user.email && ADMIN_EMAILS.includes(user.email);
 
         // Cek apakah email ada di daftar admin
-        if (!user.email || !ADMIN_EMAILS.includes(user.email)) {
+        if (!isAdminEmail) {
           await supabase.auth.signOut();
           setError(`Akses ditolak. Akun ${user.email} tidak terdaftar sebagai admin.`);
           setLoading(false);
@@ -34,22 +35,81 @@ export default function AdminLogin() {
         }
 
         // Upsert profile sebagai admin
-        await supabase.from('profiles').upsert({
+        const { error: upsertError } = await supabase.from('profiles').upsert({
           id: user.id,
           role: 'admin',
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
           updated_at: new Date().toISOString(),
         });
 
-        navigate('/admin/dashboard');
+        if (upsertError) {
+          console.error('Upsert error:', upsertError);
+          setError(`Gagal menyimpan profil: ${upsertError.message}. Pastikan RLS Policy INSERT & UPDATE sudah diaktifkan di Supabase.`);
+          setLoading(false);
+          return;
+        }
+
+        // Verifikasi apakah role sudah benar-benar tersimpan
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          setError('Data admin gagal divalidasi. Coba login kembali atau cek tabel profiles di Supabase.');
+          setLoading(false);
+        }
       } catch (err: any) {
-        setError('Terjadi kesalahan: ' + (err.message || 'Coba lagi.'));
+        setError('Terjadi kesalahan sistem: ' + (err.message || 'Coba lagi.'));
         setLoading(false);
       }
     };
 
     checkSession();
   }, [navigate]);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (loginError) throw loginError;
+
+      const user = data.user;
+      const isAdminEmail = user?.email && ADMIN_EMAILS.includes(user.email);
+
+      if (!isAdminEmail) {
+        await supabase.auth.signOut();
+        throw new Error(`Akses Ditolak: Akun ${user?.email} tidak memiliki hak akses admin.`);
+      }
+
+      // Sync profile
+      await supabase.from('profiles').upsert({ 
+        id: user.id, 
+        role: 'admin', 
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
+        updated_at: new Date().toISOString()
+      });
+
+      navigate('/admin/dashboard');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -103,6 +163,58 @@ export default function AdminLogin() {
             {error}
           </div>
         )}
+
+        {/* Email/Password Form */}
+        <form onSubmit={handleLogin} className="space-y-4 mb-8">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
+              <input 
+                type="email" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ fontSize: '16px' }}
+                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
+                placeholder="admin@davsplace.studio"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
+              <input 
+                type="password" 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ fontSize: '16px' }}
+                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 mt-2 bg-accent-yellow text-bg-primary font-black rounded-xl shadow-xl hover:bg-accent-yellow-bright transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'MASUK KE DASHBOARD'}
+          </button>
+        </form>
+
+        <div className="relative mb-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border-subtle"></div>
+          </div>
+          <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
+            <span className="bg-bg-secondary px-2 text-text-secondary">Atau</span>
+          </div>
+        </div>
 
         {/* Google Login Button */}
         <button

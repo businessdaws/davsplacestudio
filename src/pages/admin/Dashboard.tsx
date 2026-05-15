@@ -41,7 +41,9 @@ export default function AdminDashboard() {
         .single();
 
       if (error || profile?.role !== 'admin') {
-        console.error('Permission denied. Profile:', profile, 'Error:', error);
+        const msg = error ? `Database error: ${error.message}` : `Akses Ditolak: Role Anda adalah ${profile?.role || 'tidak diketahui'}`;
+        console.error('Permission denied:', msg);
+        alert(msg); // Memberi tahu user secara langsung apa yang salah
         await supabase.auth.signOut();
         navigate('/admin/login');
         return;
