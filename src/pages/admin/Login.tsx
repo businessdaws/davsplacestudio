@@ -39,12 +39,11 @@ export default function AdminLogin() {
           id: user.id,
           role: 'admin',
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
-          updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
 
         if (upsertError) {
-          console.error('Upsert error:', upsertError);
-          setError(`Gagal menyimpan profil: ${upsertError.message}. Pastikan RLS Policy INSERT & UPDATE sudah diaktifkan di Supabase.`);
+          console.error('Upsert checkSession error:', upsertError);
+          setError(`Gagal menyimpan profil: ${upsertError.message}.`);
           setLoading(false);
           return;
         }
@@ -96,12 +95,21 @@ export default function AdminLogin() {
       }
 
       // Sync profile
-      await supabase.from('profiles').upsert({ 
+      const { error: upsertError } = await supabase.from('profiles').upsert({ 
         id: user.id, 
         role: 'admin', 
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
-        updated_at: new Date().toISOString()
-      });
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin'
+      }, { onConflict: 'id' });
+
+      if (upsertError) {
+        throw new Error(`Gagal Sinkronisasi Profil: ${upsertError.message}`);
+      }
+
+      // Double check role
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (profile?.role !== 'admin') {
+        throw new Error('Gagal memverifikasi hak akses admin di database.');
+      }
 
       navigate('/admin/dashboard');
     } catch (err: any) {

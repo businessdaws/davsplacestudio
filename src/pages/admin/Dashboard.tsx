@@ -25,6 +25,8 @@ export default function AdminDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
+  const [accessDenied, setAccessDenied] = useState<string | null>(null);
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -41,11 +43,10 @@ export default function AdminDashboard() {
         .single();
 
       if (error || profile?.role !== 'admin') {
-        const msg = error ? `Database error: ${error.message}` : `Akses Ditolak: Role Anda adalah ${profile?.role || 'tidak diketahui'}`;
+        const msg = error ? `Database error: ${error.message}` : `Akses Ditolak: Role Anda adalah "${profile?.role || 'tidak diketahui'}"`;
         console.error('Permission denied:', msg);
-        alert(msg); // Memberi tahu user secara langsung apa yang salah
-        await supabase.auth.signOut();
-        navigate('/admin/login');
+        setAccessDenied(msg);
+        setLoading(false);
         return;
       }
       setLoading(false);
@@ -62,6 +63,30 @@ export default function AdminDashboard() {
   if (loading) return (
     <div className="min-h-screen bg-bg-primary flex items-center justify-center">
       <TrendingUp className="w-10 h-10 text-accent-yellow animate-bounce" />
+    </div>
+  );
+
+  if (accessDenied) return (
+    <div className="min-h-screen bg-bg-primary flex items-center justify-center p-6 text-center">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md bg-bg-secondary p-10 rounded-2xl border border-border-subtle shadow-2xl">
+        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Trash2 className="w-10 h-10 text-red-500" />
+        </div>
+        <h2 className="text-2xl font-black mb-4 uppercase tracking-tight">Akses Dibatasi</h2>
+        <div className="p-4 bg-bg-tertiary rounded-xl border border-border-subtle text-sm text-text-secondary mb-8 leading-relaxed">
+          {accessDenied}
+          <div className="mt-4 pt-4 border-t border-border-subtle text-[10px] uppercase font-black text-accent-yellow">
+            Saran: Pastikan email anda terdaftar di ADMIN_EMAILS dan RLS Policy di Supabase sudah benar.
+          </div>
+        </div>
+        <button 
+          onClick={handleLogout}
+          className="w-full py-4 bg-bg-tertiary border border-border-subtle font-black rounded-xl hover:bg-bg-primary transition-all flex items-center justify-center gap-2"
+        >
+          <LogOut className="w-5 h-5" />
+          LOGOUT & COBA LAGI
+        </button>
+      </motion.div>
     </div>
   );
 
