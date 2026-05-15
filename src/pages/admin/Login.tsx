@@ -2,140 +2,54 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Lock, Mail, Loader2, ArrowLeft, Chrome } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2 } from 'lucide-react';
+
+// ✅ Daftar email yang diizinkan sebagai admin
+const ADMIN_EMAILS = [
+  'businessdaws@gmail.com',
+  // tambahkan email admin lain di sini jika perlu
+];
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const [diagInfo, setDiagInfo] = useState<string | null>(null);
-
+  // Handle redirect balik dari Google OAuth
   useEffect(() => {
-    // Check session on mount to handle redirect back from OAuth
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setLoading(true);
-        try {
-          const user = session.user;
-          const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
-          const isKnownAdmin = user.email && adminEmails.includes(user.email);
+      if (!session?.user) return;
 
-          let { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
+      setLoading(true);
+      try {
+        const user = session.user;
 
-          // Auto-create/fix for known admins if profile is missing or wrong
-          if (isKnownAdmin && (profileError || !profile || profile.role !== 'admin')) {
-            console.log('Known admin detected, fixing profile...');
-            const { data: fixedProfile, error: fixError } = await supabase
-              .from('profiles')
-              .upsert({ 
-                id: user.id, 
-                role: 'admin', 
-                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
-                updated_at: new Date().toISOString()
-              })
-              .select('role')
-              .single();
-            
-            if (!fixError) {
-              profile = fixedProfile;
-              profileError = null;
-            }
-          }
-
-          if (!isKnownAdmin && (profileError || profile?.role !== 'admin')) {
-            await supabase.auth.signOut();
-            setError(`Akses Ditolak: Email ${user.email} tidak terdaftar sebagai admin.`);
-          } else {
-            navigate('/admin/dashboard');
-          }
-        } catch (err: any) {
-          console.error('Session check error:', err);
-          setError(err.message);
-        } finally {
+        // Cek apakah email ada di daftar admin
+        if (!user.email || !ADMIN_EMAILS.includes(user.email)) {
+          await supabase.auth.signOut();
+          setError(`Akses ditolak. Akun ${user.email} tidak terdaftar sebagai admin.`);
           setLoading(false);
+          return;
         }
+
+        // Upsert profile sebagai admin
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          role: 'admin',
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
+          updated_at: new Date().toISOString(),
+        });
+
+        navigate('/admin/dashboard');
+      } catch (err: any) {
+        setError('Terjadi kesalahan: ' + (err.message || 'Coba lagi.'));
+        setLoading(false);
       }
     };
 
     checkSession();
   }, [navigate]);
-
-  const testSupabase = async () => {
-    setDiagInfo('Mengecek koneksi...');
-    try {
-      const { count, error } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      setDiagInfo(`Koneksi OK! Terdeteksi ${count} profil di database.`);
-    } catch (err: any) {
-      setDiagInfo(`Error: ${err.message || 'Gagal terhubung ke Supabase'}`);
-    }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (loginError) throw loginError;
-
-      const user = data.user;
-      if (!user) throw new Error('User not found after login');
-
-      const adminEmails = ['firdausnatadiwangsa@gmail.com', 'businessdaws@gmail.com', 'admin@davsplace.studio'];
-      const isKnownAdmin = user.email && adminEmails.includes(user.email);
-
-      // Check if user is admin in profiles table
-      let { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      // Auto-fix for known admins
-      if (isKnownAdmin && (profileError || !profile || profile.role !== 'admin')) {
-        const { data: fixedProfile, error: fixError } = await supabase
-          .from('profiles')
-          .upsert({ 
-            id: user.id, 
-            role: 'admin', 
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin',
-            updated_at: new Date().toISOString()
-          })
-          .select('role')
-          .single();
-        
-        if (!fixError) {
-          profile = fixedProfile;
-          profileError = null;
-        }
-      }
-
-      if (!isKnownAdmin && (profileError || profile?.role !== 'admin')) {
-        await supabase.auth.signOut();
-        throw new Error(`Akses Ditolak: Akun ${user.email} tidak memiliki hak akses admin.`);
-      }
-
-      navigate('/admin/dashboard');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -145,23 +59,28 @@ export default function AdminLogin() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/admin/login`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
         },
       });
       if (error) throw error;
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Gagal login dengan Google.');
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-bg-primary flex items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--glow-yellow)_0%,_transparent_70%)]">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-bg-secondary border border-border-subtle p-10 rounded-[1.5rem] shadow-2xl"
+        className="w-full max-w-sm bg-bg-secondary border border-border-subtle p-10 rounded-[1.5rem] shadow-2xl"
       >
-        <button 
+        {/* Back button */}
+        <button
           onClick={() => navigate('/')}
           className="mb-8 flex items-center gap-2 text-text-secondary hover:text-accent-yellow transition-colors text-sm font-bold"
         >
@@ -169,105 +88,49 @@ export default function AdminLogin() {
           Kembali ke Beranda
         </button>
 
+        {/* Header */}
         <div className="mb-10 text-center">
-          <div className="w-16 h-16 bg-accent-yellow rounded-xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(245,197,24,0.3)]">
-            <Lock className="w-8 h-8 text-bg-primary" />
+          <div className="w-16 h-16 bg-accent-yellow rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(245,197,24,0.3)]">
+            <Shield className="w-8 h-8 text-bg-primary" />
           </div>
-          <h1 className="text-3xl font-display font-black mb-2">ADMIN LOGIN</h1>
-          <p className="text-text-secondary text-sm font-medium">Davsplace Studio Management Portal</p>
+          <h1 className="text-2xl font-black mb-2 uppercase tracking-tight">Admin Access</h1>
+          <p className="text-text-secondary text-sm">Davsplace Studio Management Portal</p>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-medium text-center">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-medium text-center leading-relaxed">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{ fontSize: '16px' }}
-                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
-                placeholder="admin@davsplace.studio"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-              <input 
-                type="password" 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ fontSize: '16px' }}
-                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 mt-4 bg-accent-yellow text-bg-primary font-black rounded-xl shadow-xl hover:bg-accent-yellow-bright transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'MASUK KE DASHBOARD'}
-          </button>
-        </form>
-
-        <div className="mt-6">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border-subtle"></div>
-            </div>
-            <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
-              <span className="bg-bg-secondary px-2 text-text-secondary">Atau</span>
-            </div>
-          </div>
-
-          <button 
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full py-4 bg-bg-tertiary border border-border-subtle text-text-primary font-bold rounded-xl hover:border-accent-yellow transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-              <>
-                <Chrome className="w-5 h-5" />
-                MASUK DENGAN GOOGLE
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-border-subtle">
-          <button 
-            onClick={testSupabase}
-            className="text-[10px] font-bold text-text-secondary hover:text-accent-yellow transition-colors underline"
-          >
-            Bermasalah dengan database? Klik untuk Cek Koneksi
-          </button>
-          {diagInfo && (
-            <div className="mt-2 p-3 bg-bg-tertiary rounded-lg text-[10px] font-mono text-accent-yellow break-all">
-              {diagInfo}
-              <div className="mt-1 text-text-secondary">
-                Origin Anda: {window.location.origin}
-              </div>
-            </div>
+        {/* Google Login Button */}
+        <button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full py-4 bg-white text-gray-900 font-bold rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg"
+        >
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
+          ) : (
+            <>
+              <svg width="20" height="20" viewBox="0 0 48 48">
+                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+                <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+              </svg>
+              Masuk dengan Google
+            </>
           )}
-        </div>
+        </button>
 
-        <div className="mt-8 text-center text-[8px] text-text-secondary font-bold uppercase tracking-widest opacity-30">
-          Davsplace Studio &copy; 2024
+        <p className="text-center text-[10px] text-text-secondary mt-5 leading-relaxed">
+          Hanya akun yang terdaftar sebagai admin<br/>yang dapat mengakses dashboard ini.
+        </p>
+
+        <div className="mt-10 text-center text-[8px] text-text-secondary font-bold uppercase tracking-widest opacity-30">
+          Davsplace Studio © 2026
         </div>
       </motion.div>
     </div>

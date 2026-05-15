@@ -1,5 +1,5 @@
 -- USERS & AUTH
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   full_name TEXT,
   avatar_url TEXT,
@@ -11,7 +11,7 @@ CREATE TABLE profiles (
 );
 
 -- KATEGORI
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE categories (
 );
 
 -- ARTIKEL
-CREATE TABLE articles (
+CREATE TABLE IF NOT EXISTS articles (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE articles (
 );
 
 -- LAYANAN
-CREATE TABLE services (
+CREATE TABLE IF NOT EXISTS services (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -60,8 +60,42 @@ CREATE TABLE services (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- EVENTS
+CREATE TABLE IF NOT EXISTS events (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  date DATE,
+  location TEXT,
+  image_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- PORTFOLIOS
+CREATE TABLE IF NOT EXISTS portfolios (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  client_name TEXT,
+  category TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- USEFUL LINKS (Social/Shortcuts)
+CREATE TABLE IF NOT EXISTS useful_links (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  icon TEXT,
+  sort_order INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- CLIENT LOGOS
-CREATE TABLE client_logos (
+CREATE TABLE IF NOT EXISTS client_logos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_name TEXT NOT NULL,
   logo_url TEXT NOT NULL,
@@ -71,7 +105,82 @@ CREATE TABLE client_logos (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS
+-- RLS & POLICIES (Idempotent)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE useful_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_logos ENABLE ROW LEVEL SECURITY;
+
+-- Utility function to drop policy and recreate safely
+DO $$
+BEGIN
+    -- PROFILES
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public profiles are viewable by everyone') THEN
+        CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update own profile') THEN
+        CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can insert own profile') THEN
+        CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+    END IF;
+
+    -- READ ACCESS FOR ALL TABLES (ANON/AUTHENTICATED)
+    PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view articles') OR 
+    (CREATE POLICY "Anyone can view articles" ON articles FOR SELECT USING (true));
+    
+    PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view categories') OR 
+    (CREATE POLICY "Anyone can view categories" ON categories FOR SELECT USING (true));
+    
+    PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view services') OR 
+    (CREATE POLICY "Anyone can view services" ON services FOR SELECT USING (true));
+    
+    PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view events') OR 
+    (CREATE POLICY "Anyone can view events" ON events FOR SELECT USING (true));
+    
+    PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view portfolios') OR 
+    (CREATE POLICY "Anyone can view portfolios" ON portfolios FOR SELECT USING (true));
+    
+    PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view useful_links') OR 
+    (CREATE POLICY "Anyone can view useful_links" ON useful_links FOR SELECT USING (true));
+    
+    PERFORM (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view client_logos') OR 
+    (CREATE POLICY "Anyone can view client_logos" ON client_logos FOR SELECT USING (true));
+
+    -- ADMIN FULL ACCESS (ALL TABLES)
+    -- We assume 'admin' role in profiles table
+    -- Since RLS is row-based, checking if the current user profile is admin
+    -- Helper to check if current user is admin
+    -- (Need to be careful with recursion if checking profile table itself)
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage articles') THEN
+        CREATE POLICY "Admins can manage articles" ON articles FOR ALL 
+        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage services') THEN
+        CREATE POLICY "Admins can manage services" ON services FOR ALL 
+        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage events') THEN
+        CREATE POLICY "Admins can manage events" ON events FOR ALL 
+        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage portfolios') THEN
+        CREATE POLICY "Admins can manage portfolios" ON portfolios FOR ALL 
+        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage useful_links') THEN
+        CREATE POLICY "Admins can manage useful_links" ON useful_links FOR ALL 
+        USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+    END IF;
+
+END
+$$;

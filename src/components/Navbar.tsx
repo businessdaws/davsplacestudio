@@ -83,12 +83,6 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          <button 
-            onClick={() => navigate('/admin/login')}
-            className="px-5 py-2 bg-accent-yellow text-bg-primary font-bold rounded-lg text-[10px] hover:bg-accent-yellow-bright transition-all transform hover:scale-105 active:scale-95 font-medium uppercase tracking-tight"
-          >
-            Masuk
-          </button>
         </div>
 
         {/* Mobile Toggle */}
@@ -129,9 +123,6 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
               <button onClick={toggleTheme} className="flex items-center gap-2 text-text-secondary">
                 {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-              </button>
-              <button className="px-6 py-3 bg-accent-yellow text-bg-primary font-bold rounded-lg transition-all">
-                Masuk Sekarang
               </button>
             </div>
           </motion.div>
