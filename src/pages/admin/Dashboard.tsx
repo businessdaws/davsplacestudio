@@ -244,15 +244,22 @@ export default function AdminDashboard() {
                 {activeTab === 'events' && 'Event'}
                 {activeTab === 'links' && 'Useful Links'}
               </h1>
-              <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${
-                  dbStatus === 'connected' ? 'bg-green-500' : 
-                  dbStatus === 'error' ? 'bg-red-500' : 'bg-yellow-500'
-                }`} />
-                <p className="text-text-secondary text-xs font-medium">
-                  {dbStatus === 'connected' ? 'Database Connected' : 
-                   dbStatus === 'error' ? 'Database Connection Error' : 'Checking Connection...'}
-                </p>
+              <div className="flex flex-col mt-1">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    dbStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 
+                    dbStatus === 'error' ? 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-yellow-500'
+                  }`} />
+                  <p className="text-text-secondary text-[10px] uppercase font-black tracking-widest">
+                    {dbStatus === 'connected' ? 'DB Connected' : 
+                     dbStatus === 'error' ? 'DB Connection Error' : 'Checking...'}
+                  </p>
+                </div>
+                {dbStatus === 'error' && (
+                  <p className="text-[9px] text-red-500 font-bold mt-1 uppercase leading-tight max-w-[150px]">
+                    Cek Supabase / SQL Policy (initial_schema.sql)
+                  </p>
+                )}
               </div>
             </div>
           </div>

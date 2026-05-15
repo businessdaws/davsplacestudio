@@ -11,14 +11,14 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 -- HELPER FOR RLS (To avoid recursion)
+-- Using SECURITY DEFINER and setting search_path is key to bypassing RLS safely
 CREATE OR REPLACE FUNCTION is_admin() 
 RETURNS BOOLEAN AS $$
+DECLARE
+  current_role TEXT;
 BEGIN
-  RETURN (
-    SELECT (role = 'admin')
-    FROM profiles
-    WHERE id = auth.uid()
-  );
+  SELECT role INTO current_role FROM public.profiles WHERE id = auth.uid();
+  RETURN current_role = 'admin';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -90,6 +90,8 @@ CREATE TABLE IF NOT EXISTS portfolios (
   title TEXT NOT NULL,
   description TEXT,
   image_url TEXT,
+  video_url TEXT,
+  type TEXT DEFAULT 'photo' CHECK (type IN ('photo', 'video')),
   client_name TEXT,
   category TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -131,13 +133,32 @@ ALTER TABLE client_logos ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
     -- CLEANUP POTENTIAL RECURSIVE POLICIES
-    DROP POLICY IF EXISTS "Admins can manage articles" ON articles;
-    DROP POLICY IF EXISTS "Admins can manage services" ON services;
-    DROP POLICY IF EXISTS "Admins can manage events" ON events;
-    DROP POLICY IF EXISTS "Admins can manage portfolios" ON portfolios;
-    DROP POLICY IF EXISTS "Admins can manage useful_links" ON useful_links;
-    DROP POLICY IF EXISTS "Admin access" ON profiles;
-    DROP POLICY IF EXISTS "Admins can manage profiles" ON profiles;
+    -- Only drop if the table exists to avoid 42P01 error
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'articles') THEN
+        DROP POLICY IF EXISTS "Admins can manage articles" ON articles;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'services') THEN
+        DROP POLICY IF EXISTS "Admins can manage services" ON services;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'events') THEN
+        DROP POLICY IF EXISTS "Admins can manage events" ON events;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'portfolios') THEN
+        DROP POLICY IF EXISTS "Admins can manage portfolios" ON portfolios;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'useful_links') THEN
+        DROP POLICY IF EXISTS "Admins can manage useful_links" ON useful_links;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'categories') THEN
+        DROP POLICY IF EXISTS "Admins can manage categories" ON categories;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'client_logos') THEN
+        DROP POLICY IF EXISTS "Admins can manage client_logos" ON client_logos;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'profiles') THEN
+        DROP POLICY IF EXISTS "Admin access" ON profiles;
+        DROP POLICY IF EXISTS "Admins can manage profiles" ON profiles;
+    END IF;
 
     -- PROFILES (KEEP IT SIMPLE: OWN ACCESS + PUBLIC SELECT)
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Public profiles are viewable by everyone') THEN
@@ -193,9 +214,16 @@ BEGIN
         CREATE POLICY "Admins can manage useful_links" ON useful_links FOR ALL USING (is_admin());
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage profiles') THEN
-        CREATE POLICY "Admins can manage profiles" ON profiles FOR ALL USING (is_admin());
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage client_logos') THEN
+        CREATE POLICY "Admins can manage client_logos" ON client_logos FOR ALL USING (is_admin());
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can manage categories') THEN
+        CREATE POLICY "Admins can manage categories" ON categories FOR ALL USING (is_admin());
+    END IF;
+
+    -- Note: Removed recursive "Admins can manage profiles" policy on the profiles table itself.
+    -- Own-profile policies are sufficient for admins to manage their own records.
 
 END
 $$;
