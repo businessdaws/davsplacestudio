@@ -8,7 +8,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 export default function FeaturedPortfolio() {
   const [portfolios, setPortfolios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
   const getEmbedUrl = (url: string) => {
     if (!url) return '';
@@ -63,10 +63,11 @@ export default function FeaturedPortfolio() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-bg-tertiary"
+              className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-bg-tertiary cursor-pointer"
+              onClick={() => setSelectedItem(item)}
             >
               <img 
-                src={item.image_url || 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&h=600&auto=format&fit=crop'} 
+                src={item.image_url || item.cover_image || 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&h=600&auto=format&fit=crop'} 
                 alt={item.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
@@ -81,17 +82,10 @@ export default function FeaturedPortfolio() {
                     {item.title}
                   </h3>
                   
-                  <button 
-                    onClick={() => {
-                      if (item.type === 'video' && item.video_url) {
-                        setSelectedVideo(item.video_url);
-                      }
-                    }}
-                    className="flex items-center gap-2 text-sm font-bold text-accent-yellow"
-                  >
+                  <div className="flex items-center gap-2 text-sm font-bold text-accent-yellow">
                     {item.type === 'video' ? <PlayCircle className="w-5 h-5" /> : <ExternalLink className="w-5 h-5" />}
                     {item.type === 'video' ? 'TONTON VIDEO' : 'LIHAT DETAIL'}
-                  </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -109,35 +103,86 @@ export default function FeaturedPortfolio() {
         </div>
       </div>
 
-      {/* Video Modal Overlay */}
+      {/* Detail Modal Overlay */}
       <AnimatePresence>
-        {selectedVideo && (
+        {selectedItem && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/95 backdrop-blur-md"
-            onClick={() => setSelectedVideo(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/95 backdrop-blur-md overflow-y-auto"
+            onClick={() => setSelectedItem(null)}
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl"
+              className="relative w-full max-w-5xl bg-bg-secondary rounded-[2rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[500px]"
               onClick={e => e.stopPropagation()}
             >
               <button 
-                onClick={() => setSelectedVideo(null)}
-                className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black text-white rounded-full transition-colors"
+                onClick={() => setSelectedItem(null)}
+                className="absolute top-6 right-6 z-20 p-3 bg-bg-primary/50 hover:bg-bg-primary text-white rounded-full transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
-              <iframe 
-                src={getEmbedUrl(selectedVideo)}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowFullScreen
-              />
+
+              {/* Media Section */}
+              <div className="w-full lg:w-3/5 bg-black flex items-center justify-center min-h-[300px]">
+                {selectedItem.type === 'video' ? (
+                  <iframe 
+                    src={getEmbedUrl(selectedItem.video_url)}
+                    className="w-full h-full aspect-video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  />
+                ) : (
+                  <img 
+                    src={selectedItem.image_url || selectedItem.cover_image || 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&h=600&auto=format&fit=crop'} 
+                    alt={selectedItem.title}
+                    className="w-full h-full object-contain"
+                  />
+                )}
+              </div>
+
+              {/* Content Section */}
+              <div className="w-full lg:w-2/5 p-8 md:p-12 flex flex-col justify-center bg-bg-secondary">
+                <div className="space-y-6">
+                  <div>
+                    <span className="px-3 py-1 bg-accent-yellow/10 text-accent-yellow text-[10px] font-black rounded-lg mb-4 inline-block tracking-widest uppercase border border-accent-yellow/20">
+                      {selectedItem.category}
+                    </span>
+                    <h3 className="text-3xl md:text-4xl font-display font-black uppercase leading-tight">
+                      {selectedItem.title}
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-text-secondary leading-relaxed font-sans">
+                      {selectedItem.description || 'Tidak ada deskripsi tersedia untuk proyek ini.'}
+                    </p>
+                    
+                    {selectedItem.client && (
+                      <div className="pt-6 border-t border-border-subtle">
+                        <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-1">CLIENT</p>
+                        <p className="font-display font-bold uppercase">{selectedItem.client}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedItem.link && (
+                    <a 
+                      href={selectedItem.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-8 py-4 bg-accent-yellow text-bg-primary font-black rounded-xl hover:scale-105 transition-transform"
+                    >
+                      LIHAT LIVE PROJECT
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
+                  )}
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

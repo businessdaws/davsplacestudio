@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Search, Moon, Sun, ChevronRight } from 'lucide-react';
+import { Menu, X, Search, Moon, Sun, ChevronRight, User, LogOut, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../stores/useAppStore';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { cn } from '../lib/utils';
 
 const navLinks = [
   { name: 'Beranda', href: '/' },
   { name: 'Artikel', href: '/artikel' },
   { name: 'Portofolio', href: '/portofolio' },
+  { name: 'AI Generator', href: '/generator' },
   { name: 'Kolaborasi', href: '/kolaborasi' },
   { name: 'Tentang', href: '/tentang' },
 ];
@@ -16,6 +19,9 @@ const navLinks = [
 export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }) {
   const { isMenuOpen, setMenuOpen, theme, toggleTheme } = useAppStore();
   const [scrolled, setScrolled] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,8 +34,31 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      unsubscribe();
+    };
   }, []);
+
+  const handleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err: any) {
+      console.error('Login error:', err);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setShowUserMenu(false);
+    navigate('/');
+  };
 
   return (
     <nav
@@ -83,6 +112,59 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
+
+          <div className="relative">
+            {user ? (
+              <button 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 p-1 pl-3 bg-bg-secondary border border-border-subtle rounded-full hover:border-accent-yellow transition-all"
+              >
+                <span className="text-[10px] font-black uppercase tracking-tight text-text-secondary">
+                  {user.displayName?.split(' ')[0]}
+                </span>
+                <img 
+                  src={user.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user'} 
+                  className="w-7 h-7 rounded-full bg-accent-yellow/20"
+                  alt="Avatar"
+                />
+              </button>
+            ) : (
+              <button 
+                onClick={handleLogin}
+                className="flex items-center gap-2 px-4 py-2 bg-accent-yellow text-bg-primary text-[10px] font-black uppercase rounded-lg hover:scale-105 transition-transform"
+              >
+                <User className="w-4 h-4" />
+                Masuk
+              </button>
+            )}
+
+            <AnimatePresence>
+              {showUserMenu && user && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full right-0 mt-3 w-48 bg-bg-secondary border border-border-subtle rounded-xl shadow-xl p-2 z-[60]"
+                >
+                  <Link 
+                    to="/generator" 
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-3 p-3 text-xs font-bold text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4 text-accent-yellow" />
+                    AI Generator
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 p-3 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors border-t border-border-subtle mt-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Keluar
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Mobile Toggle */}

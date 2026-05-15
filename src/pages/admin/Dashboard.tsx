@@ -913,6 +913,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
           <table className="w-full text-left min-w-[600px] md:min-w-0">
             <thead className="bg-bg-tertiary/50 border-b border-border-subtle">
               <tr>
+                <th className="px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary w-16">Preview</th>
                 <th className="px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Judul / Nama</th>
                 <th className="px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Status</th>
                 <th className="hidden md:table-cell px-4 md:px-8 py-5 text-xs font-black uppercase tracking-widest text-text-secondary">Tanggal</th>
@@ -922,6 +923,15 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
             <tbody className="divide-y divide-border-subtle">
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-bg-tertiary/30 transition-colors group">
+                  <td className="px-4 md:px-8 py-6">
+                    <div className="w-12 h-12 rounded-lg bg-bg-tertiary border border-border-subtle overflow-hidden">
+                      <img 
+                        src={item.image_url || item.cover_image || 'https://via.placeholder.com/150'} 
+                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/150')}
+                      />
+                    </div>
+                  </td>
                   <td className="px-4 md:px-8 py-6">
                     <div className="font-bold text-white group-hover:text-accent-yellow transition-colors truncate max-w-[200px] md:max-w-none">{item.title}</div>
                     {item.slug && <div className="text-xs text-text-secondary mt-1">/{item.slug}</div>}

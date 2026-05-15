@@ -13,7 +13,6 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SearchModal from './components/SearchModal';
-import MiniChatbot from './components/MiniChatbot';
 import { MobileTopbar, MobileBottomNavbar } from './components/MobileNavigation';
 import { cn } from './lib/utils';
 
@@ -35,6 +34,7 @@ const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
 const ArticleDetailPage = lazy(() => import('./pages/ArticleDetailPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const CollabPage = lazy(() => import('./pages/CollabPage'));
+const SocialMediaGenerator = lazy(() => import('./pages/SocialMediaGenerator'));
 
 export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -79,6 +79,11 @@ export default function App() {
           <Route path="/kolaborasi" element={
             <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
               <CollabPage />
+            </Suspense>
+          } />
+          <Route path="/generator" element={
+            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+              <SocialMediaGenerator />
             </Suspense>
           } />
 
@@ -130,7 +135,6 @@ export default function App() {
 
               <Footer />
               <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
-              <MiniChatbot />
             </>
           } />
         </Routes>

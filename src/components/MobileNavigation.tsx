@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../stores/useAppStore';
 import { cn } from '../lib/utils';
 import { auth } from '../lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 export function MobileTopbar({ onSearchClick }: { onSearchClick: () => void }) {
   const { theme, toggleTheme } = useAppStore();
@@ -27,6 +27,15 @@ export function MobileTopbar({ onSearchClick }: { onSearchClick: () => void }) {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err: any) {
+      console.error('Mobile login error:', err);
+    }
+  };
 
   return (
     <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14 bg-bg-primary/80 backdrop-blur-md border-b border-border-subtle">
@@ -49,9 +58,12 @@ export function MobileTopbar({ onSearchClick }: { onSearchClick: () => void }) {
             {user.email?.[0].toUpperCase()}
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-bg-tertiary border border-border-subtle flex items-center justify-center text-text-secondary">
+          <button 
+            onClick={handleLogin}
+            className="w-8 h-8 rounded-lg bg-bg-tertiary border border-border-subtle flex items-center justify-center text-text-secondary active:border-accent-yellow"
+          >
             <User className="w-4 h-4" />
-          </div>
+          </button>
         )}
       </div>
     </div>

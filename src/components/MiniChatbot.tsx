@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Send, X, Sparkles, Loader2 } from 'lucide-react';
-import { geminiModel } from '../lib/gemini';
+import { getChatResponse } from '../lib/gemini';
 
 export default function MiniChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,9 +27,8 @@ export default function MiniChatbot() {
     User bertanya: "${userMessage}"`;
 
     try {
-      const result = await geminiModel.generateContent(prompt);
-      const responseText = result.response.text();
-      setMessages(prev => [...prev, { role: 'ai', text: responseText }]);
+      const responseText = await getChatResponse(prompt);
+      setMessages(prev => [...prev, { role: 'ai', text: responseText || 'Maaf, saya tidak bisa menjangjawab saat ini.' }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'ai', text: 'Maaf, saya sedang mengalami kendala teknis. Silakan hubungi kami via WhatsApp.' }]);
     } finally {

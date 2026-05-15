@@ -123,7 +123,7 @@ export default function TentangSection() {
                       rel={link.url.startsWith('https') ? "noreferrer" : undefined}
                       className="group flex items-center justify-between p-4 bg-bg-secondary border border-border-subtle rounded-xl hover:border-accent-yellow transition-all active:scale-[0.98]"
                     >
-                      <span className="text-sm font-bold">{link.name}</span>
+                      <span className="text-sm font-bold">{link.title || link.name}</span>
                       <ArrowRight className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow group-hover:translate-x-1 transition-all" />
                     </a>
                   ) : (
@@ -132,7 +132,7 @@ export default function TentangSection() {
                       to={link.url}
                       className="group flex items-center justify-between p-4 bg-bg-secondary border border-border-subtle rounded-xl hover:border-accent-yellow transition-all active:scale-[0.98]"
                     >
-                      <span className="text-sm font-bold">{link.name}</span>
+                      <span className="text-sm font-bold">{link.title || link.name}</span>
                       <ArrowRight className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow group-hover:translate-x-1 transition-all" />
                     </Link>
                   );

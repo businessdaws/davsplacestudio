@@ -112,9 +112,8 @@ export default function Footer() {
         <div className="flex items-center gap-8">
           <a href="#" className="hover:text-accent-yellow transition-colors">Syarat & Ketentuan</a>
           <a href="#" className="hover:text-accent-yellow transition-colors">Kebijakan Privasi</a>
-          <Link to="/admin/login" className="flex items-center gap-1.5 px-3 py-1 bg-bg-tertiary border border-border-subtle rounded-lg hover:border-accent-yellow transition-all group">
-            <Lock className="w-3 h-3 group-hover:text-accent-yellow" />
-            <span className="text-[10px] uppercase font-black tracking-widest group-hover:text-accent-yellow">Admin</span>
+          <Link to="/admin/login" className="flex items-center justify-center p-2 text-text-secondary hover:text-accent-yellow transition-all opacity-20 hover:opacity-100">
+            <Lock className="w-3 h-3" />
           </Link>
         </div>
       </div>
