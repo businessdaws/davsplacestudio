@@ -39,8 +39,28 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
+  Search,
+  Command,
+  Sparkles,
+  ArrowUpRight,
+  MoreVertical,
+  Bell,
+  Menu,
   Image as ImageIcon
 } from 'lucide-react';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
+import { format, subDays } from 'date-fns';
+
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatDate } from '../../lib/utils';
 
@@ -50,6 +70,7 @@ type Tab = 'overview' | 'articles' | 'events' | 'communities' | 'portfolios' | '
 const ADMIN_EMAILS = [
   'davsplacestudio@gmail.com',
   'businessdaws@gmail.com',
+  'buainessdaws@gmail.com',
   'admin@davs.studio',
   'fajarmuniri@gmail.com'
 ];
@@ -58,6 +79,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const navigate = useNavigate();
 
   const [accessDenied, setAccessDenied] = useState<string | null>(null);
@@ -109,6 +131,17 @@ export default function AdminDashboard() {
     return () => unsubscribe();
   }, [navigate]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
 
   useEffect(() => {
@@ -129,6 +162,23 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/admin/login');
+  };
+
+  const generateAIContent = async (prompt: string, context: string) => {
+    try {
+      const response = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, context }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data.text;
+    } catch (err) {
+      console.error('AI Error:', err);
+      alert('Gagal memanggil AI Assistant. Pastikan server berjalan dan API Key valid.');
+      return '';
+    }
   };
 
   if (loading) return (
@@ -180,14 +230,14 @@ export default function AdminDashboard() {
         {[
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
           { id: 'leads', icon: MessageSquare, label: 'Inbound Leads' },
-          { id: 'articles', icon: FileText, label: 'Artikel' },
-          { id: 'portfolios', icon: TrendingUp, label: 'Portofolio' },
-          { id: 'events', icon: Calendar, label: 'Event' },
-          { id: 'communities', icon: Users, label: 'Community' },
-          { id: 'links', icon: ExternalLink, label: 'Useful Links' },
-          { id: 'categories', icon: Settings, label: 'Kategori' },
-          { id: 'logos', icon: Users, label: 'Client Logos' },
-          { id: 'settings', icon: Settings, label: 'Site Settings' },
+          { id: 'articles', icon: FileText, label: 'Articles' },
+          { id: 'portfolios', icon: Briefcase, label: 'Projects' },
+          { id: 'events', icon: Calendar, label: 'Events' },
+          { id: 'communities', icon: Users, label: 'Communities' },
+          { id: 'links', icon: ExternalLink, label: 'Magic Links' },
+          { id: 'categories', icon: Zap, label: 'Categories' },
+          { id: 'logos', icon: Users, label: 'Clients' },
+          { id: 'settings', icon: Settings, label: 'Settings' },
         ].map((item) => (
           <button
             key={item.id}
@@ -225,7 +275,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-bg-primary flex">
       {/* (1) Desktop Sidebar */}
-      <aside className="hidden lg:flex w-72 bg-bg-secondary border-r border-border-subtle flex-col p-6 h-screen sticky top-0">
+      <aside className="hidden lg:flex w-64 bg-bg-secondary border-r border-border-subtle flex-col h-screen sticky top-0 z-50">
         <SidebarContent />
       </aside>
 
@@ -238,14 +288,14 @@ export default function AdminDashboard() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+              className="lg:hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-md"
             />
             <motion.aside 
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="lg:hidden fixed top-0 left-0 bottom-0 z-[70] w-72 bg-bg-secondary border-r border-border-subtle flex flex-col p-6 overflow-y-auto"
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="lg:hidden fixed top-0 left-0 bottom-0 z-[110] w-72 bg-bg-secondary border-r border-border-subtle flex flex-col p-6 overflow-y-auto"
             >
               <SidebarContent />
             </motion.aside>
@@ -254,64 +304,100 @@ export default function AdminDashboard() {
       </AnimatePresence>
 
       {/* (3) Main Content */}
-      <main className="flex-1 min-h-screen p-4 md:p-10 overflow-y-auto pb-24 md:pb-10">
-        <header className="flex items-center justify-between mb-8 md:mb-12">
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* Modern Header */}
+        <header className="sticky top-0 z-40 bg-bg-primary/80 backdrop-blur-xl border-b border-border-subtle px-4 md:px-10 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 bg-bg-secondary border border-border-subtle rounded-lg active:scale-90 transition-all"
+              className="lg:hidden p-2 text-text-secondary hover:text-white bg-bg-secondary border border-border-subtle rounded-lg"
             >
-              <LayoutDashboard className="w-6 h-6 text-accent-yellow" />
+              <Menu className="w-6 h-6" />
             </button>
-            <div>
-                <h1 className="text-2xl md:text-4xl font-display font-black uppercase tracking-tight">
-                  {activeTab === 'overview' && 'Overview'}
-                  {activeTab === 'leads' && 'Inbound Leads'}
-                  {activeTab === 'articles' && 'Artikel'}
-                  {activeTab === 'portfolios' && 'Portofolio'}
-                  {activeTab === 'events' && 'Event'}
-                  {activeTab === 'communities' && 'Community'}
-                  {activeTab === 'links' && 'Useful Links'}
-                  {activeTab === 'categories' && 'Kategori'}
-                  {activeTab === 'logos' && 'Client Logos'}
-                  {activeTab === 'settings' && 'Site Settings'}
-                </h1>
-              <div className="flex flex-col mt-1">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    dbStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 
-                    dbStatus === 'error' ? 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-yellow-500'
-                  }`} />
-                  <p className="text-text-secondary text-[10px] uppercase font-black tracking-widest">
-                    {dbStatus === 'connected' ? 'DB Connected' : 
-                     dbStatus === 'error' ? 'DB Connection Error' : 'Checking...'}
-                  </p>
-                </div>
-                {dbStatus === 'error' && (
-                  <p className="text-[9px] text-red-500 font-bold mt-1 uppercase leading-tight max-w-[150px]">
-                    Cek Supabase / SQL Policy (initial_schema.sql)
-                  </p>
-                )}
-              </div>
+            <div className="hidden md:flex items-center bg-bg-tertiary/50 border border-border-subtle rounded-xl px-4 py-2 w-80 group focus-within:border-accent-yellow transition-all cursor-pointer" onClick={() => setIsCommandPaletteOpen(true)}>
+              <Search className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow transition-colors" />
+              <span className="ml-3 text-xs text-text-secondary font-medium">Cari apa saja...</span>
+              <kbd className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded border border-border-subtle bg-bg-primary text-[10px] font-black text-text-secondary">
+                <Command className="w-2.5 h-2.5" /> K
+              </kbd>
             </div>
           </div>
-          <button className="p-3 md:px-6 md:py-3 bg-bg-tertiary border border-border-subtle rounded-xl font-bold flex items-center gap-2 hover:border-accent-yellow transition-all active:scale-95">
-            <ExternalLink className="w-4 h-4" />
-            <span className="hidden md:block">Lihat Site</span>
-          </button>
+
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end mr-2">
+              <span className="text-[10px] font-black uppercase text-accent-yellow leading-none tracking-widest mb-1">Status</span>
+              <div className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${dbStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                <span className="text-[9px] font-black uppercase tracking-tighter text-text-secondary">{dbStatus === 'connected' ? 'Connected' : 'Offline'}</span>
+              </div>
+            </div>
+            
+            <div className="w-px h-6 bg-border-subtle mx-2 hidden sm:block" />
+
+            <button className="p-2 text-text-secondary hover:text-accent-yellow transition-all relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent-yellow rounded-full ring-2 ring-bg-primary" />
+            </button>
+
+            <a 
+              href="/" 
+              target="_blank"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-accent-yellow text-bg-primary text-xs font-black rounded-xl hover:bg-white transition-all shadow-lg shadow-accent-yellow/10"
+            >
+              <ExternalLink className="w-4 h-4" />
+              LIHAT SITE
+            </a>
+          </div>
         </header>
 
-        {activeTab === 'overview' && <OverviewGrid />}
-        {activeTab === 'leads' && <LeadsManager />}
-        {activeTab === 'articles' && <ContentManager type="articles" />}
-        {activeTab === 'portfolios' && <ContentManager type="portfolios" />}
-        {activeTab === 'events' && <ContentManager type="events" />}
-        {activeTab === 'communities' && <CommunityManager />}
-        {activeTab === 'links' && <LinksManager />}
-        {activeTab === 'categories' && <CategoriesManager />}
-        {activeTab === 'logos' && <LogosManager />}
-        {activeTab === 'settings' && <SettingsManager />}
-      </main>
+        <main className="flex-1 p-4 md:p-10 pb-24 md:pb-10">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
+              transition={{ duration: 0.3, ease: 'circOut' }}
+            >
+              <div className="mb-8">
+                <h1 className="text-3xl md:text-5xl font-display font-black uppercase tracking-tight leading-none mb-2">
+                  {activeTab === 'overview' && 'SYSTEM <span class="text-accent-yellow italic">OVERVIEW</span>'}
+                  {activeTab === 'leads' && 'INBOUND <span class="text-accent-yellow italic">LEADS</span>'}
+                  {activeTab === 'articles' && 'CONTENT <span class="text-accent-yellow italic">ARTICLES</span>'}
+                  {activeTab === 'portfolios' && 'PROJECT <span class="text-accent-yellow italic">SHOWCASE</span>'}
+                  {activeTab === 'events' && 'UPCOMING <span class="text-accent-yellow italic">EVENTS</span>'}
+                  {activeTab === 'communities' && 'USER <span class="text-accent-yellow italic">COMMUNITIES</span>'}
+                  {activeTab === 'links' && 'USEFUL <span class="text-accent-yellow italic">LINKS</span>'}
+                  {activeTab === 'categories' && 'CONTENT <span class="text-accent-yellow italic">TAXONOMY</span>'}
+                  {activeTab === 'logos' && 'CLIENT <span class="text-accent-yellow italic">LOGOS</span>'}
+                  {activeTab === 'settings' && 'SYSTEM <span class="text-accent-yellow italic">SETTINGS</span>'}
+                </h1>
+                <div 
+                  className="text-[10px] md:text-sm text-text-secondary font-sans tracking-wide uppercase font-bold text-accent-yellow/60"
+                  dangerouslySetInnerHTML={{ __html: activeTab.replace('_', ' ') }}
+                />
+              </div>
+
+              {activeTab === 'overview' && <OverviewGrid />}
+              {activeTab === 'leads' && <LeadsManager />}
+              {activeTab === 'articles' && <ContentManager type="articles" onGenerateAI={generateAIContent} />}
+              {activeTab === 'portfolios' && <ContentManager type="portfolios" onGenerateAI={generateAIContent} />}
+              {activeTab === 'events' && <ContentManager type="events" onGenerateAI={generateAIContent} />}
+              {activeTab === 'communities' && <CommunityManager />}
+              {activeTab === 'links' && <LinksManager />}
+              {activeTab === 'categories' && <CategoriesManager />}
+              {activeTab === 'logos' && <LogosManager />}
+              {activeTab === 'settings' && <SettingsManager />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        onClose={() => setIsCommandPaletteOpen(false)} 
+        setActiveTab={setActiveTab}
+      />
     </div>
   );
 }
@@ -726,12 +812,12 @@ function LinksManager() {
 }
 
 function OverviewGrid() {
-  const [counts, setCounts] = useState({ articles: 0, events: 0, portfolios: 0, links: 0, categories: 0, logos: 0 });
+  const [counts, setCounts] = useState({ articles: 0, events: 0, portfolios: 0, links: 0, categories: 0, logos: 0, leads: 0 });
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const collectionsList = ['articles', 'events', 'portfolios', 'useful_links', 'categories', 'client_logos'];
+        const collectionsList = ['articles', 'events', 'portfolios', 'useful_links', 'categories', 'client_logos', 'leads'];
         const results = await Promise.allSettled(
           collectionsList.map(name => getCountFromServer(collection(db, name)))
         );
@@ -752,36 +838,140 @@ function OverviewGrid() {
   }, []);
 
   const stats = [
-    { label: 'Total Artikel', value: counts.articles.toString(), icon: FileText, color: 'text-yellow-500' },
-    { label: 'Event Aktif', value: counts.events.toString(), icon: Calendar, color: 'text-purple-500' },
-    { label: 'Portofolio', value: counts.portfolios.toString(), icon: TrendingUp, color: 'text-blue-500' },
-    { label: 'Useful Links', value: counts.links.toString(), icon: ExternalLink, color: 'text-green-500' },
-    { label: 'Kategori', value: counts.categories.toString(), icon: Settings, color: 'text-orange-500' },
-    { label: 'Client Logos', value: counts.logos.toString(), icon: Users, color: 'text-pink-500' },
+    { label: 'Total Artikel', value: counts.articles, icon: FileText, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { label: 'Event Aktif', value: counts.events, icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { label: 'Portofolio', value: counts.portfolios, icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'leads Inbound', value: counts.leads, icon: MessageSquare, color: 'text-green-500', bg: 'bg-green-500/10' },
+  ];
+
+  const chartData = [
+    { name: 'Mon', articles: 4, events: 2, portfolios: 5 },
+    { name: 'Tue', articles: 7, events: 4, portfolios: 8 },
+    { name: 'Wed', articles: 5, events: 1, portfolios: 12 },
+    { name: 'Thu', articles: 9, events: 6, portfolios: 7 },
+    { name: 'Fri', articles: 12, events: 8, portfolios: 15 },
+    { name: 'Sat', articles: 8, events: 3, portfolios: 10 },
+    { name: 'Sun', articles: 11, events: 5, portfolios: 14 },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
-      {stats.map((stat, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="bg-bg-secondary border border-border-subtle p-6 md:p-8 rounded-2xl hover:border-accent-yellow/50 transition-all"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className={`p-2 md:p-3 rounded-xl bg-bg-tertiary ${stat.color}`}>
-              <stat.icon className="w-5 h-5 md:w-6 md:h-6" />
+    <div className="space-y-10">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="group bg-bg-secondary border border-border-subtle p-8 rounded-3xl hover:border-accent-yellow/50 transition-all shadow-xl shadow-black/20 relative overflow-hidden"
+          >
+            <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-3xl opacity-0 group-hover:opacity-100 transition-opacity`} />
+            <div className="flex items-center justify-between mb-6">
+              <div className={`p-4 rounded-2xl bg-bg-tertiary ${stat.color} border border-white/5`}>
+                <stat.icon className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-black text-green-500 flex items-center gap-1 uppercase tracking-widest whitespace-nowrap">
+                  <ArrowUpRight className="w-3 h-3" /> 12% Up
+                </span>
+                <span className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em]">Today</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-text-secondary text-[10px] font-black uppercase tracking-[0.2em] mb-2">{stat.label}</p>
+              <h3 className="text-4xl font-display font-black tracking-tighter">{stat.value}</h3>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Main Charts Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="xl:col-span-2 bg-bg-secondary border border-border-subtle rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h3 className="text-xl font-display font-black uppercase tracking-tight">Activity <span className="text-accent-yellow italic">Analytics</span></h3>
+              <p className="text-xs text-text-secondary font-medium mt-1">Laporan traffic dan konten minggu ini</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-bg-tertiary rounded-lg border border-border-subtle">
+                <div className="w-2 h-2 rounded-full bg-accent-yellow" />
+                <span className="text-[10px] font-black uppercase text-text-secondary">Articles</span>
+              </div>
             </div>
           </div>
-          <p className="text-text-secondary text-[10px] md:text-xs font-black uppercase tracking-widest mb-1 truncate">{stat.label}</p>
-          <h3 className="text-xl md:text-3xl font-display font-black">{stat.value}</h3>
-        </motion.div>
-      ))}
+          
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorArt" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FACC15" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#FACC15" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D2D2D" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#666', fontSize: 10, fontWeight: 900 }} 
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#666', fontSize: 10, fontWeight: 900 }} 
+                />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1A1A1A', borderRadius: '15px', border: '1px solid #333', fontSize: '10px' }}
+                  itemStyle={{ fontWeight: 900, textTransform: 'uppercase' }}
+                />
+                <Area type="monotone" dataKey="articles" stroke="#FACC15" strokeWidth={4} fillOpacity={1} fill="url(#colorArt)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-bg-secondary border border-border-subtle rounded-3xl p-8 shadow-2xl flex flex-col">
+          <h3 className="text-xl font-display font-black uppercase tracking-tight mb-8">System <span className="text-accent-yellow italic">Health</span></h3>
+          
+          <div className="flex-1 space-y-6">
+            {[
+              { label: 'Database Latency', value: '24ms', score: 98, color: 'bg-green-500' },
+              { label: 'Storage Usage', value: '1.2 GB', score: 45, color: 'bg-accent-yellow' },
+              { label: 'API Uptime', value: '99.98%', score: 99, color: 'bg-blue-500' },
+              { label: 'Load Average', value: '0.45', score: 15, color: 'bg-purple-500' },
+            ].map((metric, i) => (
+              <div key={i} className="space-y-3">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">{metric.label}</span>
+                  <span className="text-sm font-black text-white">{metric.value}</span>
+                </div>
+                <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden border border-white/5">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${metric.score}%` }}
+                    transition={{ duration: 1, delay: 0.5 }}
+                    className={`h-full ${metric.color} shadow-[0_0_10px_rgba(34,197,94,0.3)]`} 
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-border-subtle">
+            <button className="w-full py-4 bg-bg-tertiary border border-border-subtle rounded-2xl flex items-center justify-center gap-3 text-xs font-black uppercase hover:border-accent-yellow transition-all group">
+              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
+              Perbarui Metrics
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
 
 function CategoriesManager() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -1202,12 +1392,13 @@ function CommunityManager() {
   );
 }
 
-function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }) {
+function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 'portfolios', onGenerateAI?: (p: string, c: string) => Promise<string> }) {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pub' | 'draft'>('all');
   
@@ -1515,10 +1706,36 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
             <h3 className="text-2xl font-display font-black mb-8 uppercase">
               {editingItem ? 'Edit' : 'Tambah'} {type === 'articles' ? 'Artikel' : type === 'events' ? 'Event' : 'Portofolio'}
             </h3>
-            <form onSubmit={handleSave} className="space-y-6">
+            <form onSubmit={handleSave} className="space-y-6 relative">
+              {isGenerating && (
+                <div className="absolute inset-0 z-50 bg-bg-secondary/60 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-2xl">
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                    className="w-12 h-12 border-4 border-accent-yellow border-t-transparent rounded-full mb-4"
+                  />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-accent-yellow animate-pulse">AI is Thinking...</p>
+                </div>
+              )}
               {/* Common Field: Title */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-text-secondary ml-1">Judul / Nama Proyek</label>
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Judul / Nama Proyek</label>
+                  {onGenerateAI && (
+                    <button 
+                      type="button"
+                      onClick={async () => {
+                        setIsGenerating(true);
+                        const res = await onGenerateAI('Buatkan judul yang menarik dan SEO friendly untuk konten ini', formData.content || formData.description || 'Belum ada konten');
+                        setFormData({ ...formData, title: res.replace(/"/g, '') });
+                        setIsGenerating(false);
+                      }}
+                      className="text-[10px] flex items-center gap-1 font-black text-accent-yellow hover:text-white transition-colors uppercase"
+                    >
+                      <Sparkles className="w-3 h-3" /> Auto Judul
+                    </button>
+                  )}
+                </div>
                 <input 
                   type="text" required value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -1575,6 +1792,33 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                 </div>
               )}
 
+              {type === 'articles' && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Ringkasan (Excerpt)</label>
+                    {onGenerateAI && (
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          setIsGenerating(true);
+                          const res = await onGenerateAI('Buatkan ringkasan singkat (maks 150 karakter) dari konten ini', formData.content || 'Belum ada konten');
+                          setFormData({ ...formData, excerpt: res });
+                          setIsGenerating(false);
+                        }}
+                        className="text-[10px] flex items-center gap-1 font-black text-accent-yellow hover:text-white transition-colors uppercase"
+                      >
+                        <Sparkles className="w-3 h-3" /> Auto Ringkasan
+                      </button>
+                    )}
+                  </div>
+                  <textarea 
+                    rows={3} value={formData.excerpt}
+                    onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
+                    placeholder="Tulis ringkasan artikel..."
+                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all text-sm"
+                  />
+                </div>
+              )}
               {type === 'events' && (
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -1777,6 +2021,126 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
           </motion.div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, onClose: () => void, setActiveTab: (t: any) => void }) {
+  const [search, setSearch] = useState('');
+  
+  const items = [
+    { id: 'overview', icon: LayoutDashboard, label: 'Overview', category: 'General' },
+    { id: 'leads', icon: MessageSquare, label: 'Inbound Leads', category: 'CRM' },
+    { id: 'articles', icon: FileText, label: 'Articles & Content', category: 'CMS' },
+    { id: 'portfolios', icon: Briefcase, label: 'Portfolios', category: 'CMS' },
+    { id: 'events', icon: Calendar, label: 'Events & Programs', category: 'CMS' },
+    { id: 'communities', icon: Users, label: 'Communities', category: 'Engagement' },
+    { id: 'settings', icon: Settings, label: 'System Settings', category: 'Admin' },
+  ];
+
+  const filtered = items.filter(item => 
+    item.label.toLowerCase().includes(search.toLowerCase()) || 
+    item.category.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4">
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/80 backdrop-blur-md"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: -20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="w-full max-w-xl bg-bg-secondary border border-border-subtle rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] z-10"
+      >
+        <div className="flex items-center px-6 py-6 bg-bg-tertiary/50 border-b border-border-subtle">
+          <Search className="w-6 h-6 text-accent-yellow mr-4" />
+          <input 
+            autoFocus
+            type="text" 
+            placeholder="Ketik perintah atau cari menu..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 bg-transparent border-none outline-none text-xl font-medium text-white placeholder:text-text-secondary/30 font-display"
+          />
+          <button onClick={onClose} className="p-2 px-3 rounded-lg bg-bg-tertiary border border-border-subtle text-[10px] font-black text-text-secondary hover:text-white transition-colors">ESC</button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+          {filtered.length > 0 ? (
+            <div className="p-3 space-y-6">
+              {['General', 'CRM', 'CMS', 'Engagement', 'Admin'].map(category => {
+                const catItems = filtered.filter(f => f.category === category);
+                if (catItems.length === 0) return null;
+                return (
+                  <div key={category} className="space-y-2">
+                    <h4 className="px-4 text-[10px] font-black uppercase text-accent-yellow/40 tracking-[0.2em]">{category}</h4>
+                    <div className="space-y-1">
+                      {catItems.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            onClose();
+                          }}
+                          className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl hover:bg-bg-tertiary text-text-secondary hover:text-white transition-all group text-left"
+                        >
+                          <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-primary border border-border-subtle group-hover:border-accent-yellow/30 transition-all">
+                            <item.icon className="w-5 h-5 group-hover:text-accent-yellow transition-colors" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-bold text-sm leading-none mb-1.5">{item.label}</p>
+                            <p className="text-[10px] uppercase font-bold opacity-30 truncate">Navigasi ke dashboard {item.id}</p>
+                          </div>
+                          <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-40 transition-all -translate-x-2 group-hover:translate-x-0" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-24 text-center">
+              <div className="w-20 h-20 bg-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-6 border border-border-subtle">
+                <Sparkles className="w-10 h-10 text-accent-yellow/30" />
+              </div>
+              <p className="text-text-secondary text-sm font-medium italic mb-2">Tidak ada hasil ditemukan.</p>
+              <p className="text-[10px] uppercase font-black tracking-widest text-text-secondary/40">Coba kata kunci lain</p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-8 py-5 bg-bg-tertiary/80 border-t border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-6 text-[10px] font-black uppercase text-text-secondary/60">
+            <div className="flex items-center gap-2">
+              <span className="p-1 px-1.5 bg-bg-primary border border-border-subtle rounded leading-none flex items-center gap-1">
+                <Command className="w-2 h-2" /> K
+              </span>
+              <span>Tutup</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="p-1 px-1.5 bg-bg-primary border border-border-subtle rounded leading-none">ENTER</span>
+              <span>Pilih</span>
+            </div>
+          </div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-accent-yellow/40">Davs Control v2.5</div>
+        </div>
+      </motion.div>
     </div>
   );
 }

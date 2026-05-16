@@ -17,6 +17,7 @@ import { Shield, ArrowLeft, Loader2, Mail, Lock } from 'lucide-react';
 const ADMIN_EMAILS = [
   'davsplacestudio@gmail.com',
   'businessdaws@gmail.com',
+  'buainessdaws@gmail.com',
   'admin@davs.studio',
   'fajarmuniri@gmail.com'
 ];
