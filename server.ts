@@ -41,6 +41,34 @@ async function startServer() {
     }
   });
 
+  // AI Insight API
+  app.post("/api/ai/insight", async (req, res) => {
+    try {
+      const { data } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Gemini API Key missing" });
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = `Based on this dashboard data: ${JSON.stringify(data)}, 
+      generate a 2-sentence professional insight or suggestion for the admin. 
+      Focus on business growth or engagement. Keep it in Indonesian.`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      res.json({ text });
+    } catch (error: any) {
+      console.error("AI Insight Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });

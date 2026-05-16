@@ -46,6 +46,7 @@ import {
   MoreVertical,
   Bell,
   Menu,
+  Mail,
   Image as ImageIcon
 } from 'lucide-react';
 import { 
@@ -405,6 +406,7 @@ export default function AdminDashboard() {
 function LeadsManager() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'new' | 'read'>('all');
 
   const fetchLeads = async () => {
     try {
@@ -432,55 +434,151 @@ function LeadsManager() {
     }
   };
 
-  if (loading) return <div className="py-20 text-center uppercase font-black text-text-secondary tracking-widest animate-pulse">Loading Leads...</div>;
+  const toggleReadStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'leads', id), { is_read: !currentStatus });
+      setLeads(leads.map(l => l.id === id ? { ...l, is_read: !currentStatus } : l));
+    } catch (err) {
+      console.error('Update read status error:', err);
+    }
+  };
+
+  const filteredLeads = leads.filter(l => {
+    if (filter === 'new') return !l.is_read;
+    if (filter === 'read') return l.is_read;
+    return true;
+  });
+
+  if (loading) return (
+    <div className="py-32 flex flex-col items-center justify-center">
+      <RefreshCw className="w-10 h-10 text-accent-yellow animate-spin mb-4" />
+      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-text-secondary">Syncing Leads...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="bg-bg-secondary p-6 border border-border-subtle rounded-xl flex justify-between items-center">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-text-secondary">Client Inquiries</h3>
-        <span className="px-3 py-1 bg-accent-yellow/10 text-accent-yellow text-[10px] font-black rounded-lg">{leads.length} TOTAL</span>
+    <div className="space-y-8">
+      {/* CRM Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex bg-bg-secondary p-1 rounded-2xl border border-border-subtle w-full md:w-auto">
+          {(['all', 'new', 'read'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "flex-1 md:px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                filter === f ? "bg-accent-yellow text-bg-primary" : "text-text-secondary hover:text-white"
+              )}
+            >
+              {f === 'all' ? 'Semua' : f === 'new' ? 'Belum Dibaca' : 'Sudah Dibaca'}
+            </button>
+          ))}
+        </div>
+        <div className="hidden md:flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-[10px] font-black uppercase text-accent-yellow tracking-widest leading-none mb-1">Lead Health</p>
+            <p className="text-[9px] font-bold text-text-secondary uppercase">Response Rate: 92%</p>
+          </div>
+          <div className="w-10 h-10 rounded-full border-4 border-accent-yellow border-t-transparent animate-[spin_3s_linear_infinity]" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {leads.map((lead) => (
-          <div key={lead.id} className="bg-bg-secondary border border-border-subtle p-6 rounded-2xl hover:border-accent-yellow transition-all group">
-            <div className="flex flex-col md:flex-row justify-between gap-6">
-              <div className="space-y-4 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="px-2 py-0.5 bg-bg-tertiary text-accent-yellow text-[10px] font-black uppercase rounded border border-border-subtle">{lead.type || 'Inquiry'}</span>
-                  <h4 className="text-xl font-bold">{lead.name}</h4>
-                  <span className="text-xs text-text-secondary">({lead.email})</span>
+      <div className="grid grid-cols-1 gap-6">
+        <AnimatePresence mode="popLayout">
+          {filteredLeads.map((lead, i) => (
+            <motion.div 
+              key={lead.id}
+              layout
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ delay: i * 0.05 }}
+              className={cn(
+                "relative bg-bg-secondary border p-6 md:p-8 rounded-[2rem] transition-all group overflow-hidden",
+                lead.is_read ? "border-border-subtle opacity-70" : "border-accent-yellow/30 shadow-2xl shadow-accent-yellow/5"
+              )}
+            >
+              {!lead.is_read && (
+                <div className="absolute top-0 right-0 w-32 h-32 bg-accent-yellow/10 blur-[60px] pointer-events-none" />
+              )}
+              
+              <div className="flex flex-col lg:flex-row justify-between gap-8 relative z-10">
+                <div className="space-y-6 flex-1">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className={cn(
+                      "w-3 h-3 rounded-full",
+                      lead.is_read ? "bg-bg-tertiary" : "bg-accent-yellow animate-pulse shadow-[0_0_10px_#FACC15]"
+                    )} />
+                    <span className="px-3 py-1 bg-bg-tertiary text-accent-yellow text-[10px] font-black uppercase rounded-lg border border-border-subtle tracking-widest">{lead.type || 'INQUIRY'}</span>
+                    <h4 className="text-xl md:text-2xl font-display font-black tracking-tight">{lead.name}</h4>
+                    <span className="text-xs text-text-secondary font-medium tracking-tight opacity-50">{lead.email}</span>
+                  </div>
+                  
+                  <div className="relative group/msg">
+                    <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-0 group-hover/msg:h-full bg-accent-yellow transition-all duration-300 rounded-full" />
+                    <p className="text-sm md:text-base text-text-secondary font-medium leading-relaxed bg-bg-primary/40 p-6 rounded-2xl border border-border-subtle/50 italic backdrop-blur-sm">
+                      "{lead.message}"
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary/60">
+                    <div className="flex items-center gap-2.5 group/meta">
+                      <Clock className="w-3.5 h-3.5 group-hover/meta:text-accent-yellow transition-colors" /> 
+                      {formatDate(lead.created_at?.toDate?.() || lead.created_at)}
+                    </div>
+                    <div className="flex items-center gap-2.5 group/meta">
+                      <Briefcase className="w-3.5 h-3.5 group-hover/meta:text-accent-yellow transition-colors" /> 
+                      {lead.company || 'Private Party'}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-text-secondary leading-relaxed bg-bg-primary/30 p-4 rounded-xl border border-border-subtle/50 italic">
-                  "{lead.message}"
-                </p>
-                <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-text-secondary">
-                  <div className="flex items-center gap-2"><Clock className="w-3 h-3" /> {new Date(lead.created_at?.toDate?.() || Date.now()).toLocaleString('id-ID')}</div>
-                  <div className="flex items-center gap-2"><Briefcase className="w-3 h-3" /> {lead.company || 'Personal'}</div>
+
+                <div className="flex lg:flex-col gap-3 shrink-0">
+                  <button 
+                    onClick={() => toggleReadStatus(lead.id, lead.is_read)}
+                    className={cn(
+                      "flex-1 lg:flex-none p-4 rounded-2xl border transition-all flex items-center justify-center gap-2 group/btn",
+                      lead.is_read ? "border-border-subtle text-text-secondary hover:text-white" : "border-accent-yellow/20 bg-accent-yellow/5 text-accent-yellow hover:bg-accent-yellow hover:text-bg-primary"
+                    )}
+                  >
+                    <CheckCircle className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">
+                      {lead.is_read ? 'Mark as New' : 'Mark Read'}
+                    </span>
+                  </button>
+                  
+                  <a 
+                    href={`mailto:${lead.email}`}
+                    className="p-4 bg-bg-tertiary border border-border-subtle text-white rounded-2xl hover:border-accent-yellow transition-all flex items-center justify-center"
+                    title="Reply via Email"
+                  >
+                    <Mail className="w-5 h-5" />
+                  </a>
+
+                  <button 
+                    onClick={() => handleDelete(lead.id)}
+                    className="p-4 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
+                    title="Hapus Lead"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-              <div className="flex md:flex-col gap-2 shrink-0">
-                <a 
-                  href={`mailto:${lead.email}`}
-                  className="flex-1 md:flex-none px-6 py-2 bg-accent-yellow text-bg-primary text-[10px] font-black rounded-lg text-center uppercase tracking-widest hover:bg-white transition-all shadow-lg shadow-accent-yellow/10"
-                >
-                  Reply Email
-                </a>
-                <button 
-                  onClick={() => handleDelete(lead.id)}
-                  className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {filteredLeads.length === 0 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="py-40 text-center bg-bg-secondary border-2 border-dashed border-border-subtle rounded-[3rem]"
+          >
+            <div className="w-20 h-20 bg-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-8 border border-border-subtle">
+              <MessageSquare className="w-8 h-8 text-text-secondary opacity-30" />
             </div>
-          </div>
-        ))}
-        {leads.length === 0 && (
-          <div className="py-32 text-center bg-bg-secondary border border-border-subtle rounded-2xl border-dashed">
-            <MessageSquare className="w-12 h-12 text-text-secondary mx-auto mb-4 opacity-20" />
-            <p className="text-text-secondary font-sans italic">Belum ada pesan masuk dari klien.</p>
-          </div>
+            <p className="text-text-secondary font-display font-medium text-xl uppercase tracking-widest opacity-40 italic">Data leads kosong.</p>
+          </motion.div>
         )}
       </div>
     </div>
@@ -811,6 +909,66 @@ function LinksManager() {
   );
 }
 
+function DashboardInsight() {
+  const [insight, setInsight] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInsight = async () => {
+      try {
+        const collections = ['leads', 'articles', 'portfolios'];
+        const counts = await Promise.all(collections.map(c => getCountFromServer(collection(db, c))));
+        
+        const response = await fetch('/api/ai/insight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            data: { 
+              leads: counts[0].data().count, 
+              articles: counts[1].data().count, 
+              portfolios: counts[2].data().count 
+            } 
+          }),
+        });
+        const data = await response.json();
+        setInsight(data.text);
+      } catch (err) {
+        console.error('Insight Err:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInsight();
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-3xl p-6 mb-10 flex items-start gap-5 relative overflow-hidden group"
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-accent-yellow/10 blur-[60px] group-hover:bg-accent-yellow/20 transition-all duration-700" />
+      <div className="p-3 bg-accent-yellow rounded-2xl shrink-0 shadow-lg shadow-accent-yellow/20">
+        <Sparkles className="w-6 h-6 text-bg-primary" />
+      </div>
+      <div>
+        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-accent-yellow mb-2 opacity-60">AI Smart Insight</h4>
+        {loading ? (
+          <div className="flex gap-1.5 py-2">
+            <div className="w-2 h-2 rounded-full bg-accent-yellow/40 animate-bounce" />
+            <div className="w-2 h-2 rounded-full bg-accent-yellow/40 animate-bounce [animation-delay:0.2s]" />
+            <div className="w-2 h-2 rounded-full bg-accent-yellow/40 animate-bounce [animation-delay:0.4s]" />
+          </div>
+        ) : (
+          <p className="text-sm md:text-base font-medium leading-relaxed text-white/90 italic">
+            "{insight || 'Terus update konten terbaru untuk meningkatkan engagement pengunjung.'}"
+          </p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 function OverviewGrid() {
   const [counts, setCounts] = useState({ articles: 0, events: 0, portfolios: 0, links: 0, categories: 0, logos: 0, leads: 0 });
 
@@ -840,8 +998,8 @@ function OverviewGrid() {
   const stats = [
     { label: 'Total Artikel', value: counts.articles, icon: FileText, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
     { label: 'Event Aktif', value: counts.events, icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { label: 'Portofolio', value: counts.portfolios, icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'leads Inbound', value: counts.leads, icon: MessageSquare, color: 'text-green-500', bg: 'bg-green-500/10' },
+    { label: 'Project Showcase', value: counts.portfolios, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'Inbound Leads', value: counts.leads, icon: MessageSquare, color: 'text-green-500', bg: 'bg-green-500/10' },
   ];
 
   const chartData = [
@@ -855,7 +1013,9 @@ function OverviewGrid() {
   ];
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 pb-20">
+      <DashboardInsight />
+      
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
@@ -886,23 +1046,27 @@ function OverviewGrid() {
         ))}
       </div>
 
-      {/* Main Charts Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <div className="xl:col-span-2 bg-bg-secondary border border-border-subtle rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-          <div className="flex items-center justify-between mb-10">
+      {/* Main Charts & Activity Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-bg-secondary border border-border-subtle rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
             <div>
-              <h3 className="text-xl font-display font-black uppercase tracking-tight">Activity <span className="text-accent-yellow italic">Analytics</span></h3>
-              <p className="text-xs text-text-secondary font-medium mt-1">Laporan traffic dan konten minggu ini</p>
+              <h3 className="text-2xl font-display font-black uppercase tracking-tight">Growth <span className="text-accent-yellow italic">Analytics</span></h3>
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mt-2 opacity-50">Laporan performa konten mingguan</p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-bg-tertiary rounded-lg border border-border-subtle">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2 bg-bg-tertiary/50 border border-border-subtle rounded-xl">
                 <div className="w-2 h-2 rounded-full bg-accent-yellow" />
-                <span className="text-[10px] font-black uppercase text-text-secondary">Articles</span>
+                <span className="text-[10px] font-black uppercase text-white tracking-widest">Articles</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-bg-tertiary/50 border border-border-subtle rounded-xl">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-[10px] font-black uppercase text-white tracking-widest">Projects</span>
               </div>
             </div>
           </div>
           
-          <div className="h-[350px] w-full">
+          <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -910,8 +1074,12 @@ function OverviewGrid() {
                     <stop offset="5%" stopColor="#FACC15" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#FACC15" stopOpacity={0}/>
                   </linearGradient>
+                  <linearGradient id="colorProj" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D2D2D" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D2D2D" opacity={0.5} />
                 <XAxis 
                   dataKey="name" 
                   axisLine={false} 
@@ -924,46 +1092,52 @@ function OverviewGrid() {
                   tick={{ fill: '#666', fontSize: 10, fontWeight: 900 }} 
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1A1A1A', borderRadius: '15px', border: '1px solid #333', fontSize: '10px' }}
-                  itemStyle={{ fontWeight: 900, textTransform: 'uppercase' }}
+                  contentStyle={{ backgroundColor: '#1A1A1A', borderRadius: '20px', border: '1px solid #333', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
+                  itemStyle={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '10px' }}
                 />
                 <Area type="monotone" dataKey="articles" stroke="#FACC15" strokeWidth={4} fillOpacity={1} fill="url(#colorArt)" />
+                <Area type="monotone" dataKey="portfolios" stroke="#3B82F6" strokeWidth={4} fillOpacity={1} fill="url(#colorProj)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-bg-secondary border border-border-subtle rounded-3xl p-8 shadow-2xl flex flex-col">
-          <h3 className="text-xl font-display font-black uppercase tracking-tight mb-8">System <span className="text-accent-yellow italic">Health</span></h3>
+        <div className="bg-bg-secondary border border-border-subtle rounded-[2.5rem] p-8 md:p-10 shadow-2xl flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-display font-black uppercase tracking-tight">System <span className="text-accent-yellow italic">Status</span></h3>
+            <div className="w-8 h-8 rounded-xl bg-accent-yellow/10 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-accent-yellow" />
+            </div>
+          </div>
           
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-8">
             {[
-              { label: 'Database Latency', value: '24ms', score: 98, color: 'bg-green-500' },
-              { label: 'Storage Usage', value: '1.2 GB', score: 45, color: 'bg-accent-yellow' },
-              { label: 'API Uptime', value: '99.98%', score: 99, color: 'bg-blue-500' },
-              { label: 'Load Average', value: '0.45', score: 15, color: 'bg-purple-500' },
+              { label: 'Database Sync', value: 'Live', score: 100, color: 'bg-green-500' },
+              { label: 'API Utilization', value: '42%', score: 42, color: 'bg-accent-yellow' },
+              { label: 'AI Readiness', value: 'Optimal', score: 100, color: 'bg-blue-500' },
+              { label: 'System Cache', value: '184 MB', score: 75, color: 'bg-purple-500' },
             ].map((metric, i) => (
               <div key={i} className="space-y-3">
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">{metric.label}</span>
-                  <span className="text-sm font-black text-white">{metric.value}</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary/60">{metric.label}</span>
+                  <span className="text-xs font-black text-white">{metric.value}</span>
                 </div>
-                <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden border border-white/5">
+                <div className="h-1 bg-bg-tertiary rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${metric.score}%` }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                    className={`h-full ${metric.color} shadow-[0_0_10px_rgba(34,197,94,0.3)]`} 
+                    transition={{ duration: 1.5, delay: i * 0.2, ease: 'circOut' }}
+                    className={`h-full ${metric.color} shadow-[0_0_15px_rgba(255,255,255,0.1)]`} 
                   />
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 pt-8 border-t border-border-subtle">
-            <button className="w-full py-4 bg-bg-tertiary border border-border-subtle rounded-2xl flex items-center justify-center gap-3 text-xs font-black uppercase hover:border-accent-yellow transition-all group">
-              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" />
-              Perbarui Metrics
+          <div className="mt-10 pt-10 border-t border-border-subtle">
+            <button className="w-full py-5 bg-bg-tertiary/50 border border-border-subtle rounded-[1.5rem] flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest hover:border-accent-yellow hover:bg-bg-tertiary transition-all group">
+              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-1000" />
+              Recalibrate Metrics
             </button>
           </div>
         </div>
