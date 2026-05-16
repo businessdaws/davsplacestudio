@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight, User } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { formatDate } from '../lib/utils';
 
 // Keeping CATEGORIES as export for ArticlesPage
 export const CATEGORIES = ['All', 'Desain', 'Video', 'Branding', 'Marketing', 'Tech', 'Creative'];
@@ -72,7 +73,7 @@ export default function FeaturedArticles() {
                   <div className="flex items-center gap-6 text-[10px] text-text-secondary font-black mb-6 uppercase tracking-[0.2em]">
                     <span className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-accent-yellow" />
-                      {new Date(article.created_at).toLocaleDateString('id-ID')}
+                      {formatDate(article.created_at)}
                     </span>
                     <span className="flex items-center gap-2">
                       <User className="w-4 h-4 text-accent-yellow" />

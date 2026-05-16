@@ -171,6 +171,23 @@
         "running_text_enabled": { "type": "boolean" },
         "updated_at": { "type": "string", "format": "date-time" }
       }
+    },
+    "Community": {
+      "title": "Community",
+      "description": "Community groups or platforms",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "platform": { "type": "string" },
+        "url": { "type": "string" },
+        "member_count": { "type": "string" },
+        "description": { "type": "string" },
+        "image_url": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "url"]
     }
   },
   "firestore": {
@@ -213,6 +230,10 @@
     "site_settings": {
       "schema": "SiteSettings",
       "description": "Site configuration"
+    },
+    "communities": {
+      "schema": "Community",
+      "description": "Our communities"
     }
   }
 }

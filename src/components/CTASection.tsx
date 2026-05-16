@@ -34,22 +34,22 @@ export default function CTASection() {
 
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <a 
-                href={`https://wa.me/${settings.whatsapp}`} 
+                href={`https://wa.me/${settings.whatsapp}?text=Halo Davsplace Studio, saya ingin konsultasi mengenai project saya.`} 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 hover:bg-white hover:scale-105 transition-all text-sm tracking-widest"
+                className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 hover:bg-white hover:scale-105 transition-all text-sm tracking-widest shadow-lg shadow-accent-yellow/20"
               >
                 MULAI KONSULTASI
                 <MessageSquare className="w-5 h-5" />
               </a>
               
-              <Link 
-                to="/kolaborasi" 
-                className="w-full sm:w-auto px-10 py-5 bg-bg-secondary border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 hover:border-accent-yellow transition-all text-sm tracking-widest"
+              <a 
+                href="mailto:davsplaceindustries@gmail.com?subject=Proposal Proyek - Davsplace Studio"
+                className="w-full sm:w-auto px-10 py-5 bg-bg-secondary border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-3 hover:border-accent-yellow hover:bg-bg-tertiary transition-all text-sm tracking-widest"
               >
                 PROPOSAL PROYEK
                 <Zap className="w-5 h-5 text-accent-yellow" />
-              </Link>
+              </a>
             </div>
           </div>
 

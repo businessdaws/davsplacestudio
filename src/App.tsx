@@ -15,6 +15,8 @@ import Footer from './components/Footer';
 import SearchModal from './components/SearchModal';
 import { MobileTopbar, MobileBottomNavbar } from './components/MobileNavigation';
 import { cn } from './lib/utils';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { Loader2 } from 'lucide-react';
 
 // Lazy load sections for performance
 const HeroSection = lazy(() => import('./components/HeroSection'));
@@ -38,115 +40,125 @@ const SocialMediaGenerator = lazy(() => import('./pages/SocialMediaGenerator'));
 
 import { SettingsProvider } from './context/SettingsContext';
 
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+      <Loader2 className="w-10 h-10 text-accent-yellow animate-spin" />
+    </div>
+  );
+}
+
 export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
-    <SettingsProvider>
-      <Router>
-        <div className="min-h-screen bg-bg-primary selection:bg-accent-yellow/30 selection:text-accent-yellow overflow-x-hidden">
-        <Routes>
-          {/* Admin Routes */}
-          <Route path="/admin/login" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <AdminLogin />
-            </Suspense>
-          } />
-          <Route path="/admin/dashboard" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <AdminDashboard />
-            </Suspense>
-          } />
+    <ErrorBoundary>
+      <SettingsProvider>
+        <Router>
+          <div className="min-h-screen bg-bg-primary selection:bg-accent-yellow/30 selection:text-accent-yellow overflow-x-hidden">
+          <Routes>
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={
+              <Suspense fallback={<PageLoader />}>
+                <AdminLogin />
+              </Suspense>
+            } />
+            <Route path="/admin/dashboard" element={
+              <Suspense fallback={<PageLoader />}>
+                <AdminDashboard />
+              </Suspense>
+            } />
 
-          {/* New Page Routes */}
-          <Route path="/tentang" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <AboutPage />
-            </Suspense>
-          } />
-          <Route path="/artikel" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <ArticlesPage />
-            </Suspense>
-          } />
-          <Route path="/artikel/:slug" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <ArticleDetailPage />
-            </Suspense>
-          } />
-          <Route path="/portofolio" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <PortfolioPage />
-            </Suspense>
-          } />
-          <Route path="/kolaborasi" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <CollabPage />
-            </Suspense>
-          } />
-          <Route path="/generator" element={
-            <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-              <SocialMediaGenerator />
-            </Suspense>
-          } />
+            {/* New Page Routes */}
+            <Route path="/tentang" element={
+              <Suspense fallback={<PageLoader />}>
+                <AboutPage />
+              </Suspense>
+            } />
+            <Route path="/artikel" element={
+              <Suspense fallback={<PageLoader />}>
+                <ArticlesPage />
+              </Suspense>
+            } />
+            <Route path="/artikel/:slug" element={
+              <Suspense fallback={<PageLoader />}>
+                <ArticleDetailPage />
+              </Suspense>
+            } />
+            <Route path="/portofolio" element={
+              <Suspense fallback={<PageLoader />}>
+                <PortfolioPage />
+              </Suspense>
+            } />
+            <Route path="/kolaborasi" element={
+              <Suspense fallback={<PageLoader />}>
+                <CollabPage />
+              </Suspense>
+            } />
+            <Route path="/generator" element={
+              <Suspense fallback={<PageLoader />}>
+                <SocialMediaGenerator />
+              </Suspense>
+            } />
 
-          {/* Public Route (Home) */}
-          <Route path="/" element={
-            <>
-              <Navbar onSearchClick={() => setIsSearchOpen(true)} />
-              <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
-              
-              <main className={cn(
-                "flex-1",
-                "pt-0 lg:pt-0", // Adjusted for fixed headers
-                "pb-20 lg:pb-0" // Bottom navbar space on mobile
-              )}>
-                <div className="pt-14 lg:pt-0"> {/* Mobile topbar offset */}
-                  <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-                    <HeroSection />
+            {/* Public Route (Home) */}
+            <Route path="/" element={
+              <>
+                <Navbar onSearchClick={() => setIsSearchOpen(true)} />
+                <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
+                
+                <main className={cn(
+                  "flex-1",
+                  "pt-0 lg:pt-0", // Adjusted for fixed headers
+                  "pb-20 lg:pb-0" // Bottom navbar space on mobile
+                )}>
+                  <div className="pt-14 lg:pt-0"> {/* Mobile topbar offset */}
+                    <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
+                      <HeroSection />
+                    </Suspense>
+
+                  <Suspense fallback={<div className="h-32 bg-bg-secondary" />}>
+                    <ClientMarquee />
                   </Suspense>
 
-                <Suspense fallback={<div className="h-32 bg-bg-secondary" />}>
-                  <ClientMarquee />
-                </Suspense>
+                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
+                    <ServicesSection />
+                  </Suspense>
 
-                <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                  <ServicesSection />
-                </Suspense>
+                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
+                    <FeaturedPortfolio />
+                  </Suspense>
 
-                <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                  <FeaturedPortfolio />
-                </Suspense>
+                  <Suspense fallback={<div className="py-20 bg-bg-secondary" />}>
+                    <FeaturedEvents />
+                  </Suspense>
 
-                <Suspense fallback={<div className="py-20 bg-bg-secondary" />}>
-                  <FeaturedEvents />
-                </Suspense>
+                  <Suspense fallback={<div className="py-20 bg-bg-secondary" />}>
+                    <FeaturedArticles />
+                  </Suspense>
 
-                <Suspense fallback={<div className="py-20 bg-bg-secondary" />}>
-                  <FeaturedArticles />
-                </Suspense>
+                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
+                    <TentangSection />
+                  </Suspense>
 
-                <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                  <TentangSection />
-                </Suspense>
+                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
+                    <CTASection />
+                  </Suspense>
+                </div>
+              </main>
 
-                <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                  <CTASection />
-                </Suspense>
-              </div>
-            </main>
+                <Footer />
+                <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
+              </>
+            } />
+          </Routes>
 
-              <Footer />
-              <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
-            </>
-          } />
-        </Routes>
-
-        <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      </div>
-    </Router>
-  </SettingsProvider>
- );
+          <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+        </div>
+        </Router>
+      </SettingsProvider>
+    </ErrorBoundary>
+  );
 }
 
 

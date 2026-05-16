@@ -20,6 +20,7 @@ import {
 import { 
   LayoutDashboard, 
   FileText, 
+  Briefcase,
   Calendar, 
   Settings, 
   LogOut, 
@@ -41,8 +42,9 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { cn, formatDate } from '../../lib/utils';
 
-type Tab = 'overview' | 'articles' | 'events' | 'portfolios' | 'links' | 'categories' | 'logos' | 'leads' | 'settings';
+type Tab = 'overview' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'leads' | 'settings';
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
@@ -181,6 +183,7 @@ export default function AdminDashboard() {
           { id: 'articles', icon: FileText, label: 'Artikel' },
           { id: 'portfolios', icon: TrendingUp, label: 'Portofolio' },
           { id: 'events', icon: Calendar, label: 'Event' },
+          { id: 'communities', icon: Users, label: 'Community' },
           { id: 'links', icon: ExternalLink, label: 'Useful Links' },
           { id: 'categories', icon: Settings, label: 'Kategori' },
           { id: 'logos', icon: Users, label: 'Client Logos' },
@@ -267,6 +270,7 @@ export default function AdminDashboard() {
                   {activeTab === 'articles' && 'Artikel'}
                   {activeTab === 'portfolios' && 'Portofolio'}
                   {activeTab === 'events' && 'Event'}
+                  {activeTab === 'communities' && 'Community'}
                   {activeTab === 'links' && 'Useful Links'}
                   {activeTab === 'categories' && 'Kategori'}
                   {activeTab === 'logos' && 'Client Logos'}
@@ -302,6 +306,7 @@ export default function AdminDashboard() {
         {activeTab === 'articles' && <ContentManager type="articles" />}
         {activeTab === 'portfolios' && <ContentManager type="portfolios" />}
         {activeTab === 'events' && <ContentManager type="events" />}
+        {activeTab === 'communities' && <CommunityManager />}
         {activeTab === 'links' && <LinksManager />}
         {activeTab === 'categories' && <CategoriesManager />}
         {activeTab === 'logos' && <LogosManager />}
@@ -1032,6 +1037,171 @@ function LogosManager() {
   );
 }
 
+function CommunityManager() {
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ 
+    name: '', url: '', platform: 'WhatsApp', member_count: '', 
+    description: '', image_url: '', is_active: true 
+  });
+
+  const fetchData = async () => {
+    try {
+      const q = query(collection(db, 'communities'), orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCommunities(data);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, 'communities');
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (editingItem) {
+        await updateDoc(doc(db, 'communities', editingItem.id), {
+          ...formData,
+          updated_at: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, 'communities'), {
+          ...formData,
+          created_at: serverTimestamp()
+        });
+      }
+      setIsModalOpen(false);
+      fetchData();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'communities');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openAdd = () => {
+    setEditingItem(null);
+    setFormData({ name: '', url: '', platform: 'WhatsApp', member_count: '', description: '', image_url: '', is_active: true });
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (item: any) => {
+    setEditingItem(item);
+    setFormData({ 
+      name: item.name, 
+      url: item.url, 
+      platform: item.platform || 'WhatsApp',
+      member_count: item.member_count || '',
+      description: item.description || '',
+      image_url: item.image_url || '',
+      is_active: item.is_active ?? true 
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Hapus komunitas ini?')) {
+      try {
+        await deleteDoc(doc(db, 'communities', id));
+        fetchData();
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `communities/${id}`);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-bg-secondary p-6 border border-border-subtle rounded-xl">
+        <div className="text-sm font-bold">{communities.length} Total Komunitas</div>
+        <button onClick={openAdd} className="px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center gap-2 hover:scale-105 transition-transform">
+          <Plus className="w-5 h-5" /> TAMBAH KOMUNITAS
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {communities.map((item) => (
+          <div key={item.id} className="bg-bg-secondary border border-border-subtle rounded-2xl p-6 hover:border-accent-yellow transition-all group">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 bg-bg-tertiary rounded-xl border border-border-subtle overflow-hidden">
+                <img src={item.image_url || `https://ui-avatars.com/api/?name=${item.name}&background=random`} alt={item.name} className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white group-hover:text-accent-yellow transition-colors">{item.name}</h4>
+                <p className="text-[10px] text-accent-yellow font-black uppercase tracking-wider">{item.platform}</p>
+                <p className="text-[10px] text-text-secondary font-black uppercase tracking-wider">{item.member_count || 'Private'} Members</p>
+              </div>
+            </div>
+            <p className="text-xs text-text-secondary line-clamp-2 mb-6 h-8">{item.description || 'No description available.'}</p>
+            <div className="flex gap-2">
+              <button onClick={() => openEdit(item)} className="flex-1 py-2 bg-blue-500/10 text-blue-500 rounded-lg text-xs font-bold hover:bg-blue-500 hover:text-white transition-all">Edit</button>
+              <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+        {communities.length === 0 && <div className="col-span-full py-20 text-center italic text-text-secondary border border-dashed border-border-subtle rounded-2xl">Belum ada komunitas terdaftar.</div>}
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl">
+            <h3 className="text-2xl font-display font-black mb-8 uppercase">{editingItem ? 'Edit' : 'Tambah'} Komunitas</h3>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Nama Komunitas</label>
+                <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-text-secondary">Platform</label>
+                  <select value={formData.platform} onChange={(e) => setFormData({...formData, platform: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow">
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Telegram">Telegram</option>
+                    <option value="Discord">Discord</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Other">Lainnya</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-text-secondary">Jumlah Member</label>
+                  <input type="text" placeholder="e.g. 500+" value={formData.member_count} onChange={(e) => setFormData({...formData, member_count: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">URL Join</label>
+                <input type="text" required value={formData.url} onChange={(e) => setFormData({...formData, url: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Image URL</label>
+                <input type="text" value={formData.image_url} onChange={(e) => setFormData({...formData, image_url: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Deskripsi Singkat</label>
+                <textarea rows={3} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="comm-active" checked={formData.is_active} onChange={(e) => setFormData({...formData, is_active: e.target.checked})} />
+                <label htmlFor="comm-active" className="text-[10px] font-black uppercase">Aktif</label>
+              </div>
+              <div className="flex justify-end gap-4 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-text-secondary">Batal</button>
+                <button type="submit" disabled={loading} className="px-8 py-2 bg-accent-yellow text-bg-primary font-black rounded-lg uppercase text-xs">
+                  {loading ? 'Simpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }) {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -1263,7 +1433,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                     </span>
                   </td>
                   <td className="px-8 py-6 text-sm text-text-secondary font-medium">
-                    {new Date(item.created_at).toLocaleDateString('id-ID')}
+                    {formatDate(item.created_at)}
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -1303,7 +1473,7 @@ function ContentManager({ type }: { type: 'articles' | 'events' | 'portfolios' }
                     <span className={`px-1.5 py-0.5 rounded bg-bg-tertiary text-[8px] font-black uppercase ${item.is_published ? 'text-green-500' : 'text-yellow-500'}`}>
                       {item.is_published ? 'Pub' : 'Draft'}
                     </span>
-                    <span className="text-[8px] font-black uppercase text-text-secondary">{new Date(item.created_at).toLocaleDateString('id-ID')}</span>
+                    <span className="text-[8px] font-black uppercase text-text-secondary">{formatDate(item.created_at)}</span>
                   </div>
                   <h4 className="font-bold text-sm text-white truncate mb-1">{item.title}</h4>
                   {item.category && <p className="text-[10px] text-accent-yellow font-black uppercase mb-3">{item.category}</p>}

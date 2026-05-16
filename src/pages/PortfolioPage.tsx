@@ -5,6 +5,7 @@ import FeaturedPortfolio from '../components/FeaturedPortfolio';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
 import { useState } from 'react';
 import SearchModal from '../components/SearchModal';
+import CTASection from '../components/CTASection';
 
 export default function PortfolioPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -21,8 +22,8 @@ export default function PortfolioPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-12"
           >
-            <h1 className="text-5xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-6">
-              OUR <span className="text-accent-yellow">PORTFOLIO</span>
+            <h1 className="text-5xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-6 leading-none">
+              OUR <span className="text-accent-yellow italic">PORTFOLIO</span>
             </h1>
             <p className="text-xl text-text-secondary max-w-2xl font-sans">
               Eksplorasi karya-karya digital kami yang menggabungkan teknologi dan seni.
@@ -31,6 +32,10 @@ export default function PortfolioPage() {
         </div>
 
         <FeaturedPortfolio />
+        
+        <div className="mt-20">
+          <CTASection />
+        </div>
       </main>
 
       <Footer />
