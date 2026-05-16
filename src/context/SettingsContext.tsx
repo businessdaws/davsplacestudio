@@ -13,7 +13,7 @@ interface SiteSettings {
 }
 
 const defaultSettings: SiteSettings = {
-  whatsapp: '6285156434442',
+  whatsapp: '6289667736500',
   instagram: '',
   email: 'businessdaws@gmail.com',
   address: '',

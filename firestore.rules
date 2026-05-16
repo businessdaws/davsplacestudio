@@ -135,37 +135,44 @@ service cloud.firestore {
 
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidCategory(incoming());
+      allow create, update: if isAdmin() && isValidCategory(incoming());
+      allow delete: if isAdmin();
     }
 
     match /articles/{articleId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidArticle(incoming());
+      allow create, update: if isAdmin() && isValidArticle(incoming());
+      allow delete: if isAdmin();
     }
 
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidService(incoming());
+      allow create, update: if isAdmin() && isValidService(incoming());
+      allow delete: if isAdmin();
     }
 
     match /events/{eventId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidEvent(incoming());
+      allow create, update: if isAdmin() && isValidEvent(incoming());
+      allow delete: if isAdmin();
     }
 
     match /portfolios/{portfolioId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidPortfolio(incoming());
+      allow create, update: if isAdmin() && isValidPortfolio(incoming());
+      allow delete: if isAdmin();
     }
 
     match /useful_links/{linkId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidUsefulLink(incoming());
+      allow create, update: if isAdmin() && isValidUsefulLink(incoming());
+      allow delete: if isAdmin();
     }
 
     match /client_logos/{logoId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidClientLogo(incoming());
+      allow create, update: if isAdmin() && isValidClientLogo(incoming());
+      allow delete: if isAdmin();
     }
 
     match /leads/{leadId} {
@@ -176,12 +183,14 @@ service cloud.firestore {
 
     match /site_settings/{docId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidSiteSettings(incoming());
+      allow create, update: if isAdmin() && isValidSiteSettings(incoming());
+      allow delete: if isAdmin();
     }
 
     match /communities/{communityId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidCommunity(incoming());
+      allow create, update: if isAdmin() && isValidCommunity(incoming());
+      allow delete: if isAdmin();
     }
   }
 }

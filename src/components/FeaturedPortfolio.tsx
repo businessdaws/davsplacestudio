@@ -9,13 +9,18 @@ export default function FeaturedPortfolio() {
   const [portfolios, setPortfolios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const getEmbedUrl = (url: string) => {
+  const getEmbedUrl = (url: string, autoplay = false) => {
     if (!url) return '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     if (match && match[2].length === 11) {
-      return `https://www.youtube.com/embed/${match[2]}?autoplay=1`;
+      const videoId = match[2];
+      if (autoplay) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&modestbranding=1&rel=0`;
+      }
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
     }
     return url;
   };
@@ -65,12 +70,32 @@ export default function FeaturedPortfolio() {
               transition={{ delay: i * 0.1 }}
               className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-bg-tertiary cursor-pointer"
               onClick={() => setSelectedItem(item)}
+              onMouseEnter={() => setHoveredId(item.id)}
+              onMouseLeave={() => setHoveredId(null)}
             >
-              <img 
-                src={item.image_url || item.cover_image || 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&h=600&auto=format&fit=crop'} 
-                alt={item.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              />
+              {item.type === 'video' && hoveredId === item.id ? (
+                <div className="w-full h-full pointer-events-none">
+                  <iframe 
+                    src={getEmbedUrl(item.video_url, true)}
+                    className="w-full h-full scale-[1.5]"
+                    allow="autoplay"
+                  />
+                </div>
+              ) : (
+                <img 
+                  src={item.image_url || item.cover_image || 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=800&h=600&auto=format&fit=crop'} 
+                  alt={item.title}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+              )}
+
+              {item.type === 'video' && hoveredId !== item.id && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 group-hover:scale-125 transition-transform duration-500">
+                    <PlayCircle className="w-8 h-8 text-white fill-white/20" />
+                  </div>
+                </div>
+              )}
               
               {/* Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8">

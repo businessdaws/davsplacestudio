@@ -403,9 +403,9 @@ function LeadsManager() {
 
 function SettingsManager() {
   const [settings, setSettings] = useState<any>({
-    whatsapp: '',
+    whatsapp: '6289667736500',
     instagram: '',
-    email: '',
+    email: 'businessdaws@gmail.com',
     address: '',
     maintenance_mode: false,
     promo_text: '',
