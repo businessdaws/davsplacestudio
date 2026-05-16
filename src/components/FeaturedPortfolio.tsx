@@ -90,9 +90,9 @@ export default function FeaturedPortfolio() {
               )}
 
               {item.type === 'video' && hoveredId !== item.id && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 group-hover:scale-125 transition-transform duration-500">
-                    <PlayCircle className="w-8 h-8 text-white fill-white/20" />
+                <div className="absolute top-4 right-4 z-10">
+                  <div className="w-10 h-10 bg-bg-primary/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 transition-transform duration-500 group-hover:scale-0">
+                    <PlayCircle className="w-5 h-5 text-accent-yellow" />
                   </div>
                 </div>
               )}
