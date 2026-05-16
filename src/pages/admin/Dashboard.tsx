@@ -28,6 +28,7 @@ import {
   Edit, 
   Trash2, 
   ExternalLink,
+  ChevronLeft,
   ChevronRight,
   TrendingUp,
   Users,
@@ -79,6 +80,7 @@ const ADMIN_EMAILS = [
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const navigate = useNavigate();
@@ -92,6 +94,8 @@ export default function AdminDashboard() {
         navigate('/admin/login');
         return;
       }
+
+      setCurrentUser(user);
 
       const normalizedEmail = user.email?.toLowerCase();
       const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
@@ -213,32 +217,40 @@ export default function AdminDashboard() {
   );
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-10 px-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-accent-yellow rounded-xl flex items-center justify-center font-display font-black text-bg-primary shadow-lg shadow-accent-yellow/20">D</div>
-          <span className="font-display font-bold text-lg tracking-tighter">Admin<span className="text-accent-yellow">.Studio</span></span>
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="p-6 md:p-8 border-b border-border-subtle">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-accent-yellow rounded-xl flex items-center justify-center rotate-6 shadow-lg shadow-accent-yellow/20">
+              <span className="text-bg-primary font-black text-xl">D</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-black uppercase tracking-tighter leading-none">Davs <span className="text-accent-yellow italic">Studio</span></h2>
+              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-text-secondary mt-1">Control Center 2.5</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden p-2 text-text-secondary hover:text-white bg-bg-tertiary/50 rounded-lg border border-border-subtle"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
         </div>
-        <button 
-          onClick={() => setIsSidebarOpen(false)}
-          className="lg:hidden p-2 text-text-secondary hover:text-white"
-        >
-          <X className="w-6 h-6" />
-        </button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
+      <nav className="flex-1 space-y-1.5 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+        <p className="px-4 text-[9px] font-black uppercase text-accent-yellow/40 tracking-[0.3em] mb-4">Main Menu</p>
         {[
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
           { id: 'leads', icon: MessageSquare, label: 'Inbound Leads' },
-          { id: 'articles', icon: FileText, label: 'Articles' },
-          { id: 'portfolios', icon: Briefcase, label: 'Projects' },
-          { id: 'events', icon: Calendar, label: 'Events' },
+          { id: 'articles', icon: FileText, label: 'Content Articles' },
+          { id: 'portfolios', icon: Briefcase, label: 'Project Showcase' },
+          { id: 'events', icon: Calendar, label: 'Events & Programs' },
           { id: 'communities', icon: Users, label: 'Communities' },
           { id: 'links', icon: ExternalLink, label: 'Magic Links' },
-          { id: 'categories', icon: Zap, label: 'Categories' },
-          { id: 'logos', icon: Users, label: 'Clients' },
-          { id: 'settings', icon: Settings, label: 'Settings' },
+          { id: 'categories', icon: Zap, label: 'Taxonomy' },
+          { id: 'logos', icon: Users, label: 'Client Logos' },
+          { id: 'settings', icon: Settings, label: 'System Settings' },
         ].map((item) => (
           <button
             key={item.id}
@@ -246,14 +258,15 @@ export default function AdminDashboard() {
               setActiveTab(item.id as Tab);
               setIsSidebarOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group active:scale-95 ${
+            className={cn(
+              "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl font-bold transition-all group active:scale-95 text-left relative",
               activeTab === item.id 
-                ? 'bg-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/10' 
-                : 'text-text-secondary hover:bg-bg-tertiary hover:text-white'
-            }`}
+                ? 'bg-accent-yellow text-bg-primary shadow-xl shadow-accent-yellow/10' 
+                : 'text-text-secondary hover:bg-bg-tertiary hover:text-white border border-transparent hover:border-border-subtle'
+            )}
           >
             <item.icon className={cn("w-5 h-5", activeTab === item.id ? "stroke-[2.5]" : "stroke-2")} />
-            <span className="text-sm tracking-tight">{item.label}</span>
+            <span className="text-xs md:text-sm tracking-tight capitalize">{item.label.toLowerCase()}</span>
             {activeTab === item.id && (
               <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-bg-primary" />
             )}
@@ -261,59 +274,66 @@ export default function AdminDashboard() {
         ))}
       </nav>
 
-      <div className="pt-6 border-t border-border-subtle mt-6 space-y-1">
+      <div className="p-4 md:p-6 border-t border-border-subtle mt-auto">
+        <div className="bg-bg-tertiary/30 rounded-2xl p-4 border border-border-subtle mb-4 hidden xs:block">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <p className="text-[10px] font-black text-text-secondary uppercase">All Systems Optimal</p>
+          </div>
+          <p className="text-[8px] text-text-secondary/50 font-bold uppercase tracking-widest">Update v2.5.42</p>
+        </div>
         <button 
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-red-500 hover:bg-red-500/10 transition-all active:scale-95"
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all active:scale-95"
         >
-          <LogOut className="w-5 h-5" />
-          <span className="text-sm tracking-tight">Logout</span>
+          <LogOut className="w-4 h-4" />
+          Logout Account
         </button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-bg-primary flex">
+    <div className="min-h-screen bg-bg-primary flex overflow-hidden">
       {/* (1) Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-bg-secondary border-r border-border-subtle flex-col h-screen sticky top-0 z-50">
+      <aside className="hidden lg:flex w-72 bg-bg-secondary border-r border-border-subtle flex-col h-screen sticky top-0 z-50 shrink-0">
         <SidebarContent />
       </aside>
 
       {/* (2) Mobile Drawer Sidebar */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isSidebarOpen && (
-          <>
+          <div className="lg:hidden fixed inset-0 z-[100] preserve-3d">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
             />
             <motion.aside 
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="lg:hidden fixed top-0 left-0 bottom-0 z-[110] w-72 bg-bg-secondary border-r border-border-subtle flex flex-col p-6 overflow-y-auto"
+              className="absolute inset-y-0 left-0 w-80 max-w-[85vw] bg-bg-secondary border-r border-border-subtle flex flex-col shadow-[20px_0_100px_rgba(0,0,0,0.8)]"
             >
               <SidebarContent />
             </motion.aside>
-          </>
+          </div>
         )}
       </AnimatePresence>
 
       {/* (3) Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Modern Header */}
-        <header className="sticky top-0 z-40 bg-bg-primary/80 backdrop-blur-xl border-b border-border-subtle px-4 md:px-10 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-40 bg-bg-primary/80 backdrop-blur-xl border-b border-border-subtle px-4 md:px-10 h-16 md:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 text-text-secondary hover:text-white bg-bg-secondary border border-border-subtle rounded-lg"
+              className="lg:hidden p-2 text-text-secondary hover:text-white bg-bg-secondary border border-border-subtle rounded-xl active:scale-90 transition-all"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5" />
             </button>
             <div className="hidden md:flex items-center bg-bg-tertiary/50 border border-border-subtle rounded-xl px-4 py-2 w-80 group focus-within:border-accent-yellow transition-all cursor-pointer" onClick={() => setIsCommandPaletteOpen(true)}>
               <Search className="w-4 h-4 text-text-secondary group-hover:text-accent-yellow transition-colors" />
@@ -322,22 +342,39 @@ export default function AdminDashboard() {
                 <Command className="w-2.5 h-2.5" /> K
               </kbd>
             </div>
+            {/* Mobile Search Icon */}
+            <button 
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="md:hidden p-2 text-text-secondary bg-bg-secondary border border-border-subtle rounded-xl"
+            >
+              <Search className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end mr-2">
-              <span className="text-[10px] font-black uppercase text-accent-yellow leading-none tracking-widest mb-1">Status</span>
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="hidden xs:flex flex-col items-end mr-1 md:mr-2">
+              <span className="text-[8px] md:text-[10px] font-black uppercase text-accent-yellow leading-none tracking-widest mb-1">
+                {currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Admin'}
+              </span>
               <div className="flex items-center gap-1.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${dbStatus === 'connected' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
-                <span className="text-[9px] font-black uppercase tracking-tighter text-text-secondary">{dbStatus === 'connected' ? 'Connected' : 'Offline'}</span>
+                <div className={`w-1 md:w-1.5 h-1 md:h-1.5 rounded-full ${dbStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter text-text-secondary">{dbStatus === 'connected' ? 'Online' : 'Offline'}</span>
               </div>
             </div>
+
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-bg-tertiary border border-border-subtle flex items-center justify-center overflow-hidden shrink-0">
+              {currentUser?.photoURL ? (
+                <img src={currentUser.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-text-secondary" />
+              )}
+            </div>
             
-            <div className="w-px h-6 bg-border-subtle mx-2 hidden sm:block" />
+            <div className="w-px h-6 bg-border-subtle mx-1 hidden sm:block" />
 
             <button className="p-2 text-text-secondary hover:text-accent-yellow transition-all relative">
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent-yellow rounded-full ring-2 ring-bg-primary" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent-yellow rounded-full ring-2 ring-bg-primary" />
             </button>
 
             <a 
@@ -351,7 +388,7 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-10 pb-24 md:pb-10">
+        <main className="flex-1 p-4 md:p-10 pb-32 md:pb-10 max-w-[100vw] overflow-x-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -360,23 +397,24 @@ export default function AdminDashboard() {
               exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
               transition={{ duration: 0.3, ease: 'circOut' }}
             >
-              <div className="mb-8">
-                <h1 className="text-3xl md:text-5xl font-display font-black uppercase tracking-tight leading-none mb-2">
-                  {activeTab === 'overview' && 'SYSTEM <span class="text-accent-yellow italic">OVERVIEW</span>'}
-                  {activeTab === 'leads' && 'INBOUND <span class="text-accent-yellow italic">LEADS</span>'}
-                  {activeTab === 'articles' && 'CONTENT <span class="text-accent-yellow italic">ARTICLES</span>'}
-                  {activeTab === 'portfolios' && 'PROJECT <span class="text-accent-yellow italic">SHOWCASE</span>'}
-                  {activeTab === 'events' && 'UPCOMING <span class="text-accent-yellow italic">EVENTS</span>'}
-                  {activeTab === 'communities' && 'USER <span class="text-accent-yellow italic">COMMUNITIES</span>'}
-                  {activeTab === 'links' && 'USEFUL <span class="text-accent-yellow italic">LINKS</span>'}
-                  {activeTab === 'categories' && 'CONTENT <span class="text-accent-yellow italic">TAXONOMY</span>'}
-                  {activeTab === 'logos' && 'CLIENT <span class="text-accent-yellow italic">LOGOS</span>'}
-                  {activeTab === 'settings' && 'SYSTEM <span class="text-accent-yellow italic">SETTINGS</span>'}
-                </h1>
-                <div 
-                  className="text-[10px] md:text-sm text-text-secondary font-sans tracking-wide uppercase font-bold text-accent-yellow/60"
-                  dangerouslySetInnerHTML={{ __html: activeTab.replace('_', ' ') }}
-                />
+              <div className="mb-6 md:mb-10">
+                <div className="flex flex-col gap-1">
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-display font-black uppercase tracking-tighter leading-[0.9] break-words">
+                    {activeTab === 'overview' && (<>SYSTEM <span className="text-accent-yellow italic">OVERVIEW</span></>)}
+                    {activeTab === 'leads' && (<>INBOUND <span className="text-accent-yellow italic">LEADS</span></>)}
+                    {activeTab === 'articles' && (<>CONTENT <span className="text-accent-yellow italic">ARTICLES</span></>)}
+                    {activeTab === 'portfolios' && (<>PROJECT <span className="text-accent-yellow italic">SHOWCASE</span></>)}
+                    {activeTab === 'events' && (<>UPCOMING <span className="text-accent-yellow italic">EVENTS</span></>)}
+                    {activeTab === 'communities' && (<>USER <span className="text-accent-yellow italic">COMMUNITIES</span></>)}
+                    {activeTab === 'links' && (<>MAGIC <span className="text-accent-yellow italic">LINKS</span></>)}
+                    {activeTab === 'categories' && (<>CONTENT <span className="text-accent-yellow italic">TAXONOMY</span></>)}
+                    {activeTab === 'logos' && (<>CLIENT <span className="text-accent-yellow italic">LOGOS</span></>)}
+                    {activeTab === 'settings' && (<>SYSTEM <span className="text-accent-yellow italic">SETTINGS</span></>)}
+                  </h1>
+                  <p className="text-[10px] md:text-sm text-text-secondary font-sans tracking-widest uppercase font-bold text-accent-yellow/60">
+                    {activeTab.replace('_', ' ')}
+                  </p>
+                </div>
               </div>
 
               {activeTab === 'overview' && <OverviewGrid />}
@@ -912,32 +950,38 @@ function LinksManager() {
 function DashboardInsight() {
   const [insight, setInsight] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchInsight = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const collections = ['leads', 'articles', 'portfolios'];
+      const counts = await Promise.all(collections.map(c => getCountFromServer(collection(db, c))));
+      
+      const response = await fetch('/api/ai/insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          data: { 
+            leads: counts[0].data().count, 
+            articles: counts[1].data().count, 
+            portfolios: counts[2].data().count 
+          } 
+        }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setInsight(data.text);
+    } catch (err: any) {
+      console.error('Insight Err:', err);
+      setError(err.message || 'Gagal memuat insight AI.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchInsight = async () => {
-      try {
-        const collections = ['leads', 'articles', 'portfolios'];
-        const counts = await Promise.all(collections.map(c => getCountFromServer(collection(db, c))));
-        
-        const response = await fetch('/api/ai/insight', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            data: { 
-              leads: counts[0].data().count, 
-              articles: counts[1].data().count, 
-              portfolios: counts[2].data().count 
-            } 
-          }),
-        });
-        const data = await response.json();
-        setInsight(data.text);
-      } catch (err) {
-        console.error('Insight Err:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchInsight();
   }, []);
 
@@ -945,22 +989,50 @@ function DashboardInsight() {
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-3xl p-6 mb-10 flex items-start gap-5 relative overflow-hidden group"
+      className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-3xl p-6 md:p-8 mb-10 flex flex-col md:flex-row items-start gap-6 relative overflow-hidden group shadow-2xl shadow-accent-yellow/5"
     >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-accent-yellow/10 blur-[60px] group-hover:bg-accent-yellow/20 transition-all duration-700" />
-      <div className="p-3 bg-accent-yellow rounded-2xl shrink-0 shadow-lg shadow-accent-yellow/20">
-        <Sparkles className="w-6 h-6 text-bg-primary" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-accent-yellow/10 blur-[100px] group-hover:bg-accent-yellow/20 transition-all duration-1000" />
+      <div className="p-4 bg-accent-yellow rounded-2xl shrink-0 shadow-lg shadow-accent-yellow/20 animate-pulse-slow">
+        <Sparkles className="w-8 h-8 text-bg-primary" />
       </div>
-      <div>
-        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-accent-yellow mb-2 opacity-60">AI Smart Insight</h4>
+      <div className="flex-1 relative z-10">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-yellow opacity-80">AI Business Intelligence</h4>
+          {!loading && (
+            <button 
+              onClick={fetchInsight}
+              className="text-[10px] font-black uppercase text-accent-yellow/40 hover:text-accent-yellow transition-colors flex items-center gap-2"
+            >
+              <RefreshCw className="w-3 h-3" /> Refresh
+            </button>
+          )}
+        </div>
+
         {loading ? (
-          <div className="flex gap-1.5 py-2">
-            <div className="w-2 h-2 rounded-full bg-accent-yellow/40 animate-bounce" />
-            <div className="w-2 h-2 rounded-full bg-accent-yellow/40 animate-bounce [animation-delay:0.2s]" />
-            <div className="w-2 h-2 rounded-full bg-accent-yellow/40 animate-bounce [animation-delay:0.4s]" />
+          <div className="flex items-center gap-3 py-2">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-accent-yellow/40 animate-bounce" />
+              <div className="w-2.5 h-2.5 rounded-full bg-accent-yellow/40 animate-bounce [animation-delay:0.2s]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-accent-yellow/40 animate-bounce [animation-delay:0.4s]" />
+            </div>
+            <span className="text-sm font-bold text-accent-yellow/40 uppercase tracking-widest animate-pulse">Menganalisa Data...</span>
+          </div>
+        ) : error ? (
+          <div className="flex items-start gap-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-red-500 uppercase tracking-tight mb-1">AI Service Error</p>
+              <p className="text-xs text-text-secondary leading-relaxed">{error}</p>
+              <button 
+                onClick={fetchInsight}
+                className="mt-3 px-4 py-1.5 bg-red-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest hover:bg-white hover:text-red-500 transition-all"
+              >
+                Coba Lagi
+              </button>
+            </div>
           </div>
         ) : (
-          <p className="text-sm md:text-base font-medium leading-relaxed text-white/90 italic">
+          <p className="text-base md:text-xl font-display font-medium leading-relaxed text-white group-hover:text-accent-yellow transition-colors duration-500">
             "{insight || 'Terus update konten terbaru untuk meningkatkan engagement pengunjung.'}"
           </p>
         )}
@@ -996,51 +1068,54 @@ function OverviewGrid() {
   }, []);
 
   const stats = [
-    { label: 'Total Artikel', value: counts.articles, icon: FileText, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    { label: 'Event Aktif', value: counts.events, icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { label: 'Project Showcase', value: counts.portfolios, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Inbound Leads', value: counts.leads, icon: MessageSquare, color: 'text-green-500', bg: 'bg-green-500/10' },
+    { label: 'Total Artikel', value: counts.articles, icon: FileText, color: 'text-yellow-500', bg: 'bg-yellow-500/10', trend: '+12%' },
+    { label: 'Event Aktif', value: counts.events, icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-500/10', trend: 'Stable' },
+    { label: 'Project Showcase', value: counts.portfolios, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-500/10', trend: '+5%' },
+    { label: 'Inbound Leads', value: counts.leads, icon: MessageSquare, color: 'text-green-500', bg: 'bg-green-500/10', trend: '+28%' },
   ];
 
   const chartData = [
-    { name: 'Mon', articles: 4, events: 2, portfolios: 5 },
-    { name: 'Tue', articles: 7, events: 4, portfolios: 8 },
-    { name: 'Wed', articles: 5, events: 1, portfolios: 12 },
-    { name: 'Thu', articles: 9, events: 6, portfolios: 7 },
-    { name: 'Fri', articles: 12, events: 8, portfolios: 15 },
-    { name: 'Sat', articles: 8, events: 3, portfolios: 10 },
-    { name: 'Sun', articles: 11, events: 5, portfolios: 14 },
+    { name: 'Mon', articles: 4, portfolios: 5, active: 30 },
+    { name: 'Tue', articles: 7, portfolios: 8, active: 45 },
+    { name: 'Wed', articles: 5, portfolios: 12, active: 62 },
+    { name: 'Thu', articles: 9, portfolios: 7, active: 58 },
+    { name: 'Fri', articles: 12, portfolios: 15, active: 85 },
+    { name: 'Sat', articles: 8, portfolios: 10, active: 90 },
+    { name: 'Sun', articles: 11, portfolios: 14, active: 110 },
   ];
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-6 md:space-y-10 pb-20">
       <DashboardInsight />
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="group bg-bg-secondary border border-border-subtle p-8 rounded-3xl hover:border-accent-yellow/50 transition-all shadow-xl shadow-black/20 relative overflow-hidden"
+            className="group bg-bg-secondary border border-border-subtle p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] hover:border-accent-yellow/50 transition-all shadow-xl shadow-black/20 relative overflow-hidden"
           >
             <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-3xl opacity-0 group-hover:opacity-100 transition-opacity`} />
-            <div className="flex items-center justify-between mb-6">
-              <div className={`p-4 rounded-2xl bg-bg-tertiary ${stat.color} border border-white/5`}>
-                <stat.icon className="w-6 h-6 stroke-[2.5]" />
+            <div className="flex items-center justify-between mb-6 md:mb-8">
+              <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl bg-bg-tertiary ${stat.color} border border-white/5 group-hover:scale-110 transition-transform`}>
+                <stat.icon className="w-6 h-6 md:w-7 md:h-7 stroke-[2.5]" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-green-500 flex items-center gap-1 uppercase tracking-widest whitespace-nowrap">
-                  <ArrowUpRight className="w-3 h-3" /> 12% Up
+                <span className={cn(
+                  "text-[8px] md:text-[10px] font-black flex items-center gap-1 uppercase tracking-widest whitespace-nowrap",
+                  stat.trend.includes('+') ? "text-green-500" : "text-text-secondary"
+                )}>
+                  {stat.trend.includes('+') && <ArrowUpRight className="w-3 h-3" />} {stat.trend}
                 </span>
-                <span className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em]">Today</span>
+                <span className="text-[8px] md:text-[10px] font-black text-text-secondary/40 uppercase tracking-[0.2em] mt-1">Growth</span>
               </div>
             </div>
             <div>
-              <p className="text-text-secondary text-[10px] font-black uppercase tracking-[0.2em] mb-2">{stat.label}</p>
-              <h3 className="text-4xl font-display font-black tracking-tighter">{stat.value}</h3>
+              <p className="text-text-secondary text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] mb-1 md:mb-2 opacity-50">{stat.label}</p>
+              <h3 className="text-3xl md:text-5xl font-display font-black tracking-tighter group-hover:text-accent-yellow transition-colors">{stat.value}</h3>
             </div>
           </motion.div>
         ))}
@@ -1048,25 +1123,25 @@ function OverviewGrid() {
 
       {/* Main Charts & Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-bg-secondary border border-border-subtle rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
+        <div className="lg:col-span-2 bg-bg-secondary border border-border-subtle rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 shadow-2xl relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 md:mb-12 gap-6">
             <div>
-              <h3 className="text-2xl font-display font-black uppercase tracking-tight">Growth <span className="text-accent-yellow italic">Analytics</span></h3>
-              <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary mt-2 opacity-50">Laporan performa konten mingguan</p>
+              <h3 className="text-xl md:text-2xl font-display font-black uppercase tracking-tight">Growth <span className="text-accent-yellow italic">Analytics</span></h3>
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-secondary mt-2 opacity-50">Laporan performa konten mingguan</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-4 py-2 bg-bg-tertiary/50 border border-border-subtle rounded-xl">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-bg-tertiary/50 border border-border-subtle rounded-xl">
                 <div className="w-2 h-2 rounded-full bg-accent-yellow" />
-                <span className="text-[10px] font-black uppercase text-white tracking-widest">Articles</span>
+                <span className="text-[8px] md:text-[10px] font-black uppercase text-white tracking-widest">Articles</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-bg-tertiary/50 border border-border-subtle rounded-xl">
+              <div className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-bg-tertiary/50 border border-border-subtle rounded-xl">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-[10px] font-black uppercase text-white tracking-widest">Projects</span>
+                <span className="text-[8px] md:text-[10px] font-black uppercase text-white tracking-widest">Projects</span>
               </div>
             </div>
           </div>
           
-          <div className="h-[400px] w-full">
+          <div className="h-[250px] sm:h-[300px] md:h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -2228,7 +2303,7 @@ function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4">
+    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] md:pt-[15vh] px-4">
       <motion.div 
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
@@ -2239,30 +2314,30 @@ function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, on
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: -20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-xl bg-bg-secondary border border-border-subtle rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] z-10"
+        className="w-full max-w-xl bg-bg-secondary border border-border-subtle rounded-[2rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] z-10"
       >
-        <div className="flex items-center px-6 py-6 bg-bg-tertiary/50 border-b border-border-subtle">
-          <Search className="w-6 h-6 text-accent-yellow mr-4" />
+        <div className="flex items-center px-5 py-5 md:px-6 md:py-6 bg-bg-tertiary/50 border-b border-border-subtle">
+          <Search className="w-5 h-5 md:w-6 md:h-6 text-accent-yellow mr-3 md:mr-4" />
           <input 
             autoFocus
             type="text" 
-            placeholder="Ketik perintah atau cari menu..."
+            placeholder="Cari menu..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent border-none outline-none text-xl font-medium text-white placeholder:text-text-secondary/30 font-display"
+            className="flex-1 bg-transparent border-none outline-none text-lg md:text-xl font-medium text-white placeholder:text-text-secondary/30 font-display"
           />
           <button onClick={onClose} className="p-2 px-3 rounded-lg bg-bg-tertiary border border-border-subtle text-[10px] font-black text-text-secondary hover:text-white transition-colors">ESC</button>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+        <div className="max-h-[50vh] md:max-h-[60vh] overflow-y-auto overflow-x-hidden">
           {filtered.length > 0 ? (
-            <div className="p-3 space-y-6">
+            <div className="p-3 space-y-4 md:space-y-6">
               {['General', 'CRM', 'CMS', 'Engagement', 'Admin'].map(category => {
                 const catItems = filtered.filter(f => f.category === category);
                 if (catItems.length === 0) return null;
                 return (
                   <div key={category} className="space-y-2">
-                    <h4 className="px-4 text-[10px] font-black uppercase text-accent-yellow/40 tracking-[0.2em]">{category}</h4>
+                    <h4 className="px-4 text-[9px] md:text-[10px] font-black uppercase text-accent-yellow/40 tracking-[0.2em]">{category}</h4>
                     <div className="space-y-1">
                       {catItems.map(item => (
                         <button
@@ -2271,16 +2346,16 @@ function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, on
                             setActiveTab(item.id);
                             onClose();
                           }}
-                          className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl hover:bg-bg-tertiary text-text-secondary hover:text-white transition-all group text-left"
+                          className="w-full flex items-center gap-3 md:gap-4 px-3 md:px-4 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-bg-tertiary text-text-secondary hover:text-white transition-all group text-left"
                         >
-                          <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-primary border border-border-subtle group-hover:border-accent-yellow/30 transition-all">
-                            <item.icon className="w-5 h-5 group-hover:text-accent-yellow transition-colors" />
+                          <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg md:rounded-xl bg-bg-primary border border-border-subtle group-hover:border-accent-yellow/30 transition-all">
+                            <item.icon className="w-4 h-4 md:w-5 md:h-5 group-hover:text-accent-yellow transition-colors" />
                           </div>
                           <div className="flex-1">
-                            <p className="font-bold text-sm leading-none mb-1.5">{item.label}</p>
-                            <p className="text-[10px] uppercase font-bold opacity-30 truncate">Navigasi ke dashboard {item.id}</p>
+                            <p className="font-bold text-xs md:text-sm leading-none mb-1 md:mb-1.5">{item.label}</p>
+                            <p className="text-[9px] md:text-[10px] uppercase font-bold opacity-30 truncate">Navigasi ke dashboard {item.id}</p>
                           </div>
-                          <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-40 transition-all -translate-x-2 group-hover:translate-x-0" />
+                          <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 opacity-0 group-hover:opacity-40 transition-all -translate-x-2 group-hover:translate-x-0" />
                         </button>
                       ))}
                     </div>
@@ -2289,9 +2364,9 @@ function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, on
               })}
             </div>
           ) : (
-            <div className="py-24 text-center">
-              <div className="w-20 h-20 bg-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-6 border border-border-subtle">
-                <Sparkles className="w-10 h-10 text-accent-yellow/30" />
+            <div className="py-16 md:py-24 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-6 border border-border-subtle">
+                <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-accent-yellow/30" />
               </div>
               <p className="text-text-secondary text-sm font-medium italic mb-2">Tidak ada hasil ditemukan.</p>
               <p className="text-[10px] uppercase font-black tracking-widest text-text-secondary/40">Coba kata kunci lain</p>
@@ -2299,20 +2374,20 @@ function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, on
           )}
         </div>
 
-        <div className="px-8 py-5 bg-bg-tertiary/80 border-t border-border-subtle flex items-center justify-between">
-          <div className="flex items-center gap-6 text-[10px] font-black uppercase text-text-secondary/60">
+        <div className="px-6 py-4 md:px-8 md:py-5 bg-bg-tertiary/80 border-t border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-4 md:gap-6 text-[10px] font-black uppercase text-text-secondary/60">
             <div className="flex items-center gap-2">
               <span className="p-1 px-1.5 bg-bg-primary border border-border-subtle rounded leading-none flex items-center gap-1">
                 <Command className="w-2 h-2" /> K
               </span>
               <span>Tutup</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               <span className="p-1 px-1.5 bg-bg-primary border border-border-subtle rounded leading-none">ENTER</span>
               <span>Pilih</span>
             </div>
           </div>
-          <div className="text-[10px] font-black uppercase tracking-widest text-accent-yellow/40">Davs Control v2.5</div>
+          <div className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-accent-yellow/40">Davs Control v2.5</div>
         </div>
       </motion.div>
     </div>

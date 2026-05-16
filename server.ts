@@ -47,8 +47,11 @@ async function startServer() {
       const { data } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
       
-      if (!apiKey) {
-        return res.status(500).json({ error: "Gemini API Key missing" });
+      if (!apiKey || apiKey.trim() === "") {
+        console.error("AI Insight Error: GEMINI_API_KEY is missing or empty.");
+        return res.status(500).json({ 
+          error: "Gemini API Key missing. Please set it in the Settings menu." 
+        });
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -56,7 +59,8 @@ async function startServer() {
 
       const prompt = `Based on this dashboard data: ${JSON.stringify(data)}, 
       generate a 2-sentence professional insight or suggestion for the admin. 
-      Focus on business growth or engagement. Keep it in Indonesian.`;
+      Focus on business growth or engagement. Keep it in Indonesian.
+      Don't use markdown formatting, just plain text.`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -65,7 +69,9 @@ async function startServer() {
       res.json({ text });
     } catch (error: any) {
       console.error("AI Insight Error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ 
+        error: error.message || "An unexpected error occurred with the AI service." 
+      });
     }
   });
 
