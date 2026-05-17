@@ -31,6 +31,7 @@ const CTASection = lazy(() => import('./components/CTASection'));
 // Pages
 const AdminLogin = lazy(() => import('./pages/admin/Login'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const UserDashboard = lazy(() => import('./pages/UserDashboard'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
 const ArticleDetailPage = lazy(() => import('./pages/ArticleDetailPage'));
@@ -66,6 +67,12 @@ export default function App() {
             <Route path="/admin/dashboard" element={
               <Suspense fallback={<PageLoader />}>
                 <AdminDashboard />
+              </Suspense>
+            } />
+            
+            <Route path="/dashboard" element={
+              <Suspense fallback={<PageLoader />}>
+                <UserDashboard />
               </Suspense>
             } />
 

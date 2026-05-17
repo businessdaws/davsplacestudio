@@ -124,6 +124,14 @@ service cloud.firestore {
              data.url is string && data.url.size() > 0;
     }
 
+    function isValidSavedContent(data) {
+      return data.keys().hasAll(['user_id', 'topic', 'headline', 'caption']) &&
+             data.user_id == request.auth.uid &&
+             data.topic is string && data.topic.size() > 0 &&
+             data.headline is string && data.headline.size() > 0 &&
+             data.caption is string && data.caption.size() > 0;
+    }
+
     // --- COLLECTION RULES ---
 
     match /profiles/{userId} {
@@ -192,6 +200,14 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isAdmin() && isValidCommunity(incoming());
       allow delete: if isAdmin();
+    }
+
+    match /saved_contents/{contentId} {
+      allow list: if isSignedIn(); // Queries must filter by user_id
+      allow get: if isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidSavedContent(incoming());
+      allow update: if isSignedIn() && isOwner(existing().user_id) && isValidSavedContent(incoming());
+      allow delete: if isSignedIn() && (isOwner(existing().user_id) || isAdmin());
     }
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Search, Moon, Sun, ChevronRight, User, LogOut, Sparkles } from 'lucide-react';
+import { Menu, X, Search, Moon, Sun, ChevronRight, User, LogOut, Sparkles, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../stores/useAppStore';
 import { auth } from '../lib/firebase';
@@ -154,6 +154,16 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
                     <Sparkles className="w-4 h-4 text-accent-yellow" />
                     AI Generator
                   </Link>
+
+                  <Link 
+                    to="/dashboard" 
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-3 p-3 text-xs font-bold text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-accent-yellow" />
+                    Saved Content
+                  </Link>
+
                   <button 
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 p-3 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors border-t border-border-subtle mt-1"

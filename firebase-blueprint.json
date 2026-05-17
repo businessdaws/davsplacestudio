@@ -188,6 +188,23 @@
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "url"]
+    },
+    "SavedContent": {
+      "title": "SavedContent",
+      "description": "AI generated social media content saved by user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "topic": { "type": "string" },
+        "headline": { "type": "string" },
+        "caption": { "type": "string" },
+        "hashtags": { "type": "array", "items": { "type": "string" } },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "provider": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["user_id", "topic", "headline", "caption"]
     }
   },
   "firestore": {
@@ -234,6 +251,10 @@
     "communities": {
       "schema": "Community",
       "description": "Our communities"
+    },
+    "saved_contents": {
+      "schema": "SavedContent",
+      "description": "User saved social media content"
     }
   }
 }

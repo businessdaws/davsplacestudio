@@ -69,38 +69,24 @@ export async function analyzeBrief(brief: string) {
   }
 }
 
-export async function generateSocialMediaContent(topic: string) {
-  const prompt = `Generate content for social media about: "${topic}"
-  
-  Please provide:
-  1. A catchy Headline
-  2. An engaging Caption (Indonesian)
-  3. 5-10 trending Hashtags
-  4. 2-3 Credible Sources/links relevant to the topic
-  
-  Return in JSON format.`;
-
+export async function generateSocialMediaContent(topic: string, provider: "gemini" | "nvidia-nemotron" = "gemini") {
   try {
-    const result = await ai.models.generateContent({
-      model: geminiModel,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            headline: { type: Type.STRING },
-            caption: { type: Type.STRING },
-            hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
-            sources: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ["headline", "caption", "hashtags", "sources"]
-        }
-      }
+    const response = await fetch("/api/ai/social-media", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ topic, provider }),
     });
-    return JSON.parse(result.text || "{}");
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Gagal memproses AI.");
+    }
+
+    return await response.json();
   } catch (error) {
-    console.error("Gemini social media generator error:", error);
+    console.error("AI social media generator error:", error);
     throw error;
   }
 }

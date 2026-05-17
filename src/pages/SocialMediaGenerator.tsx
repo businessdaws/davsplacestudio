@@ -14,8 +14,14 @@ import {
   Loader2,
   AlertCircle,
   LogOut,
-  Zap
+  Zap,
+  Bookmark,
+  BookmarkCheck,
+  LayoutDashboard
 } from 'lucide-react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Link } from 'react-router-dom';
 import { generateSocialMediaContent } from '../lib/gemini';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -27,8 +33,11 @@ export default function SocialMediaGenerator() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [topic, setTopic] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [selectedProvider, setSelectedProvider] = useState<'gemini' | 'nvidia-nemotron'>('gemini');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -62,15 +71,40 @@ export default function SocialMediaGenerator() {
     if (!topic.trim()) return;
 
     setGenerating(true);
+    setIsSaved(false);
     setError(null);
     try {
-      const data = await generateSocialMediaContent(topic);
+      const data = await generateSocialMediaContent(topic, selectedProvider);
       setResult(data);
     } catch (err: any) {
       console.error(err);
-      setError('Maaf, ada masalah saat memproses AI. Silakan coba lagi.');
+      setError(err.message || 'Maaf, ada masalah saat memproses AI. Silakan coba lagi.');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!result || !user) return;
+    
+    setSaving(true);
+    try {
+      await addDoc(collection(db, 'saved_contents'), {
+        user_id: user.uid,
+        topic: topic,
+        headline: result.headline,
+        caption: result.caption,
+        hashtags: result.hashtags || [],
+        sources: result.sources || [],
+        provider: selectedProvider,
+        created_at: serverTimestamp()
+      });
+      setIsSaved(true);
+    } catch (err: any) {
+      console.error("Gagal menyimpan:", err);
+      setError("Gagal menyimpan konten. Silakan coba lagi.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -154,6 +188,44 @@ export default function SocialMediaGenerator() {
                         className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl p-6 outline-none focus:border-accent-yellow transition-all text-lg font-sans resize-none"
                       />
                     </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                        Pilih Model AI
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('gemini')}
+                          className={cn(
+                            "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
+                            selectedProvider === 'gemini' 
+                              ? "bg-accent-yellow/10 border-accent-yellow text-accent-yellow shadow-lg shadow-accent-yellow/5" 
+                              : "bg-bg-tertiary border-border-subtle text-text-secondary grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                          )}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                            <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304dfad33318282.svg" className="w-5 h-5" alt="Gemini" />
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Google Gemini</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('nvidia-nemotron')}
+                          className={cn(
+                            "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
+                            selectedProvider === 'nvidia-nemotron' 
+                              ? "bg-blue-500/10 border-blue-500 text-blue-500 shadow-lg shadow-blue-500/5" 
+                              : "bg-bg-tertiary border-border-subtle text-text-secondary grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                          )}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                            <Zap className="w-5 h-5" />
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">NVIDIA Nemotron</span>
+                        </button>
+                      </div>
+                    </div>
                     
                     <button 
                       type="submit"
@@ -184,6 +256,39 @@ export default function SocialMediaGenerator() {
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-6"
                     >
+                      {/* Action Bar */}
+                      <div className="flex items-center justify-between bg-bg-secondary border border-border-subtle p-4 rounded-2xl">
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full animate-pulse",
+                            selectedProvider === 'gemini' ? "bg-accent-yellow" : "bg-blue-500"
+                          )} />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                            Generated by {selectedProvider === 'gemini' ? 'Gemini' : 'Nemotron'}
+                          </span>
+                        </div>
+                        
+                        <button
+                          onClick={handleSave}
+                          disabled={saving || isSaved}
+                          className={cn(
+                            "flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
+                            isSaved 
+                              ? "bg-green-500/10 text-green-500 border border-green-500/20 cursor-default"
+                              : "bg-accent-yellow text-bg-primary hover:scale-105 active:scale-95"
+                          )}
+                        >
+                          {saving ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : isSaved ? (
+                            <BookmarkCheck className="w-3 h-3" />
+                          ) : (
+                            <Bookmark className="w-3 h-3" />
+                          )}
+                          {isSaved ? 'TERSIPAN' : 'SIMPAN KONTEN'}
+                        </button>
+                      </div>
+
                       {/* Headline Card */}
                       <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem] group">
                         <div className="flex items-center justify-between mb-6">
@@ -280,7 +385,15 @@ export default function SocialMediaGenerator() {
                     </div>
                   </div>
 
-                  <div className="space-y-6 pt-6 border-t border-border-subtle">
+                  <div className="space-y-3 pt-6 border-t border-border-subtle">
+                    <Link 
+                      to="/dashboard"
+                      className="w-full py-4 bg-accent-yellow text-bg-primary font-black rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      Saved Content
+                    </Link>
+
                     <div>
                       <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-4">Credible Sources</p>
                       <div className="space-y-3">
