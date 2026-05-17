@@ -28,6 +28,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
 import SearchModal from '../components/SearchModal';
+import UserDashboardNav from '../components/UserDashboardNav';
 import { cn } from '../lib/utils';
 
 export default function SocialMediaGenerator() {
@@ -140,6 +141,8 @@ export default function SocialMediaGenerator() {
 
       <main className="pt-24 pb-20">
         <div className="max-w-5xl mx-auto px-6 py-12">
+          {user && <UserDashboardNav user={user} />}
+          
           {/* Header */}
           <div className="mb-16 text-center lg:text-left">
             <motion.div
@@ -497,57 +500,27 @@ export default function SocialMediaGenerator() {
 
               {/* Sidebar Info */}
               <div className="space-y-6">
-                <div className="bg-bg-tertiary border border-border-subtle p-8 rounded-[2rem]">
-                  <div className="flex items-center gap-4 mb-8">
-                    <img 
-                      src={user.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'} 
-                      className="w-12 h-12 rounded-full border border-accent-yellow/50"
-                      alt={user.displayName}
-                    />
-                    <div className="overflow-hidden">
-                      <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest">Active User</p>
-                      <p className="font-display font-bold truncate">{user.displayName}</p>
+                <div className="space-y-6">
+                  <div className="bg-bg-tertiary border border-border-subtle p-8 rounded-[2rem]">
+                    <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-4">Credible Sources</p>
+                    <div className="space-y-3">
+                      {result?.sources ? result.sources.map((src: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3 p-3 bg-bg-primary rounded-xl border border-border-subtle text-xs truncate">
+                          <LinkIcon className="w-4 h-4 text-accent-yellow shrink-0" />
+                          <span className="truncate opacity-70 italic">{src}</span>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-text-secondary opacity-50 italic">Generate content to see sources here.</p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="space-y-3 pt-6 border-t border-border-subtle">
-                    <Link 
-                      to="/dashboard"
-                      className="w-full py-4 bg-accent-yellow text-bg-primary font-black rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all"
-                    >
-                      <LayoutDashboard className="w-4 h-4" />
-                      Saved Content
-                    </Link>
-
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-4">Credible Sources</p>
-                      <div className="space-y-3">
-                        {result?.sources ? result.sources.map((src: string, i: number) => (
-                          <div key={i} className="flex items-center gap-3 p-3 bg-bg-primary rounded-xl border border-border-subtle text-xs truncate">
-                            <LinkIcon className="w-4 h-4 text-accent-yellow shrink-0" />
-                            <span className="truncate opacity-70 italic">{src}</span>
-                          </div>
-                        )) : (
-                          <p className="text-xs text-text-secondary opacity-50 italic">Generate content to see sources here.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={handleLogout}
-                      className="w-full py-4 bg-bg-primary border border-border-subtle text-red-500 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-500/10 transition-all"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
+                  <div className="p-8 bg-accent-yellow rounded-[2rem] text-bg-primary">
+                    <h4 className="text-lg font-display font-black mb-4 uppercase leading-none">Pro Tip!</h4>
+                    <p className="text-sm font-sans font-medium leading-relaxed opacity-90">
+                      Berikan detail seperti target audience atau nada bicara (formal/santai) pada input topik untuk hasil yang lebih presisi.
+                    </p>
                   </div>
-                </div>
-
-                <div className="p-8 bg-accent-yellow rounded-[2rem] text-bg-primary">
-                  <h4 className="text-lg font-display font-black mb-4 uppercase leading-none">Pro Tip!</h4>
-                  <p className="text-sm font-sans font-medium leading-relaxed opacity-90">
-                    Berikan detail seperti target audience atau nada bicara (formal/santai) pada input topik untuk hasil yang lebih presisi.
-                  </p>
                 </div>
               </div>
             </div>

@@ -34,6 +34,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
 import SearchModal from '../components/SearchModal';
+import UserDashboardNav from '../components/UserDashboardNav';
 import { cn, formatDate } from '../lib/utils';
 
 export default function UserDashboard() {
@@ -122,6 +123,8 @@ export default function UserDashboard() {
 
       <main className="pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-6 py-12">
+          <UserDashboardNav user={user} />
+          
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 md:mb-16">
             <motion.div
@@ -140,20 +143,6 @@ export default function UserDashboard() {
                 Kumpulan konten sosial media yang telah Anda buat. Kelola dan gunakan kembali kapan saja.
               </p>
             </motion.div>
-
-            <div className="flex items-center justify-between md:justify-end gap-4 p-4 md:p-0 bg-bg-secondary md:bg-transparent border border-border-subtle md:border-none rounded-2xl">
-              <div className="flex flex-col items-start md:items-end">
-                <p className="text-[10px] font-black uppercase text-accent-yellow tracking-widest truncate max-w-[150px]">{user?.displayName || 'User'}</p>
-                <p className="text-[9px] font-bold text-text-secondary uppercase truncate max-w-[150px]">{user?.email}</p>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="p-3 md:p-4 bg-bg-tertiary md:bg-bg-secondary border border-border-subtle text-red-500 rounded-xl md:rounded-2xl hover:bg-red-500/10 transition-all active:scale-95"
-                title="Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
           </div>
 
           {/* Controls */}

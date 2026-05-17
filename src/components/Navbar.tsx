@@ -11,7 +11,6 @@ const navLinks = [
   { name: 'Beranda', href: '/' },
   { name: 'Artikel', href: '/artikel' },
   { name: 'Portofolio', href: '/portofolio' },
-  { name: 'AI Generator', href: '/generator' },
   { name: 'Kolaborasi', href: '/kolaborasi' },
   { name: 'Tentang', href: '/tentang' },
 ];
