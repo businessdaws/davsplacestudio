@@ -6,10 +6,12 @@ import {
   Briefcase,
   Info,
   Users,
+  Sparkles,
   Search, 
   Moon, 
   Sun,
-  User
+  User,
+  LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../stores/useAppStore';
@@ -78,9 +80,9 @@ export function MobileBottomNavbar({ onSearchClick }: { onSearchClick: () => voi
   const navItems = [
     { id: 'home', path: '/', icon: Home, label: 'Home' },
     { id: 'articles', path: '/artikel', icon: FileText, label: 'Artikel' },
+    { id: 'ai', path: '/generator', icon: Sparkles, label: 'AI' },
+    { id: 'dashboard', path: '/dashboard', icon: LayoutDashboard, label: 'Saved' },
     { id: 'portfolio', path: '/portofolio', icon: Briefcase, label: 'Porto' },
-    { id: 'about', path: '/tentang', icon: Info, label: 'About' },
-    { id: 'collab', path: '/kolaborasi', icon: Users, label: 'Collab' },
   ];
 
   const handleNav = (item: typeof navItems[0]) => {

@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, Type } from "@google/genai";
 import OpenAI from "openai";
 import dotenv from "dotenv";
 
@@ -11,6 +11,15 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 // AI Content Assistant API
 app.post("/api/ai/generate", async (req, res) => {
@@ -25,17 +34,15 @@ app.post("/api/ai/generate", async (req, res) => {
       });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const fullPrompt = `You are an AI Content Assistant for Davsplace Studio. 
-    Context: ${context}
-    Task: ${prompt}
-    Generate professional, creative, and engaging content in Indonesian.`;
-
-    const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `You are an AI Content Assistant for Davsplace Studio. 
+      Context: ${context}
+      Task: ${prompt}
+      Generate professional, creative, and engaging content in Indonesian.`,
+    });
+    
+    const text = response.text || "";
 
     res.json({ text });
   } catch (error: any) {
@@ -57,17 +64,15 @@ app.post("/api/ai/insight", async (req, res) => {
       });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `Based on this dashboard data: ${JSON.stringify(data)}, 
-    generate a 2-sentence professional insight or suggestion for the admin. 
-    Focus on business growth or engagement. Keep it in Indonesian.
-    Don't use markdown formatting, just plain text.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Based on this dashboard data: ${JSON.stringify(data)}, 
+      generate a 2-sentence professional insight or suggestion for the admin. 
+      Focus on business growth or engagement. Keep it in Indonesian.
+      Don't use markdown formatting, just plain text.`,
+    });
+    
+    const text = response.text || "";
 
     res.json({ text });
   } catch (error: any) {
@@ -105,7 +110,7 @@ app.post("/api/ai/social-media", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "You are a social media expert. Return ONLY a valid JSON object with: headline (string), caption (Indonesian string), hashtags (array of strings), sources (array of strings).",
+            content: "You are a social media expert. Return ONLY a valid JSON object with: headline (string), caption (Indonesian string), hashtags (array of strings), sources (array of strings), image_prompt (detailed English string for AI image generation like Midjourney or DALL-E).",
           },
           {
             role: "user",
@@ -148,9 +153,6 @@ app.post("/api/ai/social-media", async (req, res) => {
         });
       }
 
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
       const prompt = `Generate content for social media about: "${topic}"
       Please provide:
       1. A catchy Headline
@@ -163,12 +165,19 @@ app.post("/api/ai/social-media", async (req, res) => {
         "headline": string, 
         "caption": string, 
         "hashtags": string[], 
-        "sources": string[] 
+        "sources": string[],
+        "image_prompt": string
       }`;
 
-      const genResult = await model.generateContent(prompt);
-      const response = await genResult.response;
-      let text = response.text();
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+      
+      let text = response.text || "";
       
       console.log("Gemini raw output preview:", text.substring(0, 100));
 
@@ -212,7 +221,7 @@ app.post("/api/ai/article", async (req, res) => {
     if (provider === "nvidia-nemotron") {
       const apiKey = (process.env.NVIDIA_API_KEY || "").trim();
       if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
-        return res.status(500).json({ error: "NVIDIA API Key is required." });
+        return res.status(500).json({ error: "NVIDIA API Key is required. Please set NVIDIA_API_KEY." });
       }
 
       const openai = new OpenAI({
@@ -228,11 +237,14 @@ app.post("/api/ai/article", async (req, res) => {
           {
             role: "system",
             content: `You are a professional content writer. Write a detailed article based on the topic provided. 
-            Output must be in valid JSON format with: 
-            title_options (array of 3 creative strings),
-            content (string, minimum 400 words, rich with headings and paragraphs),
-            hashtags (array of 5-10 strings),
-            sources (array of 2-3 links).
+            Output MUST be a valid JSON object. 
+            JSON Schema: { 
+              "title_options": string[] (exactly 3), 
+              "content": string (detailed article), 
+              "hashtags": string[], 
+              "sources": string[],
+              "image_prompt": string (detailed English string for AI image generation)
+            }
             Use ${style} writing style in Indonesian.`,
           },
           {
@@ -247,55 +259,61 @@ app.post("/api/ai/article", async (req, res) => {
       const completion = await openai.chat.completions.create(completionParams);
       let content = completion.choices[0].message.content || "{}";
       
+      console.log("NVIDIA Article raw output preview:", content.substring(0, 100));
+
       content = content.replace(/<thought>[\s\S]*?<\/thought>/g, ""); 
       content = content.replace(/```json\n?|\n?```/g, "").trim();
       
       try {
         result = JSON.parse(content);
       } catch (parseError) {
+        console.error("Failed to parse NVIDIA Article JSON:", content);
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           result = JSON.parse(jsonMatch[0]);
         } else {
-          throw new Error("AI returned invalid JSON format.");
+          throw new Error("AI NVIDIA returned invalid JSON format.");
         }
       }
     } else {
       const apiKey = (process.env.GEMINI_API_KEY || "").trim();
       if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
-        return res.status(500).json({ error: "Gemini API Key is required." });
+        return res.status(500).json({ error: "Gemini API Key is required. Please set GEMINI_API_KEY." });
       }
 
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
       const prompt = `Write a comprehensive article about: "${topic}" using ${style} writing style in Indonesian.
-      Please provide:
-      1. title_options: 3 catchy Title options
-      2. content: A detailed and long Article (min 400 words) with proper headings and structure
-      3. hashtags: 5-10 trending Hashtags
-      4. sources: 2-3 Credible Sources/links relevant to the topic
-      
-      Return ONLY valid JSON format.
-      JSON schema: { 
-        "title_options": string[], 
-        "content": string, 
-        "hashtags": string[], 
-        "sources": string[] 
+      Return the result in this JSON format:
+      { 
+        "title_options": ["Judul 1", "Judul 2", "Judul 3"], 
+        "content": "Isi artikel lengkap minimal 400 kata...", 
+        "hashtags": ["tag1", "tag2"], 
+        "sources": ["link1", "link2"],
+        "image_prompt": "A detailed English prompt for AI image generation..."
       }`;
 
-      const genResult = await model.generateContent(prompt);
-      const response = await genResult.response;
-      let text = response.text().replace(/```json\n?|\n?```/g, "").trim();
+      const response = await ai.models.generateContent({ 
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      let text = response.text || "";
+      
+      console.log("Gemini Article raw output preview:", text.substring(0, 100));
+
+      text = text.replace(/```json\n?|\n?```/g, "").trim();
       
       try {
         result = JSON.parse(text || "{}");
       } catch (parseError) {
+        console.error("Failed to parse Gemini Article JSON:", text);
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           result = JSON.parse(jsonMatch[0]);
         } else {
-          throw new Error("AI returned invalid JSON format.");
+          throw new Error("AI Gemini returned invalid JSON format.");
         }
       }
     }
@@ -303,6 +321,13 @@ app.post("/api/ai/article", async (req, res) => {
     res.json(result);
   } catch (error: any) {
     console.error("Article AI Error:", error);
+    
+    if (error.status === 401 || (error.message && error.message.includes("API key not valid"))) {
+      return res.status(401).json({ 
+        error: "API Key tidak valid. Pastikan API Key Anda sudah benar di environment variables." 
+      });
+    }
+    
     res.status(500).json({ error: error.message || "Gagal memproses AI." });
   }
 });

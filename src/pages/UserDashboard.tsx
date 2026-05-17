@@ -27,7 +27,8 @@ import {
   FileText,
   ChevronRight,
   ArrowLeft,
-  X
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -122,31 +123,32 @@ export default function UserDashboard() {
       <main className="pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-6 py-12">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 md:mb-16">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              className="flex-1"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent-yellow/10 text-accent-yellow text-[10px] font-black rounded-lg uppercase tracking-[0.2em] mb-6 border border-accent-yellow/20">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent-yellow/10 text-accent-yellow text-[9px] font-black rounded-lg uppercase tracking-[0.2em] mb-4 border border-accent-yellow/20">
                 <LayoutDashboard className="w-3 h-3" />
                 Member Area
               </div>
-              <h1 className="text-5xl md:text-7xl font-display font-black tracking-tighter uppercase leading-none">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-black tracking-tighter uppercase leading-[0.9] md:leading-none">
                 SAVED <span className="text-accent-yellow italic">CONTENT</span>
               </h1>
-              <p className="text-text-secondary mt-4 font-sans max-w-lg">
+              <p className="text-sm md:text-text-secondary mt-4 font-sans max-w-lg opacity-70">
                 Kumpulan konten sosial media yang telah Anda buat. Kelola dan gunakan kembali kapan saja.
               </p>
             </motion.div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-end">
-                <p className="text-[10px] font-black uppercase text-accent-yellow tracking-widest">{user?.displayName}</p>
-                <p className="text-[10px] font-bold text-text-secondary uppercase">{user?.email}</p>
+            <div className="flex items-center justify-between md:justify-end gap-4 p-4 md:p-0 bg-bg-secondary md:bg-transparent border border-border-subtle md:border-none rounded-2xl">
+              <div className="flex flex-col items-start md:items-end">
+                <p className="text-[10px] font-black uppercase text-accent-yellow tracking-widest truncate max-w-[150px]">{user?.displayName || 'User'}</p>
+                <p className="text-[9px] font-bold text-text-secondary uppercase truncate max-w-[150px]">{user?.email}</p>
               </div>
               <button 
                 onClick={handleLogout}
-                className="p-4 bg-bg-secondary border border-border-subtle text-red-500 rounded-2xl hover:bg-red-500/10 transition-all"
+                className="p-3 md:p-4 bg-bg-tertiary md:bg-bg-secondary border border-border-subtle text-red-500 rounded-xl md:rounded-2xl hover:bg-red-500/10 transition-all active:scale-95"
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
@@ -358,6 +360,31 @@ export default function UserDashboard() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Image Prompt Card */}
+                  {selectedContent.image_prompt && (
+                    <div className="bg-bg-tertiary border border-border-subtle p-8 rounded-[2rem]">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                            <ImageIcon className="w-5 h-5" />
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">AI Image Prompt</span>
+                        </div>
+                        <button 
+                          onClick={() => copyToClipboard(selectedContent.image_prompt, 'image_prompt')}
+                          className="p-3 bg-bg-secondary rounded-xl hover:text-accent-yellow transition-all"
+                        >
+                          {copied === 'image_prompt' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                        </button>
+                      </div>
+                      <div className="p-6 bg-bg-secondary border border-border-subtle rounded-2xl">
+                        <p className="text-sm text-text-secondary font-mono leading-relaxed italic">
+                          "{selectedContent.image_prompt}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

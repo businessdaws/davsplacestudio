@@ -8,6 +8,7 @@
   "majorCapabilities": [
     "AI-powered search",
     "3D Hero Section",
-    "Supabase Integrated CMS"
+    "Supabase Integrated CMS",
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }

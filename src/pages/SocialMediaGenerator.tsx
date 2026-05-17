@@ -17,7 +17,8 @@ import {
   Zap,
   Bookmark,
   BookmarkCheck,
-  LayoutDashboard
+  LayoutDashboard,
+  Image as ImageIcon
 } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -104,6 +105,7 @@ export default function SocialMediaGenerator() {
         caption: result.caption || result.content,
         hashtags: result.hashtags || [],
         sources: result.sources || [],
+        image_prompt: result.image_prompt || '',
         provider: selectedProvider,
         writing_style: writingStyle,
         created_at: serverTimestamp()
@@ -450,6 +452,34 @@ export default function SocialMediaGenerator() {
                           ))}
                         </div>
                       </div>
+
+                      {/* Image Prompt Card */}
+                      {result.image_prompt && (
+                        <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                                <ImageIcon className="w-5 h-5" />
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">AI Image Prompt</span>
+                            </div>
+                            <button 
+                              onClick={() => copyToClipboard(result.image_prompt, 'image_prompt')}
+                              className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
+                            >
+                              {copied === 'image_prompt' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                            </button>
+                          </div>
+                          <div className="p-6 bg-bg-tertiary border border-border-subtle rounded-2xl">
+                            <p className="text-sm text-text-secondary font-mono leading-relaxed italic">
+                              "{result.image_prompt}"
+                            </p>
+                          </div>
+                          <p className="mt-4 text-[10px] text-text-secondary italic">
+                            *Gunakan prompt di atas pada tools AI Image seperti Midjourney, DALL-E, atau Canva Magic Media.
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
