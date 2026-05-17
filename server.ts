@@ -16,12 +16,12 @@ app.use(express.json());
 app.post("/api/ai/generate", async (req, res) => {
   try {
     const { prompt, context } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
     
-    if (!apiKey || apiKey.trim() === "" || apiKey.includes("your_")) {
+    if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
       console.error("AI Generation Error: GEMINI_API_KEY is missing or invalid.");
       return res.status(500).json({ 
-        error: "Gemini API Key is required. Please set it in the Settings menu (GEMINI_API_KEY)." 
+        error: "Gemini API Key is required. Please set GEMINI_API_KEY in your environment variables." 
       });
     }
 
@@ -48,12 +48,12 @@ app.post("/api/ai/generate", async (req, res) => {
 app.post("/api/ai/insight", async (req, res) => {
   try {
     const { data } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
     
-    if (!apiKey || apiKey.trim() === "" || apiKey.includes("your_")) {
+    if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
       console.error("AI Insight Error: GEMINI_API_KEY is missing or invalid.");
       return res.status(500).json({ 
-        error: "Gemini API Key is required. Please set it in the Settings menu (GEMINI_API_KEY)." 
+        error: "Gemini API Key is required. Please set GEMINI_API_KEY in your environment variables." 
       });
     }
 
@@ -85,11 +85,11 @@ app.post("/api/ai/social-media", async (req, res) => {
     let result;
 
     if (provider === "nvidia-nemotron") {
-      const apiKey = process.env.NVIDIA_API_KEY;
-      if (!apiKey || apiKey.trim() === "" || apiKey.includes("your_")) {
+      const apiKey = (process.env.NVIDIA_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
         console.error("Social Media AI Error: NVIDIA_API_KEY is missing or invalid.");
         return res.status(500).json({ 
-          error: "NVIDIA API Key is required. Please set it in the Settings menu (NVIDIA_API_KEY)." 
+          error: "NVIDIA API Key is required. Please set NVIDIA_API_KEY in your environment variables." 
         });
       }
 
@@ -140,11 +140,11 @@ app.post("/api/ai/social-media", async (req, res) => {
         }
       }
     } else {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey || apiKey.trim() === "" || apiKey.includes("your_")) {
+      const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
         console.error("Social Media AI Error: GEMINI_API_KEY is missing or invalid.");
         return res.status(500).json({ 
-          error: "Gemini API Key is required. Please set it in the Settings menu (GEMINI_API_KEY)." 
+          error: "Gemini API Key is required. Please set GEMINI_API_KEY in your environment variables." 
         });
       }
 
@@ -193,12 +193,116 @@ app.post("/api/ai/social-media", async (req, res) => {
     console.error("Social Media AI Error:", error);
     
     // Handle known API errors
-    if (error.status === 401) {
+    if (error.status === 401 || (error.message && error.message.includes("API key not valid"))) {
       return res.status(401).json({ 
-        error: "API Key tidak valid (401). Pastikan NVIDIA_API_KEY atau GEMINI_API_KEY sudah benar di menu Settings." 
+        error: "API Key tidak valid. Jika Anda menggunakan Vercel, pastikan Anda telah menambahkan GEMINI_API_KEY di environment variables Vercel Project Settings." 
       });
     }
     
+    res.status(500).json({ error: error.message || "Gagal memproses AI." });
+  }
+});
+
+// AI Article Generator API
+app.post("/api/ai/article", async (req, res) => {
+  try {
+    const { topic, style = "professional", provider = "gemini" } = req.body;
+    let result;
+
+    if (provider === "nvidia-nemotron") {
+      const apiKey = (process.env.NVIDIA_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        return res.status(500).json({ error: "NVIDIA API Key is required." });
+      }
+
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        baseURL: "https://integrate.api.nvidia.com/v1",
+      });
+
+      const modelName = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+
+      const completionParams: any = {
+        model: modelName,
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional content writer. Write a detailed article based on the topic provided. 
+            Output must be in valid JSON format with: 
+            title_options (array of 3 creative strings),
+            content (string, minimum 400 words, rich with headings and paragraphs),
+            hashtags (array of 5-10 strings),
+            sources (array of 2-3 links).
+            Use ${style} writing style in Indonesian.`,
+          },
+          {
+            role: "user",
+            content: `Write an article about: "${topic}"`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      };
+
+      const completion = await openai.chat.completions.create(completionParams);
+      let content = completion.choices[0].message.content || "{}";
+      
+      content = content.replace(/<thought>[\s\S]*?<\/thought>/g, ""); 
+      content = content.replace(/```json\n?|\n?```/g, "").trim();
+      
+      try {
+        result = JSON.parse(content);
+      } catch (parseError) {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          result = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("AI returned invalid JSON format.");
+        }
+      }
+    } else {
+      const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        return res.status(500).json({ error: "Gemini API Key is required." });
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = `Write a comprehensive article about: "${topic}" using ${style} writing style in Indonesian.
+      Please provide:
+      1. title_options: 3 catchy Title options
+      2. content: A detailed and long Article (min 400 words) with proper headings and structure
+      3. hashtags: 5-10 trending Hashtags
+      4. sources: 2-3 Credible Sources/links relevant to the topic
+      
+      Return ONLY valid JSON format.
+      JSON schema: { 
+        "title_options": string[], 
+        "content": string, 
+        "hashtags": string[], 
+        "sources": string[] 
+      }`;
+
+      const genResult = await model.generateContent(prompt);
+      const response = await genResult.response;
+      let text = response.text().replace(/```json\n?|\n?```/g, "").trim();
+      
+      try {
+        result = JSON.parse(text || "{}");
+      } catch (parseError) {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          result = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("AI returned invalid JSON format.");
+        }
+      }
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Article AI Error:", error);
     res.status(500).json({ error: error.message || "Gagal memproses AI." });
   }
 });

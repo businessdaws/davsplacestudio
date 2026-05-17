@@ -22,7 +22,7 @@ import {
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
-import { generateSocialMediaContent } from '../lib/gemini';
+import { generateSocialMediaContent, generateArticleContent } from '../lib/gemini';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
@@ -36,6 +36,8 @@ export default function SocialMediaGenerator() {
   const [saving, setSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [topic, setTopic] = useState('');
+  const [generatorType, setGeneratorType] = useState<'social-media' | 'article'>('social-media');
+  const [writingStyle, setWritingStyle] = useState('professional');
   const [result, setResult] = useState<any>(null);
   const [selectedProvider, setSelectedProvider] = useState<'gemini' | 'nvidia-nemotron'>('gemini');
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +76,12 @@ export default function SocialMediaGenerator() {
     setIsSaved(false);
     setError(null);
     try {
-      const data = await generateSocialMediaContent(topic, selectedProvider);
+      let data;
+      if (generatorType === 'article') {
+        data = await generateArticleContent(topic, writingStyle, selectedProvider);
+      } else {
+        data = await generateSocialMediaContent(topic, selectedProvider);
+      }
       setResult(data);
     } catch (err: any) {
       console.error(err);
@@ -92,11 +99,13 @@ export default function SocialMediaGenerator() {
       await addDoc(collection(db, 'saved_contents'), {
         user_id: user.uid,
         topic: topic,
-        headline: result.headline,
-        caption: result.caption,
+        type: generatorType,
+        headline: result.headline || result.title_options?.[0],
+        caption: result.caption || result.content,
         hashtags: result.hashtags || [],
         sources: result.sources || [],
         provider: selectedProvider,
+        writing_style: writingStyle,
         created_at: serverTimestamp()
       });
       setIsSaved(true);
@@ -140,10 +149,10 @@ export default function SocialMediaGenerator() {
                 AI-Powered Creativity
               </div>
               <h1 className="text-5xl md:text-7xl font-display font-extrabold tracking-tighter uppercase mb-6 leading-none">
-                SOCIAL MEDIA <span className="text-accent-yellow">GENERATOR</span>
+                AI CONTENT <span className="text-accent-yellow">GENERATOR</span>
               </h1>
               <p className="text-xl text-text-secondary max-w-2xl font-sans">
-                Buat konten sosial media dalam hitungan detik. Headline, caption, dan sumber kredibel langsung dari AI Davsplace.
+                Buat konten sosial media dan artikel profesional dalam hitungan detik langsung dari AI Davsplace.
               </p>
             </motion.div>
           </div>
@@ -173,6 +182,56 @@ export default function SocialMediaGenerator() {
             /* Tool State */
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
               <div className="space-y-8">
+                {/* Type Selection Tabs */}
+                <div className="flex p-1.5 bg-bg-secondary border border-border-subtle rounded-2xl">
+                  <button
+                    onClick={() => {
+                      setGeneratorType('social-media');
+                      setResult(null);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      generatorType === 'social-media' 
+                        ? "bg-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20" 
+                        : "text-text-secondary hover:text-white"
+                    )}
+                  >
+                    Social Media
+                  </button>
+                  <button
+                    onClick={() => {
+                      setGeneratorType('article');
+                      setResult(null);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative flex items-center justify-center gap-2",
+                      generatorType === 'article' 
+                        ? "bg-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20" 
+                        : "text-text-secondary hover:text-white"
+                    )}
+                  >
+                    Artikel Generator
+                    <span className="px-1.5 py-0.5 bg-bg-primary text-accent-yellow text-[8px] rounded uppercase">Beta</span>
+                  </button>
+                </div>
+
+                {/* Trial Notice */}
+                <AnimatePresence>
+                  {generatorType === 'article' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="p-4 bg-accent-yellow/10 border border-accent-yellow/20 rounded-2xl flex items-center gap-3 text-accent-yellow overflow-hidden"
+                    >
+                      <AlertCircle className="w-5 h-5 shrink-0" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider">
+                        Info: Fitur Artikel Generator masih dalam tahap uji coba selama sebulan.
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Input Area */}
                 <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
                   <form onSubmit={handleGenerate} className="space-y-6">
@@ -184,10 +243,29 @@ export default function SocialMediaGenerator() {
                         rows={3}
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
-                        placeholder="Contoh: Manfaat desain minimalis untuk branding startup..."
+                        placeholder={generatorType === 'article' ? "Contoh: Panduan lengkap memulai investasi kripto untuk pemula..." : "Contoh: Manfaat desain minimalis untuk branding startup..."}
                         className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl p-6 outline-none focus:border-accent-yellow transition-all text-lg font-sans resize-none"
                       />
                     </div>
+
+                    {generatorType === 'article' && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                          Gaya Penulisan
+                        </label>
+                        <select
+                          value={writingStyle}
+                          onChange={(e) => setWritingStyle(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl p-4 outline-none focus:border-accent-yellow transition-all text-sm font-sans appearance-none cursor-pointer"
+                        >
+                          <option value="professional">Professional & Kredibel</option>
+                          <option value="formal">Formal & Serius</option>
+                          <option value="relaxed">Santai & Dekat</option>
+                          <option value="informative">Informatif & Edukatif</option>
+                          <option value="persuasive">Persuasif & Menyakinkan</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="space-y-4">
                       <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
@@ -289,46 +367,63 @@ export default function SocialMediaGenerator() {
                         </button>
                       </div>
 
-                      {/* Headline Card */}
+                       {/* Headline/Title Card */}
                       <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem] group">
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
                               <Zap className="w-5 h-5" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Headline</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                              {generatorType === 'social-media' ? 'Headline' : 'Rekomendasi Judul'}
+                            </span>
                           </div>
                           <button 
-                            onClick={() => copyToClipboard(result.headline, 'headline')}
+                            onClick={() => copyToClipboard(generatorType === 'social-media' ? result.headline : result.title_options?.join('\n'), 'headline')}
                             className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
                           >
                             {copied === 'headline' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
                           </button>
                         </div>
-                        <h3 className="text-2xl md:text-3xl font-display font-bold leading-tight uppercase">
-                          {result.headline}
-                        </h3>
+                        {generatorType === 'social-media' ? (
+                          <h3 className="text-2xl md:text-3xl font-display font-bold leading-tight uppercase">
+                            {result.headline}
+                          </h3>
+                        ) : (
+                          <div className="space-y-4">
+                            {result.title_options?.map((title: string, i: number) => (
+                              <div key={i} className="p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                                <p className="font-display font-bold text-lg uppercase leading-tight">{title}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Caption Card */}
+                      {/* Caption/Content Card */}
                       <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
                               <FileText className="w-5 h-5" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Caption</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                              {generatorType === 'social-media' ? 'Caption' : 'Konten Artikel'}
+                            </span>
                           </div>
                           <button 
-                            onClick={() => copyToClipboard(result.caption, 'caption')}
+                            onClick={() => copyToClipboard(generatorType === 'social-media' ? result.caption : result.content, 'caption')}
                             className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
                           >
                             {copied === 'caption' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
                           </button>
                         </div>
-                        <p className="text-text-secondary font-sans leading-relaxed whitespace-pre-wrap">
-                          {result.caption}
-                        </p>
+                        <div className={cn(
+                          "text-text-secondary font-sans leading-relaxed whitespace-pre-wrap",
+                          generatorType === 'article' && "prose prose-invert max-w-none text-lg"
+                        )}>
+                          {generatorType === 'social-media' ? result.caption : result.content}
+                        </div>
                       </div>
 
                       {/* Hashtags Card */}
