@@ -122,11 +122,24 @@ async function startServer() {
         const completion = await openai.chat.completions.create(completionParams);
         let content = completion.choices[0].message.content || "{}";
         
+        console.log("NVIDIA raw output preview:", content.substring(0, 100));
+
         // Clean markdown or thinking blocks if present
         content = content.replace(/<thought>[\s\S]*?<\/thought>/g, ""); 
         content = content.replace(/```json\n?|\n?```/g, "").trim();
         
-        result = JSON.parse(content);
+        try {
+          result = JSON.parse(content);
+        } catch (parseError) {
+          console.error("Failed to parse NVIDIA JSON:", content);
+          // Try to find JSON in the string if it's wrapped in other text
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            result = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error("AI returned invalid JSON format.");
+          }
+        }
       } else {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey || apiKey.trim() === "" || apiKey.includes("your_")) {
@@ -156,9 +169,24 @@ async function startServer() {
 
         const genResult = await model.generateContent(prompt);
         const response = await genResult.response;
+        let text = response.text();
+        
+        console.log("Gemini raw output preview:", text.substring(0, 100));
+
         // Clean markdown if present
-        let text = response.text().replace(/```json\n?|\n?```/g, "");
-        result = JSON.parse(text || "{}");
+        text = text.replace(/```json\n?|\n?```/g, "").trim();
+        
+        try {
+          result = JSON.parse(text || "{}");
+        } catch (parseError) {
+          console.error("Failed to parse Gemini JSON:", text);
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            result = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error("AI returned invalid JSON format.");
+          }
+        }
       }
 
       res.json(result);

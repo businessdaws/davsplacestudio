@@ -79,9 +79,22 @@ export async function generateSocialMediaContent(topic: string, provider: "gemin
       body: JSON.stringify({ topic, provider }),
     });
 
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Gagal memproses AI.");
+      let errorMessage = "Gagal memproses AI.";
+      if (isJson) {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } else {
+        errorMessage = `Server Error (${response.status}): Silakan coba beberapa saat lagi.`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (!isJson) {
+      throw new Error("Format respon server tidak valid (Bukan JSON).");
     }
 
     return await response.json();
