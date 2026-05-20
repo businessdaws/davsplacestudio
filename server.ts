@@ -13,7 +13,7 @@ const PORT = 3000;
 app.use(express.json());
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY,
   httpOptions: {
     headers: {
       'User-Agent': 'aistudio-build',
@@ -72,6 +72,114 @@ async function generateContentWithFallback(params: {
   throw lastError;
 }
 
+// Robust JSON parse helper with sanitization & bracket matching support
+function robustJSONParse(text: string): any {
+  if (!text) return {};
+  
+  let cleaned = text.trim();
+  
+  // 1. Remove thought blocks if any
+  cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/g, "").trim();
+  
+  // 2. Strip markdown wrappers
+  cleaned = cleaned.replace(/^```json\s*/i, "");
+  cleaned = cleaned.replace(/```$/, "");
+  cleaned = cleaned.trim();
+
+  // Try direct parse first
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.warn("[JSON Parse] Direct parse failed, attempting robust cleaning and bracket matching...");
+  }
+
+  // 3. Bracket-matching parsing to extract single valid JSON object
+  const firstBrace = cleaned.indexOf('{');
+  if (firstBrace !== -1) {
+    let braceCount = 0;
+    let inString = false;
+    let escapeNext = false;
+    let lastMatchingBraceIndex = -1;
+
+    for (let i = firstBrace; i < cleaned.length; i++) {
+      const char = cleaned[i];
+
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escapeNext = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (!inString) {
+        if (char === '{') {
+          braceCount++;
+        } else if (char === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            lastMatchingBraceIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
+    if (lastMatchingBraceIndex !== -1) {
+      const candidate = cleaned.slice(firstBrace, lastMatchingBraceIndex + 1);
+      try {
+        return JSON.parse(candidate);
+      } catch (parseErr: any) {
+        console.warn("[JSON Parse] Bracket matched slice failed, cleaning whitespace/unescaped characters in strings...", parseErr.message);
+        
+        // Escape control characters inside string fields specifically (like actual newlines in blocks)
+        try {
+          const sanitized = candidate.replace(/[\u0000-\u001F]+/g, (match) => {
+            if (match.includes('\n')) return '\\n';
+            if (match.includes('\r')) return '\\r';
+            if (match.includes('\t')) return '\\t';
+            return '';
+          });
+          return JSON.parse(sanitized);
+        } catch (sanitizeErr) {
+          console.warn("[JSON Parse] Sanitization extraction failed, falling back to basic checks.");
+        }
+      }
+    }
+  }
+
+  // 4. Greedy match fallback
+  const startIdx = cleaned.indexOf('{');
+  const endIdx = cleaned.lastIndexOf('}');
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    const candidate = cleaned.slice(startIdx, endIdx + 1);
+    try {
+      return JSON.parse(candidate);
+    } catch (greedyErr: any) {
+      try {
+        const sanitized = candidate.replace(/[\u0000-\u001F]+/g, (match) => {
+          if (match.includes('\n')) return '\\n';
+          if (match.includes('\r')) return '\\r';
+          if (match.includes('\t')) return '\\t';
+          return '';
+        });
+        return JSON.parse(sanitized);
+      } catch (finalErr) {
+        // Continue to throw below
+      }
+    }
+  }
+
+  throw new Error("Invalid JSON format from AI response.");
+}
+
 // AI Content Assistant API
 app.post("/api/ai/generate", async (req, res) => {
   try {
@@ -119,7 +227,7 @@ app.post("/api/ai/generate", async (req, res) => {
     }
 
     // Default to Gemini (or fallback if NVIDIA failed)
-    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
     if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
       console.error("AI Generation Error: GEMINI_API_KEY is missing or invalid.");
       return res.status(500).json({ 
@@ -147,7 +255,7 @@ app.post("/api/ai/generate", async (req, res) => {
 app.post("/api/ai/insight", async (req, res) => {
   try {
     const { data } = req.body;
-    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
     
     if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
       console.error("AI Insight Error: GEMINI_API_KEY is missing or invalid.");
@@ -236,7 +344,7 @@ app.post("/api/ai/social-media", async (req, res) => {
         }
       }
     } else {
-      const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
       if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
         console.error("Social Media AI Error: GEMINI_API_KEY is missing or invalid.");
         return res.status(500).json({ 
@@ -366,7 +474,7 @@ app.post("/api/ai/article", async (req, res) => {
         }
       }
     } else {
-      const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
       if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
         return res.status(500).json({ error: "Gemini API Key is required. Please set GEMINI_API_KEY." });
       }
