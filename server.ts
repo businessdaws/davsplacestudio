@@ -12,14 +12,28 @@ const PORT = 3000;
 
 app.use(express.json());
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
+let aiInstance: GoogleGenAI | null = null;
+let cachedApiKey: string = "";
+
+function getGeminiClient() {
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
+  if (!apiKey) {
+    throw new Error("Gemini API Key is required. Please set GEMINI_API_KEY or VITE_GEMINI_API_KEY in Vercel settings.");
   }
-});
+  
+  if (!aiInstance || cachedApiKey !== apiKey) {
+    aiInstance = new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+    cachedApiKey = apiKey;
+  }
+  return aiInstance;
+}
 
 // Helper function to call Gemini API with model fallback of stable models to prevent 503 high demand errors
 async function generateContentWithFallback(params: {
@@ -31,6 +45,8 @@ async function generateContentWithFallback(params: {
     "gemini-2.5-flash",
     "gemini-3-flash-preview"
   ];
+
+  const ai = getGeminiClient();
 
   let lastError: any = null;
   for (const modelName of modelsToTry) {
@@ -186,7 +202,7 @@ app.post("/api/ai/generate", async (req, res) => {
     const { prompt, context, provider = "nvidia-nemotron" } = req.body;
 
     if (provider === "nvidia-nemotron") {
-      const apiKey = (process.env.NVIDIA_API_KEY || "").trim();
+      const apiKey = (process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY || "").trim();
       if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
         console.warn("AI Generation: NVIDIA_API_KEY is missing or invalid. Falling back to Gemini...");
       } else {
@@ -289,7 +305,7 @@ app.post("/api/ai/social-media", async (req, res) => {
     let result;
 
     if (provider === "nvidia-nemotron") {
-      const apiKey = (process.env.NVIDIA_API_KEY || "").trim();
+      const apiKey = (process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY || "").trim();
       if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
         console.error("Social Media AI Error: NVIDIA_API_KEY is missing or invalid.");
         return res.status(500).json({ 
@@ -417,7 +433,7 @@ app.post("/api/ai/article", async (req, res) => {
     let result;
 
     if (provider === "nvidia-nemotron") {
-      const apiKey = (process.env.NVIDIA_API_KEY || "").trim();
+      const apiKey = (process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY || "").trim();
       if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
         return res.status(500).json({ error: "NVIDIA API Key is required. Please set NVIDIA_API_KEY." });
       }
