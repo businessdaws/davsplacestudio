@@ -21,12 +21,105 @@ const ai = new GoogleGenAI({
   }
 });
 
+// Helper function to call Gemini API with model fallback of stable models to prevent 503 high demand errors
+async function generateContentWithFallback(params: {
+  contents: any;
+  config?: any;
+}) {
+  const modelsToTry = [
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
+    "gemini-3-flash-preview"
+  ];
+
+  let lastError: any = null;
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`[Gemini SDK] Trying model: ${modelName}`);
+      const response = await ai.models.generateContent({
+        ...params,
+        model: modelName,
+      });
+      return response;
+    } catch (err: any) {
+      console.warn(`[Gemini SDK] Model ${modelName} failed or returned error:`, err.message || err);
+      lastError = err;
+
+      const errMsg = (err.message || "").toLowerCase();
+      const status = err.status || (err.error && err.error.code);
+      
+      // If it's a transient server issue, try the next model
+      if (
+        status === 503 || 
+        status === 429 || 
+        errMsg.includes("503") || 
+        errMsg.includes("demand") || 
+        errMsg.includes("temporary") || 
+        errMsg.includes("unavailable") || 
+        errMsg.includes("rate limit") ||
+        errMsg.includes("resource exhausted")
+      ) {
+        console.log(`[Gemini SDK] Transient error encountered on ${modelName}. Attempting fallback...`);
+        continue;
+      }
+
+      // If it's a key authorization issue, throw immediately
+      if (status === 401 || status === 403 || errMsg.includes("api key") || errMsg.includes("key not valid")) {
+        throw err;
+      }
+    }
+  }
+  throw lastError;
+}
+
 // AI Content Assistant API
 app.post("/api/ai/generate", async (req, res) => {
   try {
-    const { prompt, context } = req.body;
+    const { prompt, context, provider = "nvidia-nemotron" } = req.body;
+
+    if (provider === "nvidia-nemotron") {
+      const apiKey = (process.env.NVIDIA_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        console.warn("AI Generation: NVIDIA_API_KEY is missing or invalid. Falling back to Gemini...");
+      } else {
+        try {
+          const openai = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://integrate.api.nvidia.com/v1",
+          });
+
+          const modelName = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+
+          const completion = await openai.chat.completions.create({
+            model: modelName,
+            messages: [
+              {
+                role: "system",
+                content: `You are an AI Content Assistant for Davsplace Studio. Context: ${context}`
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            temperature: 0.6,
+            top_p: 0.95,
+            max_tokens: 4096,
+          });
+
+          let text = completion.choices[0].message.content || "";
+          
+          // Clean thinking/markdown if any
+          text = text.replace(/<thought>[\s\S]*?<\/thought>/g, "").trim();
+          return res.json({ text });
+        } catch (nvidiaError: any) {
+          console.error("NVIDIA API failed inside generate, falling back to Gemini:", nvidiaError);
+        }
+      }
+    }
+
+    // Default to Gemini (or fallback if NVIDIA failed)
     const apiKey = (process.env.GEMINI_API_KEY || "").trim();
-    
     if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
       console.error("AI Generation Error: GEMINI_API_KEY is missing or invalid.");
       return res.status(500).json({ 
@@ -34,8 +127,7 @@ app.post("/api/ai/generate", async (req, res) => {
       });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await generateContentWithFallback({
       contents: `You are an AI Content Assistant for Davsplace Studio. 
       Context: ${context}
       Task: ${prompt}
@@ -64,8 +156,7 @@ app.post("/api/ai/insight", async (req, res) => {
       });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await generateContentWithFallback({
       contents: `Based on this dashboard data: ${JSON.stringify(data)}, 
       generate a 2-sentence professional insight or suggestion for the admin. 
       Focus on business growth or engagement. Keep it in Indonesian.
@@ -169,8 +260,7 @@ app.post("/api/ai/social-media", async (req, res) => {
         "image_prompt": string
       }`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+      const response = await generateContentWithFallback({
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -291,8 +381,7 @@ app.post("/api/ai/article", async (req, res) => {
         "image_prompt": "A detailed English prompt for AI image generation..."
       }`;
 
-      const response = await ai.models.generateContent({ 
-        model: "gemini-3-flash-preview",
+      const response = await generateContentWithFallback({ 
         contents: prompt,
         config: {
           responseMimeType: "application/json",
