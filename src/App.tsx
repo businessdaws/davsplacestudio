@@ -13,6 +13,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SearchModal from './components/SearchModal';
+import ScrollToBottomButton from './components/ScrollToBottomButton';
 import { MobileTopbar, MobileBottomNavbar } from './components/MobileNavigation';
 import { cn } from './lib/utils';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -156,6 +157,7 @@ export default function App() {
 
                 <Footer />
                 <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
+                <ScrollToBottomButton />
               </>
             } />
           </Routes>

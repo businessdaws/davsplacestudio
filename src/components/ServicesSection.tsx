@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowUpRight, Video, Palette, Camera, LineChart, X, CheckCircle2, MessageSquare, Clock, Zap } from 'lucide-react';
+import { ArrowUpRight, Video, Palette, Camera, LineChart, X, CheckCircle2, MessageSquare, Clock, Zap, Globe, Briefcase } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const services = [
@@ -8,6 +8,7 @@ const services = [
     icon: Palette,
     id: 'design',
     title: 'Desain Grafis',
+    badge: undefined,
     description: 'Logo, branding, social media kit, hingga UI/UX design yang memukau.',
     detailedDescription: 'Kami menciptakan identitas visual yang tidak hanya cantik, tapi juga strategis. Desain kami membantu brand Anda berkomunikasi dengan jelas dan membangun kepercayaan di mata audiens.',
     features: ['Branding Identity', 'Social Media Kit', 'UI/UX Design', 'Logo Design', 'Print Media'],
@@ -22,8 +23,9 @@ const services = [
     icon: Video,
     id: 'video',
     title: 'Editing Video',
+    badge: undefined,
     description: 'Cinematic editing, motion graphics, dan grading profesional untuk bisnis Anda.',
-    detailedDescription: 'Ubah rekaman mentah Anda menjadi cerita yang menarik. Dengan teknik cinematic editing dan motion graphics terkini, kami memastikan pesan Anda tersampaikan dengan emosi yang tepat.',
+    detailedDescription: 'Ubah rekaman mentah Anda menjadi cerita yang menarik. Dengan teknik cinematic editing and motion graphics terkini, kami memastikan pesan Anda tersampaikan dengan emosi yang tepat.',
     features: ['Commercial Ads', 'Cinematic B-Roll', 'Motion Graphics', 'Color Grading', 'Subtitle & Transcription'],
     benefits: [
       'Kualitas visual 4K / High Definition',
@@ -36,6 +38,7 @@ const services = [
     icon: Camera,
     id: 'photo',
     title: 'Dokumentasi',
+    badge: undefined,
     description: 'Fotografi dan videografi event dengan kualitas visual bercerita.',
     detailedDescription: 'Setiap momen memiliki cerita unik. Kami hadir untuk menangkap esensi dari setiap acara, produk, atau momen penting Anda dengan sudut pandang yang artistik dan profesional.',
     features: ['Event Coverage', 'Product Shoots', 'Live Streaming', 'Company Profile', 'Wedding & Prewedding'],
@@ -50,6 +53,7 @@ const services = [
     icon: LineChart,
     id: 'consult',
     title: 'Konsultasi Brand',
+    badge: undefined,
     description: 'Strategi pertumbuhan digital dan personal branding untuk jangka panjang.',
     detailedDescription: 'Bukan sekadar desain, kami membantu Anda memetakan arah brand. Dari analisis kompetitor hingga strategi konten, kami pastikan brand Anda relevan di tengah persaingan digital.',
     features: ['Digital Strategy', 'Brand Audit', 'Social Media Management', 'Content Planning', 'SEO Analytics'],
@@ -58,6 +62,36 @@ const services = [
       'Growth hacking strategy',
       'Optimasi channel distribusi',
       'Laporan performa bulanan'
+    ]
+  },
+  {
+    icon: Globe,
+    id: 'web-design',
+    title: 'Desain Web',
+    badge: 'new',
+    description: 'Desain website responsif, modern, dan dioptimalkan untuk performa tinggi.',
+    detailedDescription: 'Website modern, landing page berkonversi tinggi, dan portofolio interaktif yang dirancang dengan performa cepat, responsif, serta dioptimalkan secara estetika agar memikat pengunjung.',
+    features: ['Responsive Layout', 'Landing Page Spec', 'Interactive Element', 'Framer / WordPress', 'SEO Friendly'],
+    benefits: [
+      'Tampilan profesional di mobile & desktop',
+      'Kecepatan loading optimal',
+      'Navigasi yang intuitif',
+      'Integrasi formulir & analytics'
+    ]
+  },
+  {
+    icon: Briefcase,
+    id: 'business-engine',
+    title: 'Business Framework Engine',
+    badge: 'coming_soon',
+    description: 'Sistem otomasi, arsitektur framework bisnis, dan integrasi workflow yang cerdas.',
+    detailedDescription: 'Kerangka kerja operasional terotomatisasi yang dirancang untuk mengoptimalkan workflow bisnis Anda, meningkatkan efisiensi, serta menghemat waktu operasional harian secara maksimal.',
+    features: ['Sistem Otomasi', 'Arsitektur Workflow', 'Data Analysis System', 'Process Automation', 'Enterprise Frame'],
+    benefits: [
+      'Menghemat waktu operasional harian',
+      'Sistem kerja terintegrasi mulus',
+      'Analisis performa bisnis real-time',
+      'Skalabilitas operasional tanpa batas'
     ]
   }
 ];
@@ -82,7 +116,7 @@ export default function ServicesSection() {
         </div>
 
         {/* Desktop Grid and Mobile Scroll */}
-        <div className="flex overflow-x-auto pb-8 -mx-6 px-6 snap-x snap-mandatory hide-scrollbar md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 md:overflow-visible md:pb-0 md:mx-0 md:px-0">
+        <div className="flex overflow-x-auto pb-8 -mx-6 px-6 snap-x snap-mandatory hide-scrollbar md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8 md:overflow-visible md:pb-0 md:mx-0 md:px-0">
           {services.map((service, i) => (
             <motion.div
               key={service.id}
@@ -92,37 +126,54 @@ export default function ServicesSection() {
               transition={{ delay: i * 0.1 }}
               onClick={() => setSelectedService(service)}
               className={cn(
-                "group relative bg-bg-secondary border border-border-subtle p-8 rounded-2xl overflow-hidden hover:border-accent-yellow transition-all duration-500 cursor-pointer",
+                "group relative bg-bg-secondary border border-border-subtle p-8 rounded-2xl overflow-hidden hover:border-accent-yellow transition-all duration-500 cursor-pointer flex flex-col justify-between font-sans",
                 "hover:-translate-y-2",
-                "min-w-[280px] sm:min-w-[320px] md:min-w-0 snap-center mr-4 md:mr-0 aspect-[4/5] md:aspect-auto flex flex-col font-sans"
+                "min-w-[280px] sm:min-w-[320px] md:min-w-0 snap-center mr-4 md:mr-0 min-h-[380px]"
               )}
             >
               {/* Glow Effect */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-accent-yellow/5 rounded-full blur-3xl group-hover:bg-accent-yellow/10 transition-colors" />
               
-              <div className="relative z-10 flex-1 flex flex-col">
-                <div className="w-14 h-14 md:w-16 md:h-16 bg-bg-tertiary rounded-xl flex items-center justify-center mb-6 md:mb-8 border border-border-subtle group-hover:bg-accent-yellow group-hover:text-bg-primary transition-all duration-300">
-                  <service.icon className="w-7 h-7 md:w-8 md:h-8" />
+              <div className="relative z-10 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between mb-6 md:mb-8">
+                    <div className="w-14 h-14 md:w-16 md:h-16 bg-bg-tertiary rounded-xl flex items-center justify-center border border-border-subtle group-hover:bg-accent-yellow group-hover:text-bg-primary transition-all duration-300 shrink-0">
+                      <service.icon className="w-7 h-7 md:w-8 md:h-8" />
+                    </div>
+                    
+                    {service.badge && (
+                      <span className={cn(
+                        "px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border leading-none self-start",
+                        service.badge === 'new' 
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                          : "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse"
+                      )}>
+                        {service.badge === 'new' ? 'new' : 'Coming soon'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <h3 className="text-xl md:text-2xl font-display font-black uppercase mb-3 tracking-tight">{service.title}</h3>
+                  <p className="text-text-secondary text-xs md:text-sm leading-relaxed mb-6 font-sans">
+                    {service.description}
+                  </p>
                 </div>
-                
-                <h3 className="text-xl md:text-2xl font-display font-bold mb-4">{service.title}</h3>
-                <p className="text-text-secondary text-xs md:text-sm leading-relaxed mb-6 md:mb-8 font-sans">
-                  {service.description}
-                </p>
 
-                <ul className="space-y-2 md:space-y-3 mb-auto">
-                  {service.features.slice(0, 3).map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-[10px] md:text-xs font-medium text-text-primary font-sans">
-                      <div className="w-1 h-1 bg-accent-yellow rounded-full" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+                <div>
+                  <ul className="space-y-2 md:space-y-3 mb-6">
+                    {service.features.slice(0, 3).map((feature) => (
+                      <li key={feature} className="flex items-center gap-2 text-[10px] md:text-xs font-semibold text-text-primary font-sans">
+                        <div className="w-1.5 h-1.5 bg-accent-yellow rounded-full shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
 
-                <button className="flex items-center gap-2 text-sm font-black uppercase tracking-tight text-accent-yellow group/btn mt-8">
-                  Detail Layanan
-                  <ArrowUpRight className="w-4 h-4 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
-                </button>
+                  <button className="flex items-center gap-2 text-xs md:text-sm font-black uppercase tracking-wider text-accent-yellow group/btn">
+                    Detail Layanan
+                    <ArrowUpRight className="w-4 h-4 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}
@@ -162,7 +213,19 @@ export default function ServicesSection() {
                   </div>
                   
                   <div>
-                    <h3 className="text-2xl md:text-5xl font-display font-black uppercase tracking-tighter mb-2 md:mb-4">{selectedService.title}</h3>
+                    <div className="flex items-center gap-3 mb-2 md:mb-4 flex-wrap">
+                      <h3 className="text-2xl md:text-5xl font-display font-black uppercase tracking-tighter leading-none">{selectedService.title}</h3>
+                      {selectedService.badge && (
+                        <span className={cn(
+                          "px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border leading-none self-center",
+                          selectedService.badge === 'new' 
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse"
+                        )}>
+                          {selectedService.badge === 'new' ? 'new' : 'Coming soon'}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm md:text-base text-text-primary leading-relaxed font-sans opacity-90">
                       {selectedService.detailedDescription}
                     </p>
@@ -182,12 +245,12 @@ export default function ServicesSection() {
                   </div>
 
                   <a 
-                    href={`https://wa.me/${settings.whatsapp}?text=Halo Davsplace Studio, saya tertarik dengan layanan ${selectedService.title}`}
+                    href={`https://wa.me/${settings.whatsapp}?text=${selectedService.badge === 'coming_soon' ? `Halo Davsplace Studio, saya tertarik untuk bertanya seputar layanan ${selectedService.title} yang akan segera hadir.` : `Halo Davsplace Studio, saya tertarik dengan layanan ${selectedService.title}`}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-4 bg-accent-yellow text-bg-primary font-black rounded-xl md:rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-center uppercase tracking-widest text-xs md:text-sm"
                   >
-                    Mulai Kolaborasi
+                    {selectedService.badge === 'coming_soon' ? 'Tanyakan Info (Coming Soon)' : 'Mulai Kolaborasi'}
                     <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5" />
                   </a>
                 </div>

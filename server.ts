@@ -250,11 +250,12 @@ app.post("/api/ai/generate", async (req, res) => {
       });
     }
 
+    const isEnglishTask = (context || "").toLowerCase().includes("english") || (prompt || "").toLowerCase().includes("english");
     const response = await generateContentWithFallback({
       contents: `You are an AI Content Assistant for Davsplace Studio. 
       Context: ${context}
       Task: ${prompt}
-      Generate professional, creative, and engaging content in Indonesian.`,
+      ${isEnglishTask ? "Generate the content in professional English as requested." : "Generate professional, creative, and engaging content in Indonesian."}`,
     });
     
     const text = response.text || "";
