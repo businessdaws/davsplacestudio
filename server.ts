@@ -9,7 +9,8 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 let aiInstance: GoogleGenAI | null = null;
 let cachedApiKey: string = "";
@@ -542,6 +543,672 @@ app.post("/api/ai/article", async (req, res) => {
     }
     
     res.status(500).json({ error: error.message || "Gagal memproses AI." });
+  }
+});
+
+// AI Visual Engine API
+app.post("/api/ai/visual-engine", async (req, res) => {
+  try {
+    const { topic, provider = "gemini" } = req.body;
+    
+    if (!topic || !topic.trim()) {
+      return res.status(400).json({ error: "Silakan masukkan konsep atau visual intent Anda." });
+    }
+
+    const systemPrompt = `You are the AI engine behind a premium web application feature called "Visual Engine".
+
+Visual Engine is an advanced AI-powered cinematic prompt generation system for creators, filmmakers, AI artists, animators, storytellers, and content creators.
+
+Your role is NOT just generating random prompts.
+
+Your role is to:
+- analyze user visual intent
+- understand cinematic storytelling
+- generate highly detailed image prompts
+- generate separate cinematic motion prompts
+- think like a film director, cinematographer, visual artist, and AI prompt engineer
+
+========================================
+FEATURE CONTEXT
+========================================
+
+Feature Name:
+Visual Engine
+
+Platform Context:
+Visual Engine is part of a creative AI platform used by users to generate cinematic visuals and AI video concepts.
+
+The feature helps users:
+- create image prompts
+- create motion prompts
+- create cinematic scenes
+- create AI filmmaking concepts
+- create visual storytelling sequences
+
+========================================
+MAIN OBJECTIVE
+========================================
+
+For every user request, generate:
+
+1. image_prompt
+2. motion_prompt
+3. negative_prompt
+4. metadata
+
+All outputs must feel:
+- cinematic
+- premium
+- immersive
+- visually intelligent
+- professionally directed
+
+========================================
+OUTPUT FORMAT
+========================================
+
+Always return ONLY valid JSON.
+
+Never explain.
+Never add markdown.
+Never add notes.
+Never add introductions.
+
+Use this exact structure:
+
+{
+  "title": "",
+  "image_prompt": "",
+  "motion_prompt": "",
+  "negative_prompt": "",
+  "metadata": {
+    "genre": "",
+    "style": "",
+    "camera_shot": "",
+    "camera_angle": "",
+    "lens": "",
+    "lighting": "",
+    "mood": "",
+    "environment": "",
+    "motion_style": ""
+  }
+}
+
+========================================
+IMAGE PROMPT RULES
+========================================
+
+The image_prompt focuses ONLY on:
+- character appearance
+- clothing
+- face details
+- pose
+- environment
+- composition
+- lighting
+- cinematic framing
+- lens detail
+- visual atmosphere
+- art direction
+
+The image prompt must:
+- feel cinematic
+- be visually coherent
+- include realistic filmmaking terminology
+- include lighting detail
+- include environmental storytelling
+- include composition depth
+- include camera language
+
+DO NOT include:
+- motion descriptions
+- walking
+- animation
+- camera movement
+- temporal behavior
+
+========================================
+MOTION PROMPT RULES
+========================================
+
+The motion_prompt focuses ONLY on:
+- camera movement
+- subject movement
+- environmental movement
+- motion physics
+- cinematic pacing
+- temporal continuity
+- atmosphere movement
+
+Motion prompts should include:
+- camera motion
+- breathing movement
+- cloth simulation
+- hair movement
+- environmental particles
+- cinematic pacing
+- realistic motion physics
+
+Motion prompt must:
+- feel smooth
+- feel cinematic
+- avoid static visual descriptions
+- avoid repetitive wording
+
+========================================
+NEGATIVE PROMPT RULES
+========================================
+
+Automatically generate intelligent negative prompts.
+
+Always include:
+- bad anatomy
+- blurry
+- distorted face
+- extra limbs
+- low quality
+- deformed hands
+- warped body
+- oversaturated
+- duplicate body parts
+
+For motion prompts include:
+- jitter motion
+- unnatural movement
+- broken physics
+- unstable animation
+
+========================================
+CINEMATIC INTELLIGENCE
+========================================
+
+You understand:
+- cinematography
+- visual storytelling
+- framing
+- composition
+- lens psychology
+- emotional camera language
+- atmospheric lighting
+- cinematic pacing
+
+Use professional filmmaking terminology:
+- anamorphic lens
+- volumetric fog
+- rim lighting
+- cinematic contrast
+- shallow depth of field
+- handheld micro-shake
+- tracking shot
+- dolly shot
+- orbit camera
+
+========================================
+CAMERA SYSTEM
+========================================
+
+You understand:
+- close up
+- medium shot
+- wide shot
+- aerial shot
+- over shoulder shot
+- POV shot
+
+You understand lenses:
+- 24mm
+- 35mm
+- 50mm
+- 85mm
+- anamorphic
+- telephoto
+- fisheye
+
+You understand movement:
+- dolly in
+- dolly out
+- tracking shot
+- orbit shot
+- handheld
+- crane shot
+- cinematic push in
+
+========================================
+STYLE SYSTEM
+========================================
+
+You can intelligently generate:
+- cyberpunk
+- anime cinematic
+- noir
+- fantasy
+- horror
+- sci-fi
+- dystopian
+- surreal
+- realistic
+- documentary
+- cinematic realism
+
+You understand:
+- color palette psychology
+- mood design
+- atmosphere design
+- visual emotion
+
+========================================
+MOTION INTELLIGENCE
+========================================
+
+You understand:
+- blinking
+- subtle breathing
+- cloth physics
+- realistic inertia
+- rain interaction
+- smoke drifting
+- particle movement
+- cinematic pacing
+- smooth motion continuity
+
+========================================
+PROMPT OPTIMIZATION
+========================================
+
+Prompts must:
+- maximize cinematic quality
+- remain AI-model friendly
+- avoid conflicting instructions
+- avoid redundancy
+- prioritize visual clarity
+- prioritize cinematic atmosphere
+
+========================================
+USER INPUT
+========================================
+
+"${topic}"`;
+
+    let text = "";
+
+    if (provider === "nvidia" || provider === "nvidia-nemotron") {
+      const apiKey = (process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        console.warn("Visual Engine: NVIDIA_API_KEY is missing. Falling back to Gemini...");
+      } else {
+        try {
+          const openai = new OpenAI({
+            apiKey: apiKey,
+            baseURL: "https://integrate.api.nvidia.com/v1",
+          });
+
+          const completion = await openai.chat.completions.create({
+            model: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+            messages: [
+              {
+                role: "system",
+                content: `${systemPrompt}\nOutput strictly valid, minified raw JSON format without any markdown wrapper or explanation, matching specified JSON schema.`
+              },
+              {
+                role: "user",
+                content: topic
+              }
+            ],
+            temperature: 0.6,
+            max_tokens: 2048,
+          });
+
+          text = completion.choices[0].message.content || "";
+          text = text.replace(/<thought>[\s\S]*?<\/thought>/g, "").trim();
+        } catch (nvidiaError: any) {
+          console.error("NVIDIA Visual Engine prompt failed, fallback to Gemini:", nvidiaError);
+        }
+      }
+    }
+
+    if (!text) {
+      // Default / Fallback to Gemini
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        return res.status(500).json({ error: "Gemini API Key is required. Please set GEMINI_API_KEY." });
+      }
+
+      const response = await generateContentWithFallback({ 
+        contents: systemPrompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      text = response.text || "";
+    }
+
+    text = text.replace(/```json\n?|\n?```/g, "").trim();
+
+    let result;
+    try {
+      result = JSON.parse(text || "{}");
+    } catch (parseError) {
+      console.error("Failed to parse Visual Engine JSON:", text);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("Sistem AI menghasilkan format JSON yang tidak valid.");
+      }
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Visual Engine AI Error:", error);
+    res.status(500).json({ error: error.message || "Gagal memproses visual prompt." });
+  }
+});
+
+// AI Generate Image API via NVIDIA Cloud NIM
+app.post("/api/ai/generate-image", async (req, res) => {
+  try {
+    const { prompt, aspectRatio = "1:1" } = req.body;
+    
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ error: "Prompt gambar tidak boleh kosong." });
+    }
+
+    const nvidiaApiKey = (process.env.NVIDIA_API_KEY || "").trim();
+    if (!nvidiaApiKey || nvidiaApiKey === "" || nvidiaApiKey.toLowerCase().includes("your_")) {
+      return res.status(500).json({ 
+        error: "Nvidia API Key belum dikonfigurasi. Silakan tambahkan variabel NVIDIA_API_KEY pada file .env atau panel Environment Settings." 
+      });
+    }
+
+    // Determine dimensions based on Aspect Ratio
+    let width = 1024;
+    let height = 1024;
+    if (aspectRatio === "16:9") {
+      width = 1344;
+      height = 768;
+    } else if (aspectRatio === "9:16") {
+      width = 768;
+      height = 1344;
+    } else if (aspectRatio === "4:3") {
+      width = 1152;
+      height = 864;
+    } else if (aspectRatio === "3:4") {
+      width = 864;
+      height = 1152;
+    }
+
+    console.log(`Sending image generation request to NVIDIA NIM with dimensions ${width}x${height}...`);
+
+    const response = await fetch("https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-xl", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${nvidiaApiKey}`
+      },
+      body: JSON.stringify({
+        text_prompts: [
+          {
+            text: prompt,
+            weight: 1
+          }
+        ],
+        cfg_scale: 7,
+        sampler: "K_DPM_2_ANCESTRAL",
+        seed: 0,
+        steps: 30,
+        height: height,
+        width: width
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      let parsedErr;
+      try {
+        parsedErr = JSON.parse(errText);
+      } catch (e) {}
+      const errMsg = parsedErr?.detail || parsedErr?.message || errText || "NVIDIA API Server returned an error.";
+      throw new Error(`NVIDIA API Error: ${errMsg}`);
+    }
+
+    const data: any = await response.json();
+    const base64Data = data.artifacts?.[0]?.base64 || data.images?.[0]?.base64;
+
+    if (!base64Data) {
+      console.error("Payload returned from NVIDIA NIM is missing base64 element:", JSON.stringify(data));
+      throw new Error("Format respons NVIDIA NIM tidak sesuai (tidak mengembalikan base64 image).");
+    }
+
+    const imageUrl = `data:image/png;base64,${base64Data}`;
+    res.json({ imageUrl });
+  } catch (error: any) {
+    console.error("NVIDIA Image Generation API Error:", error);
+    res.status(500).json({ error: error.message || "Gagal menghasilkan gambar melalui AI NVIDIA." });
+  }
+});
+
+// AI Content Analyzer API
+app.post("/api/ai/analyze-content", async (req, res) => {
+  try {
+    const { mode, fileData, mimeType, fileName, fileUrl } = req.body;
+
+    if (mode === "file" && (!fileData || !mimeType)) {
+      return res.status(400).json({ error: "Data file atau tipe MIME tidak valid untuk analisis." });
+    }
+    if (mode === "link" && (!fileUrl || !fileUrl.trim())) {
+      return res.status(400).json({ error: "URL link tidak valid atau kosong." });
+    }
+
+    const systemPrompt = `You are "Content Analyzer PRO", a highly specialized multi-modal AI analyzer.
+Your task is to analyze user-provided files (images, PDFs, videos) or link contents and generate a deep context analysis that can be fed into cinematic and general content generators.
+
+Based on the contents provided, you MUST accurately determine the context and output a JSON response in the EXACT following structure:
+{
+  "summary": "Detailed executive summary of the content in beautiful Indonesian (maximum 2-3 sentences), summarizing the core story, value, and thematic focus.",
+  "insights": [
+    "Core takeaway/point 1 from the content (in Indonesian)",
+    "Core takeaway/point 2 from the content (in Indonesian)",
+    "Core takeaway/point 3 from the content (in Indonesian)",
+    "Core takeaway/point 4 from the content (in Indonesian)"
+  ],
+  "cinematicSuggestions": [
+    {
+      "title": "Scene Idea Title 1 (in Indonesian)",
+      "concept": "Detailed scenario concept inspired by the themes (in Indonesian, describing the action, character, and backdrop setup)"
+    },
+    {
+      "title": "Scene Idea Title 2 (in Indonesian)",
+      "concept": "Another alternate scenario concept inspired by the themes (in Indonesian)"
+    }
+  ],
+  "creativePrompts": [
+    {
+      "format": "E.g., Cinematic tracking close-up shot",
+      "prompt": "An exquisitely detailed cinematic image prompt written in English, full of camera direction, camera model, lens specifications, atmospheric lighting, and vivid descriptions matching this content"
+    },
+    {
+      "format": "E.g., Moody vintage film style",
+      "prompt": "Another alternate detailed image prompt written in English with distinct mood, style, color grading, and texture details"
+    }
+  ]
+}
+
+Ensure the output is valid JSON. Use double quotes for property names and string values. Escape double quotes inside text fields appropriately. Do not output anything outside of the JSON wrapper.`;
+
+    let contentParts: any[] = [];
+
+    if (mode === "link") {
+      let detectedType = "text"; // "text" | "image" | "pdf" | "video" | "audio"
+      let mimeTypeResult = "";
+      let base64DataResult = "";
+      let linkContent = "";
+
+      const lowerUrl = fileUrl.toLowerCase();
+      const isDirectImage = lowerUrl.endsWith(".png") || lowerUrl.endsWith(".jpg") || lowerUrl.endsWith(".jpeg") || lowerUrl.endsWith(".webp") || lowerUrl.endsWith(".gif") || lowerUrl.includes("unsplash.com") || lowerUrl.includes("images.wikimedia.org");
+      const isDirectPdf = lowerUrl.endsWith(".pdf");
+      const isDirectAudio = lowerUrl.endsWith(".mp3") || lowerUrl.endsWith(".wav") || lowerUrl.endsWith(".ogg") || lowerUrl.endsWith(".m4a") || lowerUrl.endsWith(".aac") || lowerUrl.endsWith(".mp4a") || lowerUrl.includes("clyp.it") || lowerUrl.includes("soundcloud.com");
+      const isYouTube = lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be");
+      const isTikTok = lowerUrl.includes("tiktok.com");
+      const isInstagram = lowerUrl.includes("instagram.com");
+
+      try {
+        console.log(`[Content Analyzer] Scraper fetching URL in auto-detect mode: ${fileUrl}`);
+        const response = await globalThis.fetch(fileUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/437.36'
+          }
+        });
+
+        if (response.ok) {
+          const contentType = response.headers.get("content-type") || "";
+          
+          if (contentType.startsWith("image/") || isDirectImage) {
+            detectedType = "image";
+            mimeTypeResult = contentType.startsWith("image/") ? contentType.split(";")[0] : "image/jpeg";
+            const arrayBuffer = await response.arrayBuffer();
+            base64DataResult = Buffer.from(arrayBuffer).toString("base64");
+            console.log(`[Content Analyzer] Link auto-detected as image. base64 size: ${base64DataResult.length}`);
+          } else if (contentType.includes("pdf") || isDirectPdf) {
+            detectedType = "pdf";
+            mimeTypeResult = "application/pdf";
+            const arrayBuffer = await response.arrayBuffer();
+            base64DataResult = Buffer.from(arrayBuffer).toString("base64");
+            console.log(`[Content Analyzer] Link auto-detected as PDF. base64 size: ${base64DataResult.length}`);
+          } else if (contentType.startsWith("audio/") || isDirectAudio) {
+            detectedType = "audio";
+            mimeTypeResult = contentType.startsWith("audio/") ? contentType.split(";")[0] : "audio/mpeg";
+            const arrayBuffer = await response.arrayBuffer();
+            base64DataResult = Buffer.from(arrayBuffer).toString("base64");
+            console.log(`[Content Analyzer] Link auto-detected as audio. base64 size: ${base64DataResult.length}`);
+          } else {
+            // Treat as text/HTML or typical video metadata
+            const htmlText = await response.text();
+            
+            // Extract some metadata (like title, description) especially for video platforms (YouTube oEmbed or basic Meta tags)
+            const titleMatch = htmlText.match(/<title>([\s\S]*?)<\/title>/i);
+            const title = titleMatch ? titleMatch[1].trim() : "";
+            
+            // Stripping HTML tags simply
+            const cleanText = htmlText
+              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            
+            linkContent = cleanText.substring(0, 15000);
+            
+            if (isYouTube) {
+              detectedType = "video";
+              linkContent = `[YouTube Video Link Info]\nTitle: ${title}\nContext: User pasted a YouTube video. Raw parsed subtitle/metadata text from the site: ${linkContent.substring(0, 4000)}`;
+            } else if (isTikTok) {
+              detectedType = "video";
+              linkContent = `[TikTok Video Link Info]\nTitle: ${title}\nContext: User pasted a TikTok video. Page meta desc: ${linkContent.substring(0, 4000)}`;
+            } else if (isInstagram) {
+              detectedType = "video";
+              linkContent = `[Instagram Media Link Info]\nTitle: ${title}\nContext: User pasted an Instagram post/reel link. Page meta desc: ${linkContent.substring(0, 4000)}`;
+            }
+          }
+        } else {
+          linkContent = `Failed to scrape web page. Server response status: ${response.status}`;
+          if (isDirectImage) detectedType = "image";
+          if (isDirectPdf) detectedType = "pdf";
+          if (isDirectAudio) detectedType = "audio";
+          if (isYouTube || isTikTok || isInstagram) detectedType = "video";
+        }
+      } catch (err: any) {
+        console.warn(`[Content Analyzer] Scraper warning for URL fetch:`, err.message || err);
+        linkContent = `Scraping was blocked or failed. Please process based on the input URL context: ${fileUrl}`;
+        
+        if (isYouTube || isTikTok || isInstagram) {
+          detectedType = "video";
+        } else if (isDirectImage) {
+          detectedType = "image";
+        } else if (isDirectPdf) {
+          detectedType = "pdf";
+        } else if (isDirectAudio) {
+          detectedType = "audio";
+        }
+      }
+
+      // Format parts correctly to feed Gemini
+      if (detectedType === "image" && base64DataResult) {
+        contentParts.push({
+          inlineData: {
+            data: base64DataResult,
+            mimeType: mimeTypeResult
+          }
+        });
+        contentParts.push({
+          text: `Analyze this image loaded from the URL link: ${fileUrl}.\nDetermine its visual objects, context, themes, artistic elements, and generate the required structured visual vision analysis JSON.`
+        });
+      } else if (detectedType === "pdf" && base64DataResult) {
+        contentParts.push({
+          inlineData: {
+            data: base64DataResult,
+            mimeType: "application/pdf"
+          }
+        });
+        contentParts.push({
+          text: `Analyze this PDF document loaded from the URL link: ${fileUrl}.\nReview its pages, key takeaways, and core structure, and output the required structured visual vision analysis JSON.`
+        });
+      } else if (detectedType === "audio" && base64DataResult) {
+        contentParts.push({
+          inlineData: {
+            data: base64DataResult,
+            mimeType: mimeTypeResult
+          }
+        });
+        contentParts.push({
+          text: `Analyze this audio recording/voice clip loaded from the URL link: ${fileUrl}.\nDetermine its speech content, voice tone, core messages, themes, and output the required structured visual vision analysis JSON.`
+        });
+      } else if (detectedType === "video") {
+        contentParts.push({
+          text: `Analyze this Video Link: ${fileUrl}\n\nMeta Information & Page Description:\n${linkContent || "(Context empty)"}\n\nThis is a video link (YouTube, TikTok, or Instagram). Please use Google Search grounding or your external knowledge, search for information regarding this video using its title/URL if needed, interpret the cinematic elements based on typical viral tags or topics, and output the required structured visual vision analysis JSON based on this video.`
+        });
+      } else {
+        contentParts.push({
+          text: `Analyze this webpage/article URL: ${fileUrl}\n\nWebpage Text Context:\n${linkContent || "(Context empty)"}\n\nPlease analyze the content of this webpage/article and generate the required structured visual vision analysis JSON.`
+        });
+      }
+    } else {
+      // It is a file
+      const base64Clean = fileData.includes(";base64,")
+        ? fileData.split(";base64,")[1]
+        : fileData;
+      
+      contentParts.push({
+        inlineData: {
+          data: base64Clean,
+          mimeType: mimeType
+        }
+      });
+
+      contentParts.push({
+        text: `Analyze this uploaded file: ${fileName || "document"}. Determine its contents, themes, and characters. Generate the structured visual vision analysis JSON based on this file.`
+      });
+    }
+
+    console.log(`[Content Analyzer] Invoking Gemini model... mode: ${mode}`);
+    const response = await generateContentWithFallback({
+      contents: contentParts,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+      }
+    });
+
+    const responseText = response.text || "";
+    console.log(`[Content Analyzer] Received Gemini response length: ${responseText.length}`);
+    
+    // Parse response
+    const parsedData = robustJSONParse(responseText);
+    res.json(parsedData);
+  } catch (error: any) {
+    console.error("Content Analyzer API Error:", error);
+    res.status(500).json({ error: error.message || "Gagal menganalisis konten." });
   }
 });
 

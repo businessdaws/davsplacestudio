@@ -56,6 +56,18 @@ export default function SocialMediaGenerator() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    try {
+      const pendingSocialPrompt = localStorage.getItem('analyzer_social_prompt');
+      if (pendingSocialPrompt) {
+        setTopic(`Buat caption sosial media menarik berdasarkan ringkasan riset berikut:\n\n${pendingSocialPrompt}`);
+        localStorage.removeItem('analyzer_social_prompt');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const handleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();

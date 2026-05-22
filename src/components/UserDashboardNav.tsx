@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Sparkles, LayoutDashboard, User, LogOut } from 'lucide-react';
+import { Sparkles, LayoutDashboard, User, LogOut, Film, FileText } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -9,6 +9,9 @@ export default function UserDashboardNav({ user }: { user: any }) {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
+  
+  const searchParams = new URLSearchParams(location.search);
+  const currentTab = searchParams.get('tab') || 'saved';
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -17,7 +20,9 @@ export default function UserDashboardNav({ user }: { user: any }) {
 
   const navItems = [
     { name: 'AI Generator', href: '/generator', icon: Sparkles },
-    { name: 'Saved Content', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Saved Content', href: '/dashboard', icon: LayoutDashboard, tab: 'saved' },
+    { name: 'Content Analyzer', href: '/dashboard?tab=analyzer', icon: FileText, tab: 'analyzer' },
+    { name: 'Visual Engine', href: '/dashboard?tab=visual-engine', icon: Film, tab: 'visual-engine' },
   ];
 
   return (
@@ -36,21 +41,27 @@ export default function UserDashboardNav({ user }: { user: any }) {
       </div>
 
       <div className="flex flex-wrap gap-2 md:gap-4">
-        {navItems.map((item) => (
-          <Link
-            key={item.name}
-            to={item.href}
-            className={cn(
-              "flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest",
-              path === item.href
-                ? "bg-accent-yellow border-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20"
-                : "bg-bg-secondary border-border-subtle text-text-secondary hover:text-white"
-            )}
-          >
-            <item.icon className="w-4 h-4" />
-            {item.name}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const isGeneratorActive = item.href === '/generator' && path === '/generator';
+          const isDashboardTabActive = item.href.startsWith('/dashboard') && path === '/dashboard' && currentTab === item.tab;
+          const isActive = isGeneratorActive || isDashboardTabActive;
+
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                "flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest",
+                isActive
+                  ? "bg-accent-yellow border-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20"
+                  : "bg-bg-secondary border-border-subtle text-text-secondary hover:text-white"
+              )}
+            >
+              <item.icon className="w-4 h-4" />
+              {item.name}
+            </Link>
+          );
+        })}
         
         {/* Profile (Desktop) / Info */}
         <div className="hidden md:flex items-center gap-3 px-6 py-4 bg-bg-secondary border border-border-subtle rounded-2xl ml-auto">
