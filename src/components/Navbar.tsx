@@ -146,7 +146,7 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
                   className="absolute top-full right-0 mt-3 w-48 bg-bg-secondary border border-border-subtle rounded-xl shadow-xl p-2 z-[60]"
                 >
                   <Link 
-                    to="/generator" 
+                    to="/dashboard?tab=generator" 
                     onClick={() => setShowUserMenu(false)}
                     className="flex items-center gap-3 p-3 text-xs font-bold text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
                   >

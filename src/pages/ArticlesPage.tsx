@@ -5,6 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import CryptoTracker from '../components/CryptoTracker';
 import { CATEGORIES } from '../components/FeaturedArticles';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
 import SearchModal from '../components/SearchModal';
@@ -333,6 +334,11 @@ export default function ArticlesPage() {
               </div>
             </div>
           </motion.div>
+          
+          {/* Realtime CoinGecko Multi-Asset Tracker Section */}
+          <div className="mt-24 pt-16 border-t border-border-subtle/30">
+            <CryptoTracker variant="detailed" />
+          </div>
         </div>
       </main>
 

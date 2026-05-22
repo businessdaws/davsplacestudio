@@ -250,7 +250,7 @@ export default function ContentAnalyzerUI({ user }: { user: any }) {
 
   const bridgeToGenerator = (summaryText: string) => {
     localStorage.setItem('analyzer_social_prompt', summaryText);
-    navigate('/generator');
+    navigate('/dashboard?tab=generator');
   };
 
   const getFileIcon = () => {

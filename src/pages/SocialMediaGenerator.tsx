@@ -52,9 +52,12 @@ export default function SocialMediaGenerator() {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
+      if (u) {
+        navigate('/dashboard?tab=generator', { replace: true });
+      }
     });
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     try {

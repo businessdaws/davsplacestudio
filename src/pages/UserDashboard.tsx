@@ -5,6 +5,8 @@ import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import VisualEngineUI from '../components/VisualEngineUI';
 import ContentAnalyzerUI from '../components/ContentAnalyzerUI';
+import CreativeEditorUI from '../components/CreativeEditorUI';
+import AIGeneratorUI from '../components/AIGeneratorUI';
 import { 
   collection, 
   query, 
@@ -136,10 +138,14 @@ export default function UserDashboard() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <UserDashboardNav user={user} />
           
-          {activeTab === 'visual-engine' ? (
+          {activeTab === 'generator' ? (
+            <AIGeneratorUI user={user} />
+          ) : activeTab === 'visual-engine' ? (
             <VisualEngineUI user={user} />
           ) : activeTab === 'analyzer' ? (
             <ContentAnalyzerUI user={user} />
+          ) : activeTab === 'editor' ? (
+            <CreativeEditorUI user={user} />
           ) : (
             <>
               {/* Header */}
@@ -168,7 +174,7 @@ export default function UserDashboard() {
                   Total Konten: {contents.length}
                 </div>
                 <button 
-                  onClick={() => navigate('/generator')}
+                  onClick={() => navigate('/dashboard?tab=generator')}
                   className="flex items-center gap-2 px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-xl text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
                 >
                   <Zap className="w-4 h-4" />

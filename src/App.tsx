@@ -28,6 +28,7 @@ const FeaturedEvents = lazy(() => import('./components/FeaturedEvents'));
 const FeaturedArticles = lazy(() => import('./components/FeaturedArticles'));
 const TentangSection = lazy(() => import('./components/TentangSection'));
 const CTASection = lazy(() => import('./components/CTASection'));
+const CryptoTracker = lazy(() => import('./components/CryptoTracker'));
 
 // Pages
 const AdminLogin = lazy(() => import('./pages/admin/Login'));
@@ -154,8 +155,12 @@ export default function App() {
                   </Suspense>
                 </div>
               </main>
+              
+              <Suspense fallback={<div className="h-10 bg-black animate-pulse" />}>
+                <CryptoTracker variant="ticker" />
+              </Suspense>
 
-                <Footer />
+              <Footer />
                 <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
                 <ScrollToBottomButton />
               </>
