@@ -10,6 +10,7 @@ import { cn } from '../lib/utils';
 const navLinks = [
   { name: 'Beranda', href: '/' },
   { name: 'Artikel', href: '/artikel' },
+  { name: 'Event', href: '/event' },
   { name: 'Portofolio', href: '/portofolio' },
   { name: 'Kolaborasi', href: '/kolaborasi' },
   { name: 'Tentang', href: '/tentang' },

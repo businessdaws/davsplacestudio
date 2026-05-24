@@ -11,10 +11,28 @@
         "phone": { "type": "string" },
         "company": { "type": "string" },
         "role": { "type": "string", "enum": ["user", "admin"] },
+        "is_premium": { "type": "boolean" },
+        "trial_count": { "type": "number" },
+        "premium_code": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" },
         "updated_at": { "type": "string", "format": "date-time" }
       },
       "required": ["id"]
+    },
+    "ActivationCode": {
+      "title": "ActivationCode",
+      "description": "Subscription activation codes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "is_used": { "type": "boolean" },
+        "used_by": { "type": "string" },
+        "used_by_email": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "used_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "is_used"]
     },
     "Category": {
       "title": "Category",
@@ -255,6 +273,10 @@
     "saved_contents": {
       "schema": "SavedContent",
       "description": "User saved social media content"
+    },
+    "activation_codes": {
+      "schema": "ActivationCode",
+      "description": "Payment activation codes"
     }
   }
 }

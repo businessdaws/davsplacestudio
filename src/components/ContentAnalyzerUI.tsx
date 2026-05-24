@@ -47,7 +47,13 @@ interface HistoryItem {
   result: AnalysisResult;
 }
 
-export default function ContentAnalyzerUI({ user }: { user: any }) {
+interface ContentAnalyzerUIProps {
+  user: any;
+  profile?: any;
+  onIncrementTrial?: () => Promise<void>;
+}
+
+export default function ContentAnalyzerUI({ user, profile, onIncrementTrial }: ContentAnalyzerUIProps) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<'file' | 'link'>('file');
   const [fileUrl, setFileUrl] = useState<string>('');
@@ -193,6 +199,14 @@ export default function ContentAnalyzerUI({ user }: { user: any }) {
       return;
     }
 
+    // Premium Check and Limit trials
+    const isPremium = profile?.is_premium === true;
+    const currentTrials = profile?.trial_count || 0;
+    if (!isPremium && currentTrials >= 3) {
+      setError('Batas uji coba gratis tercapai. Silakan masukkan kode langganan Pro Anda atau hubungi admin.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -230,6 +244,11 @@ export default function ContentAnalyzerUI({ user }: { user: any }) {
       
       const label = mode === 'file' ? (file?.name || 'File Upload') : (fileUrl.replace(/^https?:\/\/(www\.)?/, '').substring(0, 30));
       saveToHistory(data, label, mode, file?.type);
+
+      // Successfully generated, increment trial if NOT premium
+      if (!isPremium && onIncrementTrial) {
+        await onIncrementTrial();
+      }
     } catch (err: any) {
       setError(err.message || "Koneksi terganggu. Silakan coba lagi.");
     } finally {

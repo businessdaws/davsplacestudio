@@ -40,6 +40,7 @@ const ArticleDetailPage = lazy(() => import('./pages/ArticleDetailPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const CollabPage = lazy(() => import('./pages/CollabPage'));
 const SocialMediaGenerator = lazy(() => import('./pages/SocialMediaGenerator'));
+const EventPage = lazy(() => import('./pages/EventPage'));
 
 import { SettingsProvider } from './context/SettingsContext';
 
@@ -107,6 +108,11 @@ export default function App() {
             <Route path="/generator" element={
               <Suspense fallback={<PageLoader />}>
                 <SocialMediaGenerator />
+              </Suspense>
+            } />
+            <Route path="/event" element={
+              <Suspense fallback={<PageLoader />}>
+                <EventPage />
               </Suspense>
             } />
 

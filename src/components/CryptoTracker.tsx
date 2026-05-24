@@ -310,13 +310,16 @@ export default function CryptoTracker({ variant = 'detailed' }: CryptoTrackerPro
                         Grafik Tren 7D
                       </p>
                       <svg width="100%" height="32" className="overflow-visible block">
-                        <path
+                        <motion.path
                           d={getSparklineSvgPath(coin.sparkline_in_7d?.price, 140, 32)}
                           fill="none"
                           stroke={isPositive ? '#4ade80' : '#f87171'}
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 1.2, ease: "easeInOut", delay: idx * 0.05 + 0.3 }}
                         />
                       </svg>
                     </div>
@@ -432,13 +435,16 @@ export default function CryptoTracker({ variant = 'detailed' }: CryptoTrackerPro
 
                     <div className="h-28 flex items-end">
                       <svg width="100%" height="90" className="overflow-visible block">
-                        <path
+                        <motion.path
                           d={getSparklineSvgPath(selectedCoin.sparkline_in_7d.price, 450, 90)}
                           fill="none"
                           stroke={selectedCoin.price_change_percentage_24h >= 0 ? '#4ade80' : '#f87171'}
                           strokeWidth="3"
                           strokeLinecap="round"
                           strokeLinejoin="round"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 1.5, ease: "easeInOut", delay: 0.1 }}
                         />
                       </svg>
                     </div>

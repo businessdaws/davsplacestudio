@@ -48,7 +48,11 @@ import {
   Bell,
   Menu,
   Mail,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Key,
+  Award,
+  Check,
+  Copy
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -67,7 +71,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatDate } from '../../lib/utils';
 import ImagePromptGenerator from '../../components/ImagePromptGenerator';
 
-type Tab = 'overview' | 'leads' | 'image_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings';
+type Tab = 'overview' | 'leads' | 'image_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings' | 'subscriptions';
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
@@ -253,6 +257,7 @@ export default function AdminDashboard() {
           { id: 'categories', icon: Zap, label: 'Taxonomy' },
           { id: 'logos', icon: Users, label: 'Client Logos' },
           { id: 'settings', icon: Settings, label: 'System Settings' },
+          { id: 'subscriptions', icon: Key, label: 'Subscriptions & Codes' },
         ].map((item) => (
           <button
             key={item.id}
@@ -413,6 +418,7 @@ export default function AdminDashboard() {
                     {activeTab === 'categories' && (<>CONTENT <span className="text-accent-yellow italic">TAXONOMY</span></>)}
                     {activeTab === 'logos' && (<>CLIENT <span className="text-accent-yellow italic">LOGOS</span></>)}
                     {activeTab === 'settings' && (<>SYSTEM <span className="text-accent-yellow italic">SETTINGS</span></>)}
+                    {activeTab === 'subscriptions' && (<>MANAGE <span className="text-accent-yellow italic">SUBSCRIPTIONS</span></>)}
                   </h1>
                   <p className="text-[10px] md:text-sm text-text-secondary font-sans tracking-widest uppercase font-bold text-accent-yellow/60">
                     {activeTab.replace('_', ' ')}
@@ -431,6 +437,7 @@ export default function AdminDashboard() {
               {activeTab === 'categories' && <CategoriesManager />}
               {activeTab === 'logos' && <LogosManager />}
               {activeTab === 'settings' && <SettingsManager />}
+              {activeTab === 'subscriptions' && <SubscriptionsManager />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -777,6 +784,353 @@ function SettingsManager() {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function SubscriptionsManager() {
+  const [settings, setSettings] = useState<any>({
+    subscription_price: '0',
+    whatsapp: '6289667736500'
+  });
+  const [profileList, setProfileList] = useState<any[]>([]);
+  const [codesList, setCodesList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const fetchAllData = async () => {
+    try {
+      // 1. Fetch site settings for subscription price
+      const settingsSnap = await getDoc(doc(db, 'site_settings', 'global'));
+      if (settingsSnap.exists()) {
+        const d = settingsSnap.data();
+        setSettings({
+          subscription_price: d.subscription_price !== undefined ? String(d.subscription_price) : '0',
+          whatsapp: d.whatsapp || '6289667736500'
+        });
+      }
+
+      // 2. Fetch all user profiles
+      const profilesSnapshot = await getDocs(collection(db, 'profiles'));
+      const profiles = profilesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProfileList(profiles);
+
+      // 3. Fetch all activation codes sorted by creation date
+      const codesSnapshot = await getDocs(collection(db, 'activation_codes'));
+      const codes = codesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      // Sort client side since we don't have secondary indices configured on used fields sometimes
+      codes.sort((a,b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
+      setCodesList(codes);
+    } catch (err) {
+      console.error("Gagal memuat data langganan:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      await setDoc(doc(db, 'site_settings', 'global'), {
+        subscription_price: Number(settings.subscription_price) || 0,
+        whatsapp: settings.whatsapp,
+        updated_at: serverTimestamp()
+      }, { merge: true });
+      alert('Harga langganan & nomor WA sukses disimpan!');
+    } catch (err) {
+      console.error("Gagal simpan setting:", err);
+      alert('Gagal simpan setting: ' + (err as any).message);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleGenerateCode = async () => {
+    setGeneratingCode(true);
+    try {
+      // Generate unique random code format: DK-AI-XXXX-XXXX
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let part1 = '';
+      let part2 = '';
+      for (let i = 0; i < 4; i++) {
+        part1 += chars.charAt(Math.floor(Math.random() * chars.length));
+        part2 += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const newCode = `DK-AI-${part1}-${part2}`;
+
+      const codeDocRef = doc(db, 'activation_codes', newCode);
+      await setDoc(codeDocRef, {
+        id: newCode,
+        code: newCode,
+        is_used: false,
+        used_by: null,
+        used_by_email: null,
+        created_at: new Date().toISOString()
+      });
+
+      // Refresh data
+      await fetchAllData();
+      alert(`Kode aktivasi sukses dibuat: ${newCode}`);
+    } catch (err: any) {
+      console.error("Gagal generate kode:", err);
+      alert('Gagal membuat kode: ' + err.message);
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
+  const handleTogglePremium = async (userId: string, currentPremium: boolean) => {
+    try {
+      const userRef = doc(db, 'profiles', userId);
+      await updateDoc(userRef, {
+        is_premium: !currentPremium,
+        premium_code: !currentPremium ? 'MANUAL-ADMIN' : null,
+        updated_at: new Date().toISOString()
+      });
+      await fetchAllData();
+    } catch (err: any) {
+      console.error("Gagal ubah status premium:", err);
+      alert("Gagal mengupdate: " + err.message);
+    }
+  };
+
+  const handleResetTrials = async (userId: string) => {
+    try {
+      const userRef = doc(db, 'profiles', userId);
+      await updateDoc(userRef, {
+        trial_count: 0,
+        updated_at: new Date().toISOString()
+      });
+      await fetchAllData();
+      alert("Sisa uji coba sukses di-reset ke 0!");
+    } catch (err: any) {
+      console.error("Gagal reset uji coba:", err);
+      alert("Gagal reset: " + err.message);
+    }
+  };
+
+  const handleDeleteCode = async (codeId: string) => {
+    if (!confirm("Hapus kode aktivasi ini?")) return;
+    try {
+      await deleteDoc(doc(db, 'activation_codes', codeId));
+      await fetchAllData();
+    } catch (err: any) {
+      console.error("Gagal hapus kode:", err);
+      alert("Gagal hapus kode: " + err.message);
+    }
+  };
+
+  const copyCodeToClipboard = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center uppercase font-black text-text-secondary tracking-widest animate-pulse flex flex-col items-center justify-center gap-3">
+        <RefreshCw className="w-8 h-8 animate-spin text-accent-yellow" />
+        Memuat Data Langganan...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-10 max-w-6xl mx-auto">
+      {/* 1. Kelola Harga Langganan */}
+      <div className="bg-bg-secondary border border-border-subtle rounded-3xl overflow-hidden shadow-xl">
+        <div className="px-8 py-5 bg-bg-tertiary/50 border-b border-border-subtle flex items-center gap-3">
+          <Zap className="w-5 h-5 text-accent-yellow animate-pulse" />
+          <h3 className="text-sm font-black uppercase tracking-widest text-white">Kelola Harga Langganan & Kontak</h3>
+        </div>
+        <form onSubmit={handleSaveSettings} className="p-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-text-secondary ml-1">Harga Langganan (IDR)</label>
+              <input 
+                type="number" 
+                value={settings.subscription_price}
+                onChange={(e) => setSettings({...settings, subscription_price: e.target.value})}
+                placeholder="e.g. 150000 (0 untuk Free)"
+                className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3.5 px-4 outline-none focus:border-accent-yellow text-xs font-sans text-white"
+              />
+              <p className="text-[9px] text-text-secondary font-bold uppercase mt-1">Gunakan "0" jika masih masa uji coba gratis</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-text-secondary ml-1">No WhatsApp Admin</label>
+              <input 
+                type="text" 
+                value={settings.whatsapp}
+                onChange={(e) => setSettings({...settings, whatsapp: e.target.value})}
+                placeholder="e.g. 6289667736500"
+                className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3.5 px-4 outline-none focus:border-accent-yellow text-xs font-sans text-white"
+              />
+              <p className="text-[9px] text-text-secondary font-bold uppercase mt-1">Format wajib kode negara, contoh: 6289667736500 (bukan 089)</p>
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <button 
+              type="submit" 
+              disabled={savingSettings}
+              className="px-8 py-3 bg-accent-yellow text-bg-primary text-[10px] font-black rounded-xl uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50"
+            >
+              {savingSettings ? 'Menyimpan...' : 'Simpan Konfigurasi'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
+        {/* 2. Kelola User Premium (7 Cols) */}
+        <div className="lg:col-span-12 xl:col-span-7 bg-bg-secondary border border-border-subtle rounded-3xl overflow-hidden shadow-xl flex flex-col h-[520px]">
+          <div className="px-8 py-5 bg-bg-tertiary/50 border-b border-border-subtle flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-accent-yellow" />
+              <h3 className="text-sm font-black uppercase tracking-widest text-white">Kelola User Premium</h3>
+            </div>
+            <span className="text-[9px] font-black bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow px-2 py-0.5 rounded-full uppercase">
+              {profileList.length} Total
+            </span>
+          </div>
+
+          <div className="p-6 overflow-y-auto flex-1 space-y-3">
+            {profileList.length === 0 ? (
+              <div className="text-center py-10 text-text-secondary text-xs font-bold uppercase">Belum ada user terdaftar.</div>
+            ) : (
+              profileList.map((p) => {
+                const isUserPremium = p.is_premium === true;
+                return (
+                  <div key={p.id} className="p-4 bg-bg-tertiary/40 border border-border-subtle rounded-2xl flex items-center justify-between gap-4 transition-all hover:bg-bg-tertiary/80">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} className="w-10 h-10 rounded-xl object-cover border border-border-subtle/40 bg-bg-secondary shrink-0" alt="" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow font-black text-sm flex items-center justify-center shrink-0">
+                          {p.full_name?.charAt(0) || 'U'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-black uppercase text-white truncate">{p.full_name}</h4>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[8px] font-black uppercase border",
+                            isUserPremium 
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                              : "bg-neutral-800 border-border-subtle text-text-secondary"
+                          )}>
+                            {isUserPremium ? 'PRO ACCESS' : 'TRIAL USER'}
+                          </span>
+                          <span className="text-[10px] text-text-secondary font-mono">
+                            Trials: <span className="text-white font-bold">{p.trial_count || 0}/3</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 shrink-0">
+                      <button 
+                        onClick={() => handleResetTrials(p.id)}
+                        className="p-1 px-2.5 bg-neutral-800 hover:bg-neutral-700 border border-border-subtle rounded-lg text-text-secondary hover:text-white transition text-[9px] font-black uppercase tracking-wider"
+                      >
+                        Reset trial
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleTogglePremium(p.id, isUserPremium)}
+                        className={cn(
+                          "p-1 px-2.5 font-black text-[9px] uppercase tracking-wider rounded-lg transition-all",
+                          isUserPremium 
+                            ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/20" 
+                            : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/20"
+                        )}
+                      >
+                        {isUserPremium ? 'Cabut Pro' : 'Beri Pro'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* 3. Kelola Kode Aktivasi (5 Cols) */}
+        <div className="lg:col-span-12 xl:col-span-5 bg-bg-secondary border border-border-subtle rounded-3xl overflow-hidden shadow-xl flex flex-col h-[520px]">
+          <div className="px-8 py-5 bg-bg-tertiary/50 border-b border-border-subtle flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <Key className="w-5 h-5 text-accent-yellow" />
+              <h3 className="text-sm font-black uppercase tracking-widest text-white">Generate Kode</h3>
+            </div>
+            
+            <button
+              onClick={handleGenerateCode}
+              disabled={generatingCode}
+              className="px-4 py-2 bg-accent-yellow hover:scale-[1.02] active:scale-95 text-bg-primary text-[8px] font-black rounded-lg uppercase tracking-wider transition-all flex items-center gap-1 shrink-0"
+            >
+              {generatingCode ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Plus className="w-3.5 h-3.5 stroke-[3]" />}
+              GENERATE KODE
+            </button>
+          </div>
+
+          <div className="p-6 overflow-y-auto flex-1 space-y-3">
+            {codesList.length === 0 ? (
+              <div className="text-center py-20 text-text-secondary text-xs font-bold uppercase">
+                <p>Belum ada kode dibuat.</p>
+                <p className="text-[10px] lowercase normal-case mt-1 max-w-xs mx-auto">Klik tombol 'GENERATE KODE' di atas untuk memicu kode token baru.</p>
+              </div>
+            ) : (
+              codesList.map((c) => {
+                return (
+                  <div key={c.id} className="p-3.5 bg-bg-tertiary/40 border border-border-subtle rounded-2xl flex items-center justify-between gap-3 transition">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-white tracking-tight uppercase select-all">
+                          {c.code}
+                        </span>
+                        <button 
+                          onClick={() => copyCodeToClipboard(c.code)}
+                          className="hover:text-accent-yellow text-text-secondary transition"
+                        >
+                          {copiedCode === c.code ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      
+                      {c.is_used ? (
+                        <p className="text-[9px] text-emerald-400 font-bold uppercase mt-1 truncate">
+                          Digunakan: {c.used_by_email || 'User'}
+                        </p>
+                      ) : (
+                        <p className="text-[9px] text-text-secondary uppercase mt-1 flex items-center gap-1 font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-yellow animate-pulse" />
+                          Tersedia
+                        </p>
+                      )}
+                    </div>
+
+                    <button 
+                      onClick={() => handleDeleteCode(c.id)}
+                      className="p-1.5 bg-neutral-800 hover:bg-red-500/20 rounded-xl border border-border-subtle text-text-secondary hover:text-red-400 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

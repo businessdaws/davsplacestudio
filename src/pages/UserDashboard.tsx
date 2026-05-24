@@ -14,7 +14,11 @@ import {
   getDocs, 
   orderBy, 
   deleteDoc, 
-  doc 
+  doc,
+  onSnapshot,
+  getDoc,
+  setDoc,
+  updateDoc
 } from 'firebase/firestore';
 import { 
   Bookmark, 
@@ -38,7 +42,12 @@ import {
   Camera,
   Download,
   Info,
-  Eye
+  Eye,
+  Lock,
+  Key,
+  MessageCircle,
+  AlertCircle,
+  Award
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -54,6 +63,17 @@ export default function UserDashboard() {
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Subscription states
+  const [profile, setProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [settings, setSettings] = useState<any>(null);
+  
+  // Activation form states in page
+  const [codeToActivate, setCodeToActivate] = useState('');
+  const [activatingCode, setActivatingCode] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,6 +91,118 @@ export default function UserDashboard() {
     });
     return () => unsubscribe();
   }, [navigate]);
+
+  // Sync user profile from Firestore
+  useEffect(() => {
+    if (!user) return;
+    setLoadingProfile(true);
+    const profileRef = doc(db, 'profiles', user.uid);
+    const unsubscribe = onSnapshot(profileRef, async (snap) => {
+      if (snap.exists()) {
+        setProfile(snap.data());
+      } else {
+        const defaultProfile = {
+          id: user.uid,
+          full_name: user.displayName || user.email?.split('@')[0] || 'User',
+          avatar_url: user.photoURL || '',
+          role: 'user',
+          is_premium: false,
+          trial_count: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        try {
+          await setDoc(profileRef, defaultProfile);
+          setProfile(defaultProfile);
+        } catch (err) {
+          console.error("Gagal buat profil baru:", err);
+        }
+      }
+      setLoadingProfile(false);
+    }, (err) => {
+      console.error("Gagal load profil:", err);
+      setLoadingProfile(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Read site settings once
+  useEffect(() => {
+    const settingsRef = doc(db, 'site_settings', 'global');
+    getDoc(settingsRef).then((snap) => {
+      if (snap.exists()) {
+        setSettings(snap.data());
+      }
+    }).catch(err => {
+      console.error("Gagal load setting global:", err);
+    });
+  }, []);
+
+  const handleIncrementTrial = async () => {
+    if (!user || profile?.is_premium) return;
+    const currentTrials = profile?.trial_count || 0;
+    const nextTrials = currentTrials + 1;
+    const profileRef = doc(db, 'profiles', user.uid);
+    try {
+      await updateDoc(profileRef, {
+        trial_count: nextTrials,
+        updated_at: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error("Gagal menambah jumlah uji coba:", err);
+    }
+  };
+
+  const handleActivateCodeInDashboard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!codeToActivate.trim() || !user) return;
+    setActivatingCode(true);
+    setActivationError(null);
+    try {
+      const trimmedCode = codeToActivate.trim();
+      const codeRef = doc(db, 'activation_codes', trimmedCode);
+      const codeSnap = await getDoc(codeRef);
+      
+      if (!codeSnap.exists()) {
+        setActivationError('Kode aktivasi tidak terdaftar atau tidak valid. Silakan hubungi admin.');
+        setActivatingCode(false);
+        return;
+      }
+      
+      const codeData = codeSnap.data();
+      if (codeData.is_used) {
+        setActivationError('Kode aktivasi ini sudah digunakan oleh pengguna lain.');
+        setActivatingCode(false);
+        return;
+      }
+      
+      // Update activation code as used in Firestore
+      await updateDoc(codeRef, {
+        is_used: true,
+        used_by: user.uid,
+        used_by_email: user.email || 'unknown@user.com',
+        used_at: new Date().toISOString()
+      });
+      
+      // Update user's profile to is_premium
+      const profileRef = doc(db, 'profiles', user.uid);
+      await updateDoc(profileRef, {
+        is_premium: true,
+        premium_code: trimmedCode,
+        updated_at: new Date().toISOString()
+      });
+      
+      setCodeToActivate('');
+      setActivationError(null);
+      setShowSuccessModal(true);
+    } catch (err: any) {
+      console.error(err);
+      setActivationError('Gagal memproses kode aktivasi: ' + err.message);
+    } finally {
+      setActivatingCode(false);
+    }
+  };
 
   const fetchSavedContents = async (userId: string) => {
     try {
@@ -138,12 +270,98 @@ export default function UserDashboard() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <UserDashboardNav user={user} />
           
-          {activeTab === 'generator' ? (
-            <AIGeneratorUI user={user} />
+          {loadingProfile && activeTab !== 'saved' ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 text-accent-yellow animate-spin" />
+              <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mt-4">Memverifikasi Lisensi...</p>
+            </div>
+          ) : (!loadingProfile && !profile?.is_premium && (profile?.trial_count || 0) >= 3 && ['generator', 'visual-engine', 'analyzer', 'editor'].includes(activeTab)) ? (
+            <div className="py-20 flex justify-center items-center">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="w-full max-w-2xl bg-bg-secondary border border-red-500/25 p-8 md:p-12 rounded-[2.5rem] shadow-2xl text-center space-y-8 relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 animate-pulse" />
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-red-400/10 border border-red-500/25 flex items-center justify-center text-red-400 shadow-md">
+                  <Lock className="w-8 h-8" />
+                </div>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black uppercase text-red-400 tracking-[0.2em]">Akses Terbatas</span>
+                  <h3 className="text-3xl font-display font-black leading-none uppercase text-white tracking-tight">BATAS TRIAL TERCAPAI</h3>
+                  <p className="text-text-secondary text-sm sm:text-xs leading-relaxed max-w-md mx-auto opacity-80">
+                    Sistem mendeteksi masa trial gratis (3/3 kali pembuatan) Anda telah selesai. Untuk mengakses kembali seluruh menu canggih AI Generator, Content Analyzer, Visual Engine, maupun Creative Editor, silakan aktivasi keanggotaan Pro Anda.
+                  </p>
+                </div>
+
+                {/* Activation Token redemption box embedded directly in paywall */}
+                <div className="space-y-3 border border-border-subtle/50 p-6 rounded-2xl bg-bg-tertiary/40 text-left max-w-md mx-auto">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-[#94a3b8] ml-1 flex items-center gap-1.5">
+                    <Key className="w-3 h-3 text-accent-yellow" />
+                    Masukkan Kode Langganan Pro
+                  </label>
+                  <form onSubmit={handleActivateCodeInDashboard} className="space-y-3">
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={codeToActivate}
+                        onChange={(e) => setCodeToActivate(e.target.value)}
+                        placeholder="e.g. DK-AI-XXXX-XXXX"
+                        className="flex-1 bg-bg-tertiary border border-border-subtle rounded-xl px-3 py-2.5 outline-none focus:border-accent-yellow text-xs font-mono uppercase text-white placeholder-text-secondary/50"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={activatingCode || !codeToActivate.trim()}
+                        className="px-4 bg-accent-yellow text-bg-primary text-[10px] font-black uppercase rounded-xl hover:bg-accent-yellow/90 disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                      >
+                        {activatingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : 'AKTIFKAN'}
+                      </button>
+                    </div>
+                    {activationError && (
+                      <p className="text-[9px] text-red-500 font-bold uppercase mt-1 flex items-center gap-1 leading-normal">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        {activationError}
+                      </p>
+                    )}
+                  </form>
+                </div>
+
+                <div className="flex flex-col items-center gap-3">
+                  <a 
+                    href={`https://wa.me/${settings?.whatsapp || '6289667736500'}?text=${encodeURIComponent("Halo Admin Davsplace, saya ingin membeli lisensi Pro AI Content Generator.")}`}
+                    target="_blank"
+                    referrerPolicy="no-referrer"
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-accent-yellow hover:bg-white text-bg-primary font-black rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-accent-yellow/10 hover:scale-[1.02] active:scale-95"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-bg-primary text-bg-primary" />
+                    Hubungi Admin / Upgrade Pro
+                  </a>
+                  <p className="text-[8px] text-text-secondary font-bold uppercase tracking-wide opacity-80">
+                    Harga FREE untuk uji coba terbatas khusus 10 pendaftar pertama!
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          ) : activeTab === 'generator' ? (
+            <AIGeneratorUI 
+              user={user} 
+              profile={profile} 
+              loadingProfile={loadingProfile} 
+              onIncrementTrial={handleIncrementTrial} 
+              settings={settings} 
+            />
           ) : activeTab === 'visual-engine' ? (
-            <VisualEngineUI user={user} />
+            <VisualEngineUI 
+              user={user} 
+              profile={profile} 
+              onIncrementTrial={handleIncrementTrial} 
+            />
           ) : activeTab === 'analyzer' ? (
-            <ContentAnalyzerUI user={user} />
+            <ContentAnalyzerUI 
+              user={user} 
+              profile={profile} 
+              onIncrementTrial={handleIncrementTrial} 
+            />
           ) : activeTab === 'editor' ? (
             <CreativeEditorUI user={user} />
           ) : (
@@ -577,6 +795,42 @@ export default function UserDashboard() {
       <Footer />
       <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+      {/* Subscription Code Activation Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-md bg-bg-secondary border-2 border-emerald-500/30 p-8 rounded-[3rem] shadow-2xl text-center space-y-6 overflow-hidden"
+          >
+            {/* Ambient emerald lights */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[80px] pointer-events-none" />
+
+            {/* Premium Icon Ring */}
+            <div className="mx-auto w-20 h-20 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/5 select-none relative">
+              <Award className="w-10 h-10 animate-bounce" />
+              <div className="absolute -top-1 -right-1 bg-accent-yellow text-bg-primary font-black rounded-full p-1 text-[9px]">👑</div>
+            </div>
+
+            <div className="space-y-3">
+              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-[0.25em]">AKTIVASI BERHASIL</span>
+              <h3 className="text-2xl font-display font-black leading-tight uppercase text-white">SELAMAT DATANG DI PRO</h3>
+              <p className="text-text-secondary font-semibold text-sm sm:text-xs leading-relaxed max-w-xs mx-auto text-center px-2">
+                "Selamat berlangganan jalur VIP penggunakan AI Generator sudah bisa digunakan! Nikmati fiturnya"
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 hover:scale-[1.01] text-bg-primary font-black rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/10"
+            >
+              Mulai Eksplorasi Tanpa Batas
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

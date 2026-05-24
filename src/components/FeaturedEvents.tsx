@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, MapPin, ArrowRight, Video, Wifi, X, ExternalLink } from 'lucide-react';
 import { db } from '../lib/firebase';
@@ -39,10 +40,12 @@ export default function FeaturedEvents() {
             <p className="text-accent-yellow font-bold uppercase tracking-[0.3em] text-xs mb-4">Event Mendatang</p>
             <h2 className="text-4xl md:text-5xl font-display font-black leading-tight tracking-tighter">HADIRI & BELAJAR <br /> <span className="text-accent-yellow">BERSAMA KAMI</span></h2>
           </div>
-          <button className="px-8 py-3 bg-bg-tertiary border border-border-subtle rounded-xl font-bold flex items-center gap-2 hover:bg-border-subtle transition-all">
-            Lihat Kalender Event
-            <ArrowRight className="w-5 h-5" />
-          </button>
+          <Link to="/event" className="inline-block">
+            <button className="px-8 py-3 bg-bg-tertiary border border-border-subtle rounded-xl font-bold flex items-center gap-2 hover:bg-border-subtle transition-all cursor-pointer">
+              Lihat Kalender Event
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 min-h-[400px]">

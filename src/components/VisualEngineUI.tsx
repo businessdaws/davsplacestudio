@@ -151,7 +151,13 @@ interface VisualEngineResult {
   };
 }
 
-export default function VisualEngineUI({ user }: { user: any }) {
+interface VisualEngineUIProps {
+  user: any;
+  profile?: any;
+  onIncrementTrial?: () => Promise<void>;
+}
+
+export default function VisualEngineUI({ user, profile, onIncrementTrial }: VisualEngineUIProps) {
   const [generationMode, setGenerationMode] = useState<'formula' | 'gemini' | 'nvidia'>('formula');
   const [concept, setConcept] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -296,6 +302,14 @@ export default function VisualEngineUI({ user }: { user: any }) {
       return;
     }
 
+    // Premium Check and Limit trials
+    const isPremium = profile?.is_premium === true;
+    const currentTrials = profile?.trial_count || 0;
+    if (!isPremium && currentTrials >= 3) {
+      setError('Batas uji coba gratis tercapai. Silakan masukkan kode langganan Pro Anda atau hubungi admin.');
+      return;
+    }
+
     setIsRefining(true);
     setError(null);
     setResult(null);
@@ -321,6 +335,11 @@ export default function VisualEngineUI({ user }: { user: any }) {
       setResult(data);
       setIsSavedSuccessfully(false);
       saveToHistory(data);
+
+      // Successfully generated, increment trial if NOT premium
+      if (!isPremium && onIncrementTrial) {
+        await onIncrementTrial();
+      }
     } catch (err: any) {
       console.error(err);
       setError('Gagal menghubungkan ke AI. Menggunakan rancangan literal sebagai fallback.');
@@ -355,6 +374,14 @@ export default function VisualEngineUI({ user }: { user: any }) {
       return;
     }
 
+    // Premium Check and Limit trials
+    const isPremium = profile?.is_premium === true;
+    const currentTrials = profile?.trial_count || 0;
+    if (!isPremium && currentTrials >= 3) {
+      setError('Batas uji coba gratis tercapai. Silakan masukkan kode langganan Pro Anda atau hubungi admin.');
+      return;
+    }
+
     setGenerating(true);
     setResult(null);
     setError(null);
@@ -378,6 +405,11 @@ export default function VisualEngineUI({ user }: { user: any }) {
       setResult(data);
       setIsSavedSuccessfully(false);
       saveToHistory(data);
+
+      // Successfully generated, increment trial if NOT premium
+      if (!isPremium && onIncrementTrial) {
+        await onIncrementTrial();
+      }
     } catch (err: any) {
       console.error("Visual Engine prompt generation failed:", err);
       setError(err.message || "Maaf, ada kendala saat menghubungi mesin AI. Silakan coba lagi.");

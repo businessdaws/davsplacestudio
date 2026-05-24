@@ -7,6 +7,7 @@ import {
   Info,
   Users,
   Sparkles,
+  Calendar,
   Search, 
   Moon, 
   Sun,
@@ -147,6 +148,7 @@ export function MobileBottomNavbar({ onSearchClick }: { onSearchClick: () => voi
   const navItems = [
     { id: 'home', path: '/', icon: Home, label: 'Home' },
     { id: 'articles', path: '/artikel', icon: FileText, label: 'Artikel' },
+    { id: 'event', path: '/event', icon: Calendar, label: 'Event' },
     { id: 'portfolio', path: '/portofolio', icon: Briefcase, label: 'Porto' },
     { id: 'collab', path: '/kolaborasi', icon: Users, label: 'Collab' },
     { id: 'about', path: '/tentang', icon: Info, label: 'About' },

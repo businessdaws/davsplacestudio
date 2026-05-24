@@ -137,8 +137,21 @@ service cloud.firestore {
     match /profiles/{userId} {
       allow read: if true;
       allow create: if isOwner(userId) && isValidProfile(incoming());
-      allow update: if isOwner(userId) && isValidProfile(incoming()) && 
-                    incoming().role == existing().role; // Users cannot change their own role
+      allow update: if isAdmin() || (
+        isOwner(userId) && 
+        isValidProfile(incoming()) && 
+        incoming().role == existing().role &&
+        (
+          (incoming().get('is_premium', false) == existing().get('is_premium', false)) ||
+          (
+            incoming().get('is_premium', false) == true && 
+            existing().get('is_premium', false) == false &&
+            incoming().get('premium_code', '') != '' &&
+            exists(/databases/$(database)/documents/activation_codes/$(incoming().premium_code)) &&
+            get(/databases/$(database)/documents/activation_codes/$(incoming().premium_code)).data.is_used == false
+          )
+        )
+      );
       allow delete: if isAdmin();
     }
 
@@ -208,6 +221,18 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidSavedContent(incoming());
       allow update: if isSignedIn() && isOwner(existing().user_id) && isValidSavedContent(incoming());
       allow delete: if isSignedIn() && (isOwner(existing().user_id) || isAdmin());
+    }
+
+    match /activation_codes/{codeId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        incoming().is_used == true &&
+        existing().is_used == false &&
+        incoming().used_by == request.auth.uid &&
+        incoming().used_by_email == request.auth.token.email
+      );
     }
   }
 }
