@@ -1413,6 +1413,13 @@ app.use((err: any, req: any, res: any, next: any) => {
   next(err);
 });
 
+// Unmatched API Route Handler to prevent HTML fallbacks
+app.all("/api/*", (req, res) => {
+  res.status(404).json({
+    error: `API route not found: ${req.method} ${req.path}`
+  });
+});
+
 // Setup Vite or static serving
 async function setupServer() {
   if (process.env.NODE_ENV !== "production") {
@@ -1426,6 +1433,9 @@ async function setupServer() {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
+      if (req.path.startsWith("/api/")) {
+        return res.status(404).json({ error: `API route not found: ${req.path}` });
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
