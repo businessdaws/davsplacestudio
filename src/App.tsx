@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SearchModal from './components/SearchModal';
@@ -52,6 +52,23 @@ function PageLoader() {
   );
 }
 
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (typeof (window as any).gtag === 'function') {
+      const measurementId = (import.meta as any).env.VITE_GA_MEASUREMENT_ID || 'G-PR4X8QKBGT';
+      (window as any).gtag('config', measurementId, {
+        page_path: location.pathname + location.search,
+        page_location: window.location.href,
+        page_title: document.title || 'Davsplace Studio'
+      });
+    }
+  }, [location]);
+
+  return null;
+}
+
 export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -59,6 +76,7 @@ export default function App() {
     <ErrorBoundary>
       <SettingsProvider>
         <Router>
+          <AnalyticsTracker />
           <div className="min-h-screen bg-bg-primary selection:bg-accent-yellow/30 selection:text-accent-yellow overflow-x-hidden">
           <Routes>
             {/* Admin Routes */}
