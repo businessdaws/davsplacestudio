@@ -48,19 +48,19 @@ export default function FeaturedPortfolio() {
   if (loading) return null;
 
   return (
-    <section id="portofolio" className="py-32 px-6 bg-bg-primary">
+    <section id="portofolio" className="py-16 sm:py-32 px-4 xs:px-6 bg-bg-primary">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 sm:mb-16 gap-6 sm:gap-8">
           <div>
-            <p className="text-accent-yellow font-bold uppercase tracking-[0.3em] text-xs mb-4">Karya Pilihan</p>
-            <h2 className="text-4xl md:text-5xl font-display font-bold leading-tight">PORTOFOLIO TERBARU</h2>
+            <p className="text-accent-yellow font-bold uppercase tracking-[0.3em] text-[10px] sm:text-xs mb-3 sm:mb-4">Karya Pilihan</p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-black leading-tight">PORTOFOLIO TERBARU</h2>
           </div>
-          <p className="text-text-secondary max-w-sm">
+          <p className="text-text-secondary text-sm sm:text-base max-w-sm leading-relaxed">
             Kumpulan proyek yang telah kami selesaikan dengan penuh dedikasi dan inovasi untuk klien kami.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 min-h-[400px]">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 min-h-[400px]">
           {portfolios.length > 0 ? portfolios.map((item, i) => (
             <motion.div
               key={item.id}
@@ -68,7 +68,7 @@ export default function FeaturedPortfolio() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-bg-tertiary cursor-pointer"
+              className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-bg-tertiary cursor-pointer border border-border-subtle/30"
               onClick={() => setSelectedItem(item)}
               onMouseEnter={() => setHoveredId(item.id)}
               onMouseLeave={() => setHoveredId(null)}
@@ -97,18 +97,18 @@ export default function FeaturedPortfolio() {
                 </div>
               )}
               
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8">
-                <div className="translate-y-8 group-hover:translate-y-0 transition-transform duration-500">
-                  <span className="px-3 py-1 bg-accent-yellow text-bg-primary text-[10px] font-accent rounded-lg mb-4 inline-block tracking-widest uppercase">
+              {/* Overlay with subtle visibility for non-hover touch devices as well */}
+              <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/40 to-black/10 sm:to-transparent opacity-95 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-5 sm:p-8">
+                <div className="translate-y-0 sm:translate-y-8 sm:group-hover:translate-y-0 transition-transform duration-500">
+                  <span className="px-2.5 py-1 bg-accent-yellow text-bg-primary text-[9px] sm:text-[10px] font-accent rounded-lg mb-2 sm:mb-4 inline-block tracking-widest uppercase">
                     {item.category}
                   </span>
-                  <h3 className="text-2xl font-display font-bold text-white mb-6 font-display font-medium">
+                  <h3 className="text-xl sm:text-2xl font-display font-bold text-white mb-4 sm:mb-6 leading-tight">
                     {item.title}
                   </h3>
                   
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-accent-yellow">
-                    {item.type === 'video' ? <PlayCircle className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
+                  <div className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-accent-yellow">
+                    {item.type === 'video' ? <PlayCircle className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
                     {item.type === 'video' ? 'Play Video' : 'View Detail'}
                   </div>
                 </div>
@@ -121,8 +121,8 @@ export default function FeaturedPortfolio() {
           )}
         </div>
 
-        <div className="mt-16 flex justify-center">
-          <Link to="/portofolio" className="px-10 py-4 border border-border-subtle rounded-xl font-bold hover:bg-white hover:text-bg-primary transition-all duration-300">
+        <div className="mt-10 sm:mt-16 flex justify-center">
+          <Link to="/portofolio" className="px-8 py-3.5 sm:px-10 sm:py-4 border border-border-subtle rounded-xl text-xs sm:text-sm font-bold hover:bg-white hover:text-bg-primary transition-all duration-300">
             Lihat Semua Portofolio
           </Link>
         </div>

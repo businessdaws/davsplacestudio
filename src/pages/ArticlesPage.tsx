@@ -98,17 +98,17 @@ export default function ArticlesPage() {
       <Navbar onSearchClick={() => setIsSearchOpen(true)} />
       <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
       
-      <main className="pt-24 pb-20 lg:pb-0">
-        <div className="px-6 py-12 max-w-7xl mx-auto">
+      <main className="pt-20 sm:pt-24 pb-24 lg:pb-0">
+        <div className="px-4 xs:px-6 py-6 sm:py-12 max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-16"
+            className="mb-10 sm:mb-16"
           >
-            <h1 className="text-5xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-6 leading-none">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-4 sm:mb-6 leading-none">
               LATEST <span className="text-accent-yellow">ARTICLES</span>
             </h1>
-            <p className="text-xl text-text-secondary max-w-2xl font-sans">
+            <p className="text-base sm:text-xl text-text-secondary max-w-2xl font-sans">
               Wawasan, tutorial, dan berita terbaru dari dunia industri kreatif digital.
             </p>
           </motion.div>
@@ -119,53 +119,53 @@ export default function ArticlesPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mb-20"
+              className="mb-12 sm:mb-20"
             >
-              <div className="group relative grid grid-cols-1 lg:grid-cols-2 gap-8 bg-bg-secondary rounded-[2rem] overflow-hidden border border-border-subtle hover:border-accent-yellow transition-all duration-500">
-                <div className="relative aspect-[16/10] lg:aspect-auto overflow-hidden bg-bg-tertiary">
+              <div className="group relative grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 bg-bg-secondary rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden border border-border-subtle hover:border-accent-yellow transition-all duration-500">
+                <div className="relative aspect-[16/10] lg:aspect-auto h-[220px] xs:h-[280px] lg:h-auto overflow-hidden bg-bg-tertiary">
                   <img 
                     src={featuredArticle.cover_image || featuredArticle.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
                     alt={featuredArticle.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute top-6 left-6">
-                    <span className="px-5 py-2 bg-accent-yellow text-bg-primary text-xs font-black rounded-xl uppercase tracking-widest">
+                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+                    <span className="px-4 py-1.5 sm:px-5 sm:py-2 bg-accent-yellow text-bg-primary text-[9px] sm:text-xs font-black rounded-lg sm:rounded-xl uppercase tracking-widest">
                       Featured Article
                     </span>
                   </div>
                 </div>
                 
-                <div className="p-8 md:p-12 flex flex-col justify-center">
-                  <div className="flex items-center gap-6 text-xs text-text-secondary font-bold mb-6 uppercase tracking-widest">
+                <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center">
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-[10px] sm:text-xs text-text-secondary font-bold mb-4 sm:mb-6 uppercase tracking-widest">
                     <span className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-accent-yellow" />
+                      <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
                       {new Date(featuredArticle.created_at).toLocaleDateString('id-ID')}
                     </span>
                     <span className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-accent-yellow" />
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
                       {featuredArticle.author || 'Admin Davs'}
                     </span>
                   </div>
 
-                  <h2 className="text-3xl md:text-5xl font-display font-extrabold mb-6 leading-tight group-hover:text-accent-yellow transition-colors">
+                  <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-extrabold mb-4 sm:mb-6 leading-tight group-hover:text-accent-yellow transition-colors">
                     <Link to={`/artikel/${featuredArticle.slug}`}>{featuredArticle.title}</Link>
                   </h2>
                   
-                  <p className="text-text-secondary text-lg leading-relaxed mb-8 font-sans">
+                  <p className="text-text-secondary text-sm sm:text-lg leading-relaxed mb-6 sm:mb-8 font-sans line-clamp-3 sm:line-clamp-none">
                     {featuredArticle.excerpt}
                   </p>
 
-                  <div className="flex items-center justify-between pt-8 border-t border-border-subtle">
-                    <Link to={`/artikel/${featuredArticle.slug}`} className="flex items-center gap-2 text-accent-yellow font-black uppercase text-sm tracking-widest cursor-pointer group/link">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between pt-6 sm:pt-8 border-t border-border-subtle">
+                    <Link to={`/artikel/${featuredArticle.slug}`} className="flex items-center gap-2 text-accent-yellow font-black uppercase text-xs sm:text-sm tracking-widest cursor-pointer group/link">
                       Baca Selengkapnya
-                      <ArrowRight className="w-5 h-5 group-hover/link:translate-x-2 transition-transform" />
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover/link:translate-x-2 transition-transform" />
                     </Link>
                     <button 
                       onClick={() => handleShare(featuredArticle.slug)}
-                      className="p-3 bg-bg-tertiary text-text-secondary rounded-xl hover:bg-accent-yellow hover:text-bg-primary transition-all active:scale-95 flex items-center gap-2"
+                      className="p-2.5 sm:p-3 bg-bg-tertiary text-text-secondary rounded-xl hover:bg-accent-yellow hover:text-bg-primary transition-all active:scale-95 flex items-center justify-center gap-2 w-max"
                     >
                       {copiedId === featuredArticle.slug ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                      <span className="text-[10px] font-black uppercase tracking-widest">Share</span>
+                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Share</span>
                     </button>
                   </div>
                 </div>
@@ -174,22 +174,24 @@ export default function ArticlesPage() {
           )}
 
           {/* Filtering Bar */}
-          <div className="flex flex-wrap items-center gap-3 mb-12 border-b border-border-subtle pb-8">
-            <span className="text-xs font-black uppercase tracking-widest text-text-secondary mr-4">Filter by:</span>
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => handleCategoryChange(cat)}
-                className={cn(
-                  "px-6 py-2.5 rounded-full text-xs font-bold transition-all border",
-                  selectedCategory === cat 
-                    ? "bg-accent-yellow text-bg-primary border-accent-yellow" 
-                    : "bg-bg-secondary text-text-secondary border-border-subtle hover:border-accent-yellow"
-                )}
-              >
-                {cat}
-              </button>
-            ))}
+          <div className="flex flex-col gap-3 mb-8 sm:mb-12 border-b border-border-subtle pb-6">
+            <span className="text-[10px] font-black uppercase tracking-wider text-text-secondary">Filter Kategori</span>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap no-scrollbar">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => handleCategoryChange(cat)}
+                  className={cn(
+                    "px-4 py-2 sm:px-6 sm:py-2.5 rounded-full text-[10px] sm:text-xs font-bold transition-all border shrink-0",
+                    selectedCategory === cat 
+                      ? "bg-accent-yellow text-bg-primary border-accent-yellow" 
+                      : "bg-bg-secondary text-text-secondary border-border-subtle hover:border-accent-yellow"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Articles Grid */}
@@ -306,30 +308,30 @@ export default function ArticlesPage() {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="p-12 md:p-20 bg-bg-tertiary rounded-[3rem] border border-border-subtle text-center relative overflow-hidden"
+            className="p-6 xs:p-8 sm:p-12 md:p-20 bg-bg-tertiary rounded-3xl sm:rounded-[3rem] border border-border-subtle text-center relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-accent-yellow/10 rounded-full blur-[100px]" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-yellow/10 rounded-full blur-[100px]" />
             
             <div className="relative z-10">
-              <p className="text-accent-yellow font-bold uppercase tracking-[0.4em] text-[10px] mb-6">Stay Inspired</p>
-              <h2 className="text-4xl md:text-6xl font-display font-extrabold mb-8 tracking-tighter uppercase leading-none">
+              <p className="text-accent-yellow font-bold uppercase tracking-[0.4em] text-[9px] sm:text-[10px] mb-4 sm:mb-6">Stay Inspired</p>
+              <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-6xl font-display font-extrabold mb-6 sm:mb-8 tracking-tighter uppercase leading-none">
                 INGIN WAWASAN EKSKLUSIF <br className="hidden md:block" />
                 <span className="text-accent-yellow italic">DI EMAIL ANDA?</span>
               </h2>
-              <p className="text-text-secondary text-lg max-w-2xl mx-auto mb-10 font-sans">
+              <p className="text-text-secondary text-sm sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10 font-sans leading-relaxed">
                 Berlangganan newsletter kami untuk mendapatkan tips desain, update tren pasar, dan penawaran khusus langsung di inbox Anda.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
                 <input 
                   type="email" 
                   placeholder="Alamat email Anda..."
-                  className="w-full bg-bg-primary border border-border-subtle rounded-2xl py-4 px-6 outline-none focus:border-accent-yellow transition-all"
+                  className="w-full bg-bg-primary border border-border-subtle rounded-xl sm:rounded-2xl py-3.5 px-5 sm:py-4 sm:px-6 text-sm outline-none focus:border-accent-yellow transition-all"
                 />
-                <button className="w-full sm:w-auto px-8 py-4 bg-accent-yellow text-bg-primary font-black rounded-2xl flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all">
+                <button className="w-full sm:w-auto px-6 py-3.5 sm:px-8 sm:py-4 bg-accent-yellow text-bg-primary text-xs sm:text-sm font-black rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all">
                   GABUNG
-                  <ClipboardCheck className="w-5 h-5" />
+                  <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>

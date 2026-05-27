@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Sparkles, LayoutDashboard, Film, FileText, Palette } from 'lucide-react';
+import { Sparkles, LayoutDashboard, Film, FileText, Palette, Camera } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function UserDashboardNav({ user }: { user: any }) {
@@ -15,6 +15,7 @@ export default function UserDashboardNav({ user }: { user: any }) {
     { name: 'Content Analyzer', href: '/dashboard?tab=analyzer', icon: FileText, tab: 'analyzer' },
     { name: 'Visual Engine', href: '/dashboard?tab=visual-engine', icon: Film, tab: 'visual-engine' },
     { name: 'Creative Editor', href: '/dashboard?tab=editor', icon: Palette, tab: 'editor' },
+    { name: 'Virtual Studio', href: '/dashboard?tab=virtual-studio', icon: Camera, tab: 'virtual-studio' },
   ];
 
   return (

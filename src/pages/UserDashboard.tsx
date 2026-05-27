@@ -7,6 +7,7 @@ import VisualEngineUI from '../components/VisualEngineUI';
 import ContentAnalyzerUI from '../components/ContentAnalyzerUI';
 import CreativeEditorUI from '../components/CreativeEditorUI';
 import AIGeneratorUI from '../components/AIGeneratorUI';
+import VirtualStudioUI from '../components/VirtualStudioUI';
 import { 
   collection, 
   query, 
@@ -364,6 +365,8 @@ export default function UserDashboard() {
             />
           ) : activeTab === 'editor' ? (
             <CreativeEditorUI user={user} />
+          ) : activeTab === 'virtual-studio' ? (
+            <VirtualStudioUI user={user} profile={profile} />
           ) : (
             <>
               {/* Header */}
