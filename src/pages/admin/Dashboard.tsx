@@ -70,8 +70,9 @@ import { format, subDays } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatDate } from '../../lib/utils';
 import ImagePromptGenerator from '../../components/ImagePromptGenerator';
+import AdminContentGeneratorUI from '../../components/AdminContentGeneratorUI';
 
-type Tab = 'overview' | 'leads' | 'image_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings' | 'subscriptions';
+type Tab = 'overview' | 'leads' | 'content_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings' | 'subscriptions';
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
@@ -248,7 +249,7 @@ export default function AdminDashboard() {
         {[
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
           { id: 'leads', icon: MessageSquare, label: 'Inbound Leads' },
-          { id: 'image_generator', icon: ImageIcon, label: 'Prompt Image Gen' },
+          { id: 'content_generator', icon: Sparkles, label: 'Konten Generator' },
           { id: 'articles', icon: FileText, label: 'Content Articles' },
           { id: 'portfolios', icon: Briefcase, label: 'Project Showcase' },
           { id: 'events', icon: Calendar, label: 'Events & Programs' },
@@ -409,7 +410,7 @@ export default function AdminDashboard() {
                   <h1 className="text-2xl sm:text-3xl md:text-5xl font-display font-black uppercase tracking-tighter leading-[0.9] break-words">
                     {activeTab === 'overview' && (<>SYSTEM <span className="text-accent-yellow italic">OVERVIEW</span></>)}
                     {activeTab === 'leads' && (<>INBOUND <span className="text-accent-yellow italic">LEADS</span></>)}
-                    {activeTab === 'image_generator' && (<>PROMPT <span className="text-accent-yellow italic">IMAGE GENERATOR</span></>)}
+                    {activeTab === 'content_generator' && (<>KONTEN <span className="text-accent-yellow italic">GENERATOR</span></>)}
                     {activeTab === 'articles' && (<>CONTENT <span className="text-accent-yellow italic">ARTICLES</span></>)}
                     {activeTab === 'portfolios' && (<>PROJECT <span className="text-accent-yellow italic">SHOWCASE</span></>)}
                     {activeTab === 'events' && (<>UPCOMING <span className="text-accent-yellow italic">EVENTS</span></>)}
@@ -428,7 +429,7 @@ export default function AdminDashboard() {
 
               {activeTab === 'overview' && <OverviewGrid />}
               {activeTab === 'leads' && <LeadsManager />}
-              {activeTab === 'image_generator' && <ImagePromptGenerator onGenerateAI={generateAIContent} />}
+              {activeTab === 'content_generator' && <AdminContentGeneratorUI onGenerateAI={generateAIContent} />}
               {activeTab === 'articles' && <ContentManager type="articles" onGenerateAI={generateAIContent} />}
               {activeTab === 'portfolios' && <ContentManager type="portfolios" onGenerateAI={generateAIContent} />}
               {activeTab === 'events' && <ContentManager type="events" onGenerateAI={generateAIContent} />}
@@ -2759,7 +2760,7 @@ function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, on
   const items = [
     { id: 'overview', icon: LayoutDashboard, label: 'Overview', category: 'General' },
     { id: 'leads', icon: MessageSquare, label: 'Inbound Leads', category: 'CRM' },
-    { id: 'image_generator', icon: ImageIcon, label: 'Prompt Image Generator', category: 'Engagement' },
+    { id: 'content_generator', icon: Sparkles, label: 'Konten Generator', category: 'Engagement' },
     { id: 'articles', icon: FileText, label: 'Articles & Content', category: 'CMS' },
     { id: 'portfolios', icon: Briefcase, label: 'Portfolios', category: 'CMS' },
     { id: 'events', icon: Calendar, label: 'Events & Programs', category: 'CMS' },

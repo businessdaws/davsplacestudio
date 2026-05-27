@@ -1397,6 +1397,22 @@ app.get("/api/coingecko/markets", async (req, res) => {
   }
 });
 
+// Global Express Error Handler to prevent HTML error pages in JSON API routes
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("[Global Error Handler] Caught exception:", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  if (req.path.startsWith("/api/")) {
+    return res.status(err.status || 500).json({
+      error: err.message || "An unexpected server-side error occurred."
+    });
+  }
+  
+  next(err);
+});
+
 // Setup Vite or static serving
 async function setupServer() {
   if (process.env.NODE_ENV !== "production") {
