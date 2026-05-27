@@ -179,16 +179,29 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ prompt, context, provider }),
       });
+      
+      if (!response.ok) {
+        let errMsg = `Status ${response.status}: ${response.statusText}`;
+        try {
+          const errData = await response.json();
+          if (errData && errData.error) {
+            errMsg = errData.error;
+          }
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+      
       const data = await response.json();
       if (data.error) throw new Error(data.error);
-      return data.text;
-    } catch (err) {
+      return data.text || '';
+    } catch (err: any) {
       console.error('AI Error:', err);
-      alert('Gagal memanggil AI Assistant. Pastikan server berjalan dan API Key valid.');
-      return '';
+      throw err;
     }
   };
 

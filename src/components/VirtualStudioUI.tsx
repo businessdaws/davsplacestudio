@@ -385,7 +385,14 @@ export default function VirtualStudioUI({ user, profile }: VirtualStudioUIProps)
       });
 
       if (!response.ok) {
-        throw new Error('Gagal terhubung ke modul AI Google Gemini.');
+        let errMsg = 'Gagal terhubung ke modul AI Google Gemini.';
+        try {
+          const errData = await response.json();
+          if (errData && errData.error) {
+            errMsg = errData.error;
+          }
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const resData = await response.json();

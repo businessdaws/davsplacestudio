@@ -204,7 +204,7 @@ Anda HARUS mengembalikan respons dalam format JSON valid (TANPA dibungkus markdo
       showNotification('success', 'Artikel AI berhasil dibuat! Silakan tinjau dan simpan di bawah.');
     } catch (err: any) {
       console.error(err);
-      showNotification('error', 'Gagal membuat artikel. Pastikan server aktif dan API Key valid.');
+      showNotification('error', `Gagal membuat artikel: ${err.message || 'Pastikan server aktif dan API Key valid.'}`);
     } finally {
       setIsGeneratingArticle(false);
     }
@@ -340,6 +340,17 @@ Anda HARUS mengembalikan respons dalam format JSON valid (TANPA dibungkus markdo
           fileUrl: analyzerFileUrl
         })
       });
+
+      if (!res.ok) {
+        let errMsg = `Status ${res.status}: ${res.statusText}`;
+        try {
+          const errData = await res.json();
+          if (errData && errData.error) {
+            errMsg = errData.error;
+          }
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
 
       const analysisRaw = await res.json();
       if (analysisRaw.error) throw new Error(analysisRaw.error);

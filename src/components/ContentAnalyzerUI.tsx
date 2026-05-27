@@ -235,8 +235,14 @@ export default function ContentAnalyzerUI({ user, profile, onIncrementTrial }: C
       timers.forEach(t => clearTimeout(t));
 
       if (!response.ok) {
-        const errJson = await response.json();
-        throw new Error(errJson.error || "Gagal melakukan analisis konten.");
+        let errMsg = `Status ${response.status}: ${response.statusText}`;
+        try {
+          const errJson = await response.json();
+          if (errJson && errJson.error) {
+            errMsg = errJson.error;
+          }
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
