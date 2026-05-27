@@ -1722,6 +1722,9 @@ function LogosManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({ company_name: '', logo_url: '', website_url: '', sort_order: 0, is_active: true });
+  
+  const [partnerTitle, setPartnerTitle] = useState('PROJECT AND COLLABORATION');
+  const [savingTitle, setSavingTitle] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -1734,7 +1737,56 @@ function LogosManager() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchTitle = async () => {
+    try {
+      const docRef = doc(db, 'site_settings', 'global');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.partner_title) {
+          setPartnerTitle(data.partner_title);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching partner title:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchTitle();
+  }, []);
+
+  const handleSaveTitle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingTitle(true);
+    try {
+      const docRef = doc(db, 'site_settings', 'global');
+      await setDoc(docRef, { partner_title: partnerTitle }, { merge: true });
+      alert('Teks Heading Marquee berhasil diperbarui!');
+    } catch (err) {
+      console.error('Error saving partner title:', err);
+      alert('Gagal memperbarui teks heading.');
+    } finally {
+      setSavingTitle(false);
+    }
+  };
+
+  const handleLogoUploadInManager = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) { // 1MB Limit
+      alert('Ukuran file terlalu besar! Maksimal 1MB untuk performa terbaik.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, logo_url: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1775,7 +1827,35 @@ function LogosManager() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Configure Heading */}
+      <div className="bg-bg-secondary border border-border-subtle p-6 rounded-2xl space-y-4">
+        <div className="flex items-center gap-3">
+          <FileText className="w-5 h-5 text-accent-yellow" />
+          <h3 className="text-sm font-black uppercase tracking-widest text-white">Headline Banner Marquee</h3>
+        </div>
+        <form onSubmit={handleSaveTitle} className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex-1 space-y-1">
+            <label className="text-[10px] font-black uppercase text-text-secondary">Text Headline Partner & Brand</label>
+            <input 
+              type="text" 
+              value={partnerTitle} 
+              onChange={(e) => setPartnerTitle(e.target.value)} 
+              className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow text-sm text-white" 
+              placeholder="e.g. PROJECT AND COLLABORATION"
+              required
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={savingTitle} 
+            className="w-full sm:w-auto px-6 py-3.5 bg-accent-yellow text-bg-primary font-black rounded-xl text-xs uppercase tracking-wider transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shrink-0"
+          >
+            {savingTitle ? 'Menyimpan...' : 'Perbarui Teks'}
+          </button>
+        </form>
+      </div>
+
       <div className="flex justify-between items-center bg-bg-secondary p-6 border border-border-subtle rounded-xl">
         <div className="text-sm font-bold">{logos.length} Total Logo</div>
         <button onClick={openAdd} className="px-6 py-3 bg-accent-yellow text-bg-primary font-black rounded-lg flex items-center gap-2 transition-transform hover:scale-105">
@@ -1801,17 +1881,57 @@ function LogosManager() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl">
-            <h3 className="text-2xl font-display font-black mb-8 uppercase">{editingItem ? 'Edit' : 'Tambah'} Logo</h3>
+          <div className="w-full max-w-md bg-bg-secondary border border-border-subtle rounded-2xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h3 className="text-2xl font-display font-black mb-6 uppercase">{editingItem ? 'Edit' : 'Tambah'} Logo</h3>
             <form onSubmit={handleSave} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-text-secondary">Nama Perusahaan</label>
-                <input type="text" required value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+                <label className="text-[10px] font-black uppercase text-text-secondary">Nama Perusahaan / Brand</label>
+                <input type="text" required value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" placeholder="e.g. Realme" />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-text-secondary">Logo URL</label>
-                <input type="text" required value={formData.logo_url} onChange={(e) => setFormData({...formData, logo_url: e.target.value})} className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow" />
+
+              {/* Logo Upload & URL Options */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-text-secondary">Logo Brand (PNG/JPG)</label>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-bold text-text-secondary uppercase">Opsi 1: Upload PNG / JPG</p>
+                    <div className="relative group cursor-pointer">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleLogoUploadInManager}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="w-full bg-bg-tertiary border-2 border-dashed border-border-subtle rounded-xl py-6 px-4 flex flex-col items-center justify-center gap-2 group-hover:border-accent-yellow transition-all">
+                        <Upload className="w-5 h-5 text-text-secondary group-hover:text-accent-yellow" />
+                        <span className="text-[11px] font-bold text-text-secondary">Pilih File Logo PNG</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-text-secondary uppercase">Opsi 2: Link URL Gambar</p>
+                    <input 
+                      type="text" 
+                      value={formData.logo_url} 
+                      onChange={(e) => setFormData({...formData, logo_url: e.target.value})} 
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-lg py-2 px-3 outline-none focus:border-accent-yellow text-xs" 
+                      placeholder="https://images.unsplash.com/..."
+                    />
+                  </div>
+                </div>
+
+                {formData.logo_url && (
+                  <div className="p-4 bg-bg-tertiary border border-border-subtle rounded-xl flex flex-col items-center gap-2">
+                    <p className="text-[9px] font-bold text-text-secondary uppercase">Preview Logo:</p>
+                    <div className="w-24 h-24 bg-white/5 p-2 rounded-lg flex items-center justify-center">
+                      <img src={formData.logo_url} className="max-w-full max-h-full object-contain" alt="Preview logo" />
+                    </div>
+                  </div>
+                )}
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-text-secondary">Urutan</label>
@@ -1822,7 +1942,8 @@ function LogosManager() {
                   <label htmlFor="logo-active" className="text-[10px] font-black uppercase">Aktif</label>
                 </div>
               </div>
-              <div className="flex justify-end gap-4 pt-4">
+
+              <div className="flex justify-end gap-4 pt-4 border-t border-border-subtle">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-text-secondary">Batal</button>
                 <button type="submit" className="px-8 py-2 bg-accent-yellow text-bg-primary font-black rounded-lg">SIMPAN</button>
               </div>

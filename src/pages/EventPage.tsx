@@ -144,13 +144,13 @@ export default function EventPage() {
       <Navbar onSearchClick={() => setIsSearchOpen(true)} />
       <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
 
-      <main className="pt-24 pb-20 lg:pb-0">
+      <main className="pt-20 sm:pt-24 pb-24 sm:pb-28 lg:pb-8">
         
         {/* Decorative Grid Mesh Background */}
         <div className="absolute inset-0 top-0 h-[600px] bg-[radial-gradient(#fcd34d_0.8px,transparent_0.8px)] [background-size:24px_24px] opacity-[0.03] pointer-events-none select-none z-0" />
         <div className="absolute top-20 right-1/4 w-[350px] h-[350px] bg-accent-yellow/5 rounded-full blur-[140px] pointer-events-none" />
 
-        <div className="px-6 py-12 max-w-7xl mx-auto relative z-10">
+        <div className="px-4 sm:px-6 py-8 sm:py-12 max-w-7xl mx-auto relative z-10">
           
           {/* Header Block Section */}
           <motion.div
@@ -164,7 +164,7 @@ export default function EventPage() {
               Aktivitas Eksklusif Davsplace
             </div>
             
-            <h1 className="text-5xl md:text-8xl font-display font-black tracking-tight uppercase leading-none mb-6">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-black tracking-tight uppercase leading-none mb-6">
               HADIRI <span className="text-accent-yellow">EVENTS</span>
             </h1>
             
@@ -174,7 +174,7 @@ export default function EventPage() {
           </motion.div>
 
           {/* Fully Interactive Search & Filter Deck */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-12 bg-bg-secondary p-5 border border-border-subtle rounded-[2.5rem] shadow-xl">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 mb-12 bg-bg-secondary p-4 sm:p-5 border border-border-subtle rounded-3xl md:rounded-[2.5rem] shadow-xl">
             {/* Search Input Box */}
             <div className="relative md:col-span-5">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-secondary" />
@@ -257,7 +257,7 @@ export default function EventPage() {
               </button>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {filteredEvents.map((event, idx) => (
                 <motion.div
                   key={event.id}
@@ -268,7 +268,7 @@ export default function EventPage() {
                   className="group bg-bg-secondary border border-border-subtle rounded-3xl overflow-hidden flex flex-col sm:flex-row shadow-xl hover:border-accent-yellow/40 hover:shadow-2xl transition-all duration-500 cursor-pointer"
                 >
                   {/* Thumbnail Cover */}
-                  <div className="relative w-full sm:w-2/5 min-h-[220px] bg-bg-tertiary">
+                  <div className="relative w-full sm:w-2/5 h-52 sm:h-auto sm:min-h-[220px] bg-bg-tertiary shrink-0">
                     <img 
                       src={event.image_url || 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?q=80&w=600&h=400&auto=format&fit=crop'} 
                       alt={event.title} 
@@ -283,7 +283,7 @@ export default function EventPage() {
                   </div>
 
                   {/* Informational Panel */}
-                  <div className="w-full sm:w-3/5 p-6 md:p-8 flex flex-col justify-between relative">
+                  <div className="w-full sm:w-3/5 p-5 md:p-8 flex flex-col justify-between relative">
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-3">
                         <span className="text-[8px] font-black uppercase text-accent-yellow tracking-widest bg-accent-yellow/10 px-2 py-0.5 rounded border border-accent-yellow/20">
@@ -354,14 +354,14 @@ export default function EventPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-3xl bg-bg-secondary rounded-[3rem] overflow-hidden border border-border-subtle shadow-2xl flex flex-col h-auto max-h-[90vh]"
+              className="relative w-full max-w-3xl bg-bg-secondary rounded-3xl sm:rounded-[3rem] overflow-hidden border border-border-subtle shadow-2xl flex flex-col h-auto max-h-[90vh]"
               onClick={e => e.stopPropagation()}
             >
               <button 
                 onClick={() => setSelectedEvent(null)}
-                className="absolute top-6 right-6 z-20 p-3 bg-bg-primary/50 hover:bg-bg-primary text-white rounded-full border border-white/5 transition-colors"
+                className="absolute top-4 right-4 md:top-6 md:right-6 z-20 p-2 md:p-3 bg-bg-primary/50 hover:bg-bg-primary text-white rounded-full border border-white/5 transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
               <div className="overflow-y-auto">
@@ -374,7 +374,7 @@ export default function EventPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-bg-secondary to-transparent" />
                 </div>
 
-                <div className="p-8 md:p-10 space-y-6">
+                <div className="p-5 sm:p-8 md:p-10 space-y-5 sm:space-y-6">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <span className="px-3 py-1 bg-accent-yellow text-bg-primary text-[9px] font-black rounded-lg uppercase tracking-widest">
@@ -414,19 +414,21 @@ export default function EventPage() {
                       {selectedEvent.description || 'Belum ada deskripsi untuk event eksklusif ini.'}
                     </p>
 
-                    <div className="flex items-center justify-between gap-6 pt-4 border-t border-border-subtle/30">
-                      <div>
-                        <span className="text-[9px] font-black uppercase text-text-secondary tracking-widest block mb-0.5">Biaya Pendaftaran</span>
-                        <span className="text-xl font-display font-black text-accent-yellow">{selectedEvent.price}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-border-subtle/30">
+                      <div className="flex justify-between sm:block w-full sm:w-auto">
+                        <div>
+                          <span className="text-[9px] font-black uppercase text-text-secondary tracking-widest block mb-0.5">Biaya Pendaftaran</span>
+                          <span className="text-xl font-display font-black text-accent-yellow">{selectedEvent.price}</span>
+                        </div>
                       </div>
                       <a 
                         href={selectedEvent.link || '#'} 
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 py-3.5 bg-accent-yellow hover:bg-white text-bg-primary font-black rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-center text-xs uppercase"
+                        className="w-full sm:w-auto sm:px-8 py-3.5 bg-accent-yellow hover:bg-white text-bg-primary font-black rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-center text-xs uppercase"
                       >
                         DAFTAR PESERTA
-                        <ExternalLink className="w-4.5 h-4.5" />
+                        <ExternalLink className="w-4 h-4 cursor-pointer" />
                       </a>
                     </div>
                   </div>

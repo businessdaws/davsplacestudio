@@ -85,14 +85,14 @@ export default function CollabPage() {
       <Navbar onSearchClick={() => setIsSearchOpen(true)} />
       <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
       
-      <main className="pt-24 pb-20 lg:pb-0">
-        <div className="px-6 py-12 max-w-7xl mx-auto">
+      <main className="pt-20 sm:pt-24 pb-24 sm:pb-28 lg:pb-8">
+        <div className="px-4 sm:px-6 py-8 sm:py-12 max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-20 text-center md:text-left"
           >
-            <h1 className="text-5xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-6 leading-none">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-6 leading-none">
               WORK <span className="text-accent-yellow italic">TOGETHER</span>
             </h1>
             <p className="text-xl text-text-secondary max-w-2xl font-sans">
@@ -100,17 +100,17 @@ export default function CollabPage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 mb-20">
             {/* Left: Info */}
             <div className="space-y-12">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {collabTypes.map((type, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, scale: 0.9 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="p-8 bg-bg-secondary border border-border-subtle rounded-3xl hover:border-accent-yellow transition-all group"
+                    className="p-6 sm:p-8 bg-bg-secondary border border-border-subtle rounded-3xl hover:border-accent-yellow transition-all group"
                   >
                     <div className="w-12 h-12 bg-accent-yellow/10 rounded-xl flex items-center justify-center mb-6">
                       <type.icon className="w-6 h-6 text-accent-yellow" />
@@ -148,23 +148,23 @@ export default function CollabPage() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-bg-secondary border border-border-subtle rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden"
+                    className="bg-bg-secondary border border-border-subtle rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-8 md:p-12 shadow-2xl relative overflow-hidden"
                   >
                     {/* Background decor */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-accent-yellow/5 blur-3xl pointer-events-none" />
 
                     <div className="relative z-10">
-                      <h3 className="text-3xl font-display font-black mb-2 uppercase tracking-tighter">AJUKAN PROPOSAL</h3>
-                      <p className="text-text-secondary text-sm mb-10 font-sans">Isi formulir di bawah dan tim kami akan segera menghubungi Anda.</p>
+                      <h3 className="text-2xl sm:text-3xl font-display font-black mb-2 uppercase tracking-tighter">AJUKAN PROPOSAL</h3>
+                      <p className="text-text-secondary text-sm mb-8 sm:mb-10 font-sans">Isi formulir di bawah dan tim kami akan segera menghubungi Anda.</p>
                       
-                      <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                           <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase text-text-secondary ml-1 tracking-widest">Nama Lengkap</label>
                             <input 
                               type="text" required value={formData.name}
                               onChange={(e) => setFormData({...formData, name: e.target.value})}
-                              className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl py-4 px-5 outline-none focus:border-accent-yellow transition-all"
+                              className="w-full bg-bg-tertiary border border-border-subtle rounded-xl sm:rounded-2xl py-3.5 px-4 sm:py-4 sm:px-5 outline-none focus:border-accent-yellow transition-all"
                             />
                           </div>
                           <div className="space-y-2">
@@ -172,18 +172,18 @@ export default function CollabPage() {
                             <input 
                               type="email" required value={formData.email}
                               onChange={(e) => setFormData({...formData, email: e.target.value})}
-                              className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl py-4 px-5 outline-none focus:border-accent-yellow transition-all"
+                              className="w-full bg-bg-tertiary border border-border-subtle rounded-xl sm:rounded-2xl py-3.5 px-4 sm:py-4 sm:px-5 outline-none focus:border-accent-yellow transition-all"
                             />
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                           <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase text-text-secondary ml-1 tracking-widest">Perusahaan / Brand</label>
                             <input 
                               type="text" value={formData.company}
                               onChange={(e) => setFormData({...formData, company: e.target.value})}
-                              className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl py-4 px-5 outline-none focus:border-accent-yellow transition-all"
+                              className="w-full bg-bg-tertiary border border-border-subtle rounded-xl sm:rounded-2xl py-3.5 px-4 sm:py-4 sm:px-5 outline-none focus:border-accent-yellow transition-all"
                             />
                           </div>
                           <div className="space-y-2">
@@ -191,7 +191,7 @@ export default function CollabPage() {
                             <select 
                               value={formData.type}
                               onChange={(e) => setFormData({...formData, type: e.target.value})}
-                              className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl py-4 px-5 outline-none focus:border-accent-yellow transition-all appearance-none"
+                              className="w-full bg-bg-tertiary border border-border-subtle rounded-xl sm:rounded-2xl py-3.5 px-4 sm:py-4 sm:px-5 outline-none focus:border-accent-yellow transition-all appearance-none"
                             >
                               {collabTypes.map(t => <option key={t.title} value={t.title}>{t.title}</option>)}
                               <option value="Lainnya">Lainnya</option>
@@ -204,7 +204,7 @@ export default function CollabPage() {
                           <textarea 
                             rows={5} required value={formData.message}
                             onChange={(e) => setFormData({...formData, message: e.target.value})}
-                            className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl py-4 px-5 outline-none focus:border-accent-yellow transition-all resize-none"
+                            className="w-full bg-bg-tertiary border border-border-subtle rounded-xl sm:rounded-2xl py-3.5 px-4 sm:py-4 sm:px-5 outline-none focus:border-accent-yellow transition-all resize-none"
                             placeholder="Jelaskan sedikit tentang rencana hebat Anda..."
                           />
                         </div>
@@ -229,7 +229,7 @@ export default function CollabPage() {
                     key="success"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-bg-secondary border border-border-subtle rounded-[2.5rem] p-12 text-center shadow-2xl h-full flex flex-col items-center justify-center min-h-[500px]"
+                    className="bg-bg-secondary border border-border-subtle rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-12 text-center shadow-2xl h-full flex flex-col items-center justify-center min-h-[400px] sm:min-h-[500px]"
                   >
                     <div className="w-24 h-24 bg-accent-yellow rounded-full flex items-center justify-center text-bg-primary mb-8 shadow-2xl shadow-accent-yellow/20">
                       <CheckCircle className="w-12 h-12" />
@@ -252,7 +252,7 @@ export default function CollabPage() {
           <section className="mt-32">
             <div className="text-center mb-16">
               <p className="text-accent-yellow font-black uppercase tracking-[0.3em] text-[10px] md:text-xs mb-4">Ekosistem Kami</p>
-              <h2 className="text-4xl md:text-6xl font-display font-black uppercase tracking-tight mb-4">JOIN OUR <span className="text-accent-yellow italic underline underline-offset-8">COMMUNITY</span></h2>
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-display font-black uppercase tracking-tight mb-4">JOIN OUR <span className="text-accent-yellow italic underline underline-offset-8">COMMUNITY</span></h2>
               <p className="text-text-secondary max-w-2xl mx-auto font-sans leading-relaxed">Bergabunglah dengan para kreator dan entrepreneur dalam ekosistem kreatif kami untuk bertumbuh bersama.</p>
             </div>
 
@@ -268,18 +268,18 @@ export default function CollabPage() {
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="bg-bg-secondary border border-border-subtle rounded-[2rem] overflow-hidden hover:border-accent-yellow transition-all group p-8 flex flex-col h-full"
+                    className="bg-bg-secondary border border-border-subtle rounded-3xl md:rounded-[2.5rem] overflow-hidden hover:border-accent-yellow transition-all group p-5 sm:p-8 flex flex-col h-full"
                   >
-                    <div className="flex items-center gap-5 mb-8">
-                      <div className="w-20 h-20 rounded-[1.25rem] overflow-hidden bg-bg-tertiary shrink-0 border border-border-subtle shadow-xl shadow-black/20">
+                    <div className="flex flex-row items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] overflow-hidden bg-bg-tertiary shrink-0 border border-border-subtle shadow-xl shadow-black/20">
                         <img 
                           src={community.image_url || `https://ui-avatars.com/api/?name=${community.name}&background=random`} 
                           alt={community.name} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-xl md:text-2xl font-display font-black uppercase tracking-tight leading-tight mb-2 group-hover:text-accent-yellow transition-colors">{community.name}</h4>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-lg sm:text-xl md:text-2xl font-display font-black uppercase tracking-tight leading-tight mb-1.5 group-hover:text-accent-yellow transition-colors truncate">{community.name}</h4>
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[9px] font-black uppercase text-accent-yellow bg-accent-yellow/10 px-2.5 py-1 rounded-lg border border-accent-yellow/20">{community.platform}</span>
                           <span className="text-[9px] font-black uppercase text-text-secondary bg-bg-tertiary px-2.5 py-1 rounded-lg">{community.member_count} Members</span>

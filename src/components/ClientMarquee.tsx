@@ -2,9 +2,11 @@ import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { useSettings } from '../context/SettingsContext';
 
 export default function ClientMarquee() {
   const [clients, setClients] = useState<any[]>([]);
+  const { settings } = useSettings();
 
   useEffect(() => {
     const fetchLogos = async () => {
@@ -36,7 +38,9 @@ export default function ClientMarquee() {
   return (
     <section className="bg-bg-secondary border-y border-border-subtle py-12 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className="text-xs font-bold text-text-secondary uppercase tracking-[0.3em]">Dipercaya oleh Brand & Partner Strategis</p>
+        <p className="text-xs font-bold text-text-secondary uppercase tracking-[0.3em]">
+          {settings.partner_title || 'PROJECT AND COLLABORATION'}
+        </p>
         <div className="h-px flex-1 bg-border-subtle hidden md:block mx-8" />
       </div>
 

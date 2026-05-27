@@ -52,7 +52,7 @@ export default function ScrollToBottomButton() {
   if (!isVisible) return null;
 
   return (
-    <div id="scroll-bottom-indicator-wrapper" className="fixed bottom-20 left-4 lg:bottom-8 lg:left-8 z-[90]">
+    <div id="scroll-bottom-indicator-wrapper" className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-[90]">
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.8 }}

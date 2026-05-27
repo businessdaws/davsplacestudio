@@ -10,6 +10,7 @@ interface SiteSettings {
   maintenance_mode: boolean;
   promo_text: string;
   running_text_enabled: boolean;
+  partner_title?: string;
 }
 
 const defaultSettings: SiteSettings = {
@@ -19,7 +20,8 @@ const defaultSettings: SiteSettings = {
   address: '',
   maintenance_mode: false,
   promo_text: '',
-  running_text_enabled: false
+  running_text_enabled: false,
+  partner_title: 'PROJECT AND COLLABORATION'
 };
 
 const SettingsContext = createContext<{ 
