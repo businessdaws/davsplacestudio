@@ -1422,6 +1422,12 @@ app.all("/api/*", (req, res) => {
 
 // Setup Vite or static serving
 async function setupServer() {
+  // If running in a Serverless environment like Vercel, skip static serving and dev setup.
+  // Vercel routes static files natively at the Edge layer using vercel.json rewrites.
+  if (process.env.VERCEL === "1") {
+    return;
+  }
+
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
