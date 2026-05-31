@@ -41,6 +41,7 @@ const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const CollabPage = lazy(() => import('./pages/CollabPage'));
 const SocialMediaGenerator = lazy(() => import('./pages/SocialMediaGenerator'));
 const EventPage = lazy(() => import('./pages/EventPage'));
+const WatermarkEditor = lazy(() => import('./pages/WatermarkEditor'));
 
 import { SettingsProvider } from './context/SettingsContext';
 
@@ -131,6 +132,11 @@ export default function App() {
             <Route path="/event" element={
               <Suspense fallback={<PageLoader />}>
                 <EventPage />
+              </Suspense>
+            } />
+            <Route path="/watermark" element={
+              <Suspense fallback={<PageLoader />}>
+                <WatermarkEditor />
               </Suspense>
             } />
 

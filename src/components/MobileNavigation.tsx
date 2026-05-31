@@ -13,7 +13,8 @@ import {
   Sun,
   User,
   LayoutDashboard,
-  LogOut
+  LogOut,
+  Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from '../stores/useAppStore';
@@ -150,7 +151,7 @@ export function MobileBottomNavbar({ onSearchClick }: { onSearchClick: () => voi
     { id: 'articles', path: '/artikel', icon: FileText, label: 'Artikel' },
     { id: 'event', path: '/event', icon: Calendar, label: 'Event' },
     { id: 'portfolio', path: '/portofolio', icon: Briefcase, label: 'Porto' },
-    { id: 'collab', path: '/kolaborasi', icon: Users, label: 'Collab' },
+    { id: 'watermark', path: '/watermark', icon: Camera, label: 'Watermark' },
     { id: 'about', path: '/tentang', icon: Info, label: 'About' },
   ];
 

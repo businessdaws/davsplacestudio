@@ -12,6 +12,7 @@ const navLinks = [
   { name: 'Artikel', href: '/artikel' },
   { name: 'Event', href: '/event' },
   { name: 'Portofolio', href: '/portofolio' },
+  { name: 'Watermark', href: '/watermark' },
   { name: 'Kolaborasi', href: '/kolaborasi' },
   { name: 'Tentang', href: '/tentang' },
 ];

@@ -223,6 +223,39 @@
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["user_id", "topic", "headline", "caption"]
+    },
+    "WatermarkTemplate": {
+      "title": "WatermarkTemplate",
+      "description": "Custom templates for watermark frames designed by user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "uid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "config": {
+          "type": "object",
+          "properties": {
+            "frameBg": { "type": "string" },
+            "userTitle": { "type": "string" },
+            "customDate": { "type": "string" },
+            "layoutStyle": { "type": "string" },
+            "userLocation": { "type": "string" },
+            "watermarkFont": { "type": "string" },
+            "showSignature": { "type": "boolean" },
+            "cameraBrand": { "type": "string" },
+            "signatureText": { "type": "string" },
+            "signatureFont": { "type": "string" },
+            "showOverlay": { "type": "boolean" },
+            "overlayType": { "type": "string" },
+            "overlayText": { "type": "string" },
+            "overlayPattern": { "type": "string" },
+            "overlayOpacity": { "type": "number" }
+          }
+        }
+      },
+      "required": ["id", "name", "uid"]
     }
   },
   "firestore": {
@@ -277,6 +310,10 @@
     "activation_codes": {
       "schema": "ActivationCode",
       "description": "Payment activation codes"
+    },
+    "watermark_templates": {
+      "schema": "WatermarkTemplate",
+      "description": "User custom watermark layouts"
     }
   }
 }

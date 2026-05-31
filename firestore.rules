@@ -132,6 +132,13 @@ service cloud.firestore {
              data.caption is string && data.caption.size() > 0;
     }
 
+    function isValidWatermarkTemplate(data) {
+      return data.keys().hasAll(['id', 'name', 'uid']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 128 &&
+             data.uid == request.auth.uid;
+    }
+
     // --- COLLECTION RULES ---
 
     match /profiles/{userId} {
@@ -233,6 +240,14 @@ service cloud.firestore {
         incoming().used_by == request.auth.uid &&
         incoming().used_by_email == request.auth.token.email
       );
+    }
+
+    match /watermark_templates/{templateId} {
+      allow list: if isSignedIn(); // Queries must filter by uid
+      allow get: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidWatermarkTemplate(incoming());
+      allow update: if isSignedIn() && isOwner(existing().uid) && isValidWatermarkTemplate(incoming());
+      allow delete: if isSignedIn() && (isOwner(existing().uid) || isAdmin());
     }
   }
 }
