@@ -114,7 +114,7 @@ const BrandLogoGraphic = ({ id, isSelected }: { id: string; isSelected: boolean 
   }
 };
 
-export default function WatermarkEditor() {
+export default function WatermarkEditor({ isEmbedded = false }: { isEmbedded?: boolean }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -170,6 +170,12 @@ export default function WatermarkEditor() {
   const customLogoInputRef = useRef<HTMLInputElement>(null);
 
   // Authentication & Limitation Handlers
+  useEffect(() => {
+    if (!isEmbedded) {
+      navigate('/dashboard?tab=watermarking', { replace: true });
+    }
+  }, [isEmbedded, navigate]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -1209,13 +1215,13 @@ export default function WatermarkEditor() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary text-text-primary selection:bg-accent-yellow/20 selection:text-accent-yellow overflow-x-hidden">
+    <div className={cn(isEmbedded ? "" : "min-h-screen bg-bg-primary", "text-text-primary selection:bg-accent-yellow/20 selection:text-accent-yellow overflow-x-hidden")}>
       {/* Topbars navigation */}
-      <Navbar onSearchClick={() => setIsSearchOpen(true)} />
-      <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
+      {!isEmbedded && <Navbar onSearchClick={() => setIsSearchOpen(true)} />}
+      {!isEmbedded && <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />}
 
-      <main className="pt-24 pb-20 lg:pb-12">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-12">
+      <main className={isEmbedded ? "pt-0 pb-0" : "pt-24 pb-20 lg:pb-12"}>
+        <div className={isEmbedded ? "max-w-7xl mx-auto px-0 py-0" : "max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-12"}>
           
           {/* Header Introduction Section */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 md:mb-12 border-b border-border-subtle pb-6 md:pb-8">
@@ -1990,9 +1996,9 @@ export default function WatermarkEditor() {
         </div>
       </main>
 
-      <Footer />
-      <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {!isEmbedded && <Footer />}
+      {!isEmbedded && <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />}
+      {!isEmbedded && <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />}
 
       {/* Google Login Limit Modal Overlay */}
       <AnimatePresence>

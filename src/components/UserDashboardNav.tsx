@@ -11,11 +11,12 @@ export default function UserDashboardNav({ user }: { user: any }) {
 
   const navItems = [
     { name: 'AI Generator', href: '/dashboard?tab=generator', icon: Sparkles, tab: 'generator' },
-    { name: 'Saved Content', href: '/dashboard', icon: LayoutDashboard, tab: 'saved' },
     { name: 'Content Analyzer', href: '/dashboard?tab=analyzer', icon: FileText, tab: 'analyzer' },
     { name: 'Visual Engine', href: '/dashboard?tab=visual-engine', icon: Film, tab: 'visual-engine' },
     { name: 'Creative Editor', href: '/dashboard?tab=editor', icon: Palette, tab: 'editor', isBeta: true },
     { name: 'Virtual Studio', href: '/dashboard?tab=virtual-studio', icon: Camera, tab: 'virtual-studio', isBeta: true },
+    { name: 'Watermarking', href: '/dashboard?tab=watermarking', icon: Camera, tab: 'watermarking' },
+    { name: 'Saved Content', href: '/dashboard', icon: LayoutDashboard, tab: 'saved' },
   ];
 
   return (

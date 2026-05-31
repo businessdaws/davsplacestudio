@@ -12,7 +12,6 @@ const navLinks = [
   { name: 'Artikel', href: '/artikel' },
   { name: 'Event', href: '/event' },
   { name: 'Portofolio', href: '/portofolio' },
-  { name: 'Watermark', href: '/watermark' },
   { name: 'Kolaborasi', href: '/kolaborasi' },
   { name: 'Tentang', href: '/tentang' },
 ];
@@ -153,7 +152,7 @@ export default function Navbar({ onSearchClick }: { onSearchClick?: () => void }
                     className="flex items-center gap-3 p-3 text-xs font-bold text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
                   >
                     <Sparkles className="w-4 h-4 text-accent-yellow" />
-                    AI Generator
+                    Davsplace Studio AI
                   </Link>
 
                   <Link 

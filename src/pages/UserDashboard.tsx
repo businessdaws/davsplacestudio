@@ -8,6 +8,7 @@ import ContentAnalyzerUI from '../components/ContentAnalyzerUI';
 import CreativeEditorUI from '../components/CreativeEditorUI';
 import AIGeneratorUI from '../components/AIGeneratorUI';
 import VirtualStudioUI from '../components/VirtualStudioUI';
+import WatermarkEditor from './WatermarkEditor';
 import { 
   collection, 
   query, 
@@ -291,7 +292,7 @@ export default function UserDashboard() {
                   <span className="text-[10px] font-black uppercase text-red-400 tracking-[0.2em]">Akses Terbatas</span>
                   <h3 className="text-3xl font-display font-black leading-none uppercase text-white tracking-tight">BATAS TRIAL TERCAPAI</h3>
                   <p className="text-text-secondary text-sm sm:text-xs leading-relaxed max-w-md mx-auto opacity-80">
-                    Sistem mendeteksi masa trial gratis (3/3 kali pembuatan) Anda telah selesai. Untuk mengakses kembali seluruh menu canggih AI Generator, Content Analyzer, Visual Engine, maupun Creative Editor, silakan aktivasi keanggotaan Pro Anda.
+                    Sistem mendeteksi masa trial gratis (3/3 kali pembuatan) Anda telah selesai. Untuk mengakses kembali seluruh menu canggih Davsplace Studio AI (AI Generator, Content Analyzer, Visual Engine, Creative Editor, Virtual Studio, maupun Watermarking), silakan aktivasi keanggotaan Pro Anda.
                   </p>
                 </div>
 
@@ -367,6 +368,8 @@ export default function UserDashboard() {
             <CreativeEditorUI user={user} />
           ) : activeTab === 'virtual-studio' ? (
             <VirtualStudioUI user={user} profile={profile} />
+          ) : activeTab === 'watermarking' ? (
+            <WatermarkEditor isEmbedded={true} />
           ) : (
             <>
               {/* Header */}

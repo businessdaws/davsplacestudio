@@ -105,7 +105,7 @@ export function MobileTopbar({ onSearchClick }: { onSearchClick: () => void }) {
                       className="w-full flex items-center gap-3 p-3 text-[10px] font-bold text-text-primary hover:bg-bg-tertiary rounded-xl transition-colors uppercase tracking-wider"
                     >
                       <Sparkles className="w-4 h-4 text-accent-yellow" />
-                      AI Generator
+                      Davsplace Studio AI
                     </button>
 
                     <button 
@@ -151,7 +151,6 @@ export function MobileBottomNavbar({ onSearchClick }: { onSearchClick: () => voi
     { id: 'articles', path: '/artikel', icon: FileText, label: 'Artikel' },
     { id: 'event', path: '/event', icon: Calendar, label: 'Event' },
     { id: 'portfolio', path: '/portofolio', icon: Briefcase, label: 'Porto' },
-    { id: 'watermark', path: '/watermark', icon: Camera, label: 'Watermark' },
     { id: 'about', path: '/tentang', icon: Info, label: 'About' },
   ];
 
