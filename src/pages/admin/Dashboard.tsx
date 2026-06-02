@@ -83,7 +83,30 @@ const ADMIN_EMAILS = [
   'fajarmuniri@gmail.com'
 ];
 
+const triggerSuccessNotification = (msg: string = "Berhasil menyimpan") => {
+  if (typeof window !== "undefined") {
+    (window as any).showAdminToast?.(msg);
+  }
+};
+
 export default function AdminDashboard() {
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    let timer: any = null;
+    (window as any).showAdminToast = (message: string, type: 'success' | 'error' = 'success') => {
+      setToast({ message, type });
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        setToast(null);
+      }, 3000);
+    };
+    return () => {
+      if (timer) clearTimeout(timer);
+      delete (window as any).showAdminToast;
+    };
+  }, []);
+
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -316,6 +339,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-bg-primary flex overflow-hidden">
+      {/* Dynamic Saving Notification Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50, scale: 0.9, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, scale: 0.9, x: '-50%' }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-[9999] bg-emerald-500 text-bg-primary text-xs font-black uppercase tracking-wider py-3 px-6 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.3)] border border-emerald-400 flex items-center gap-3"
+          >
+            <CheckCircle className="w-5 h-5 text-white animate-pulse" />
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* (1) Desktop Sidebar */}
       <aside className="hidden lg:flex w-72 bg-bg-secondary border-r border-border-subtle flex-col h-screen sticky top-0 z-50 shrink-0">
         <SidebarContent />
@@ -688,7 +726,7 @@ function SettingsManager() {
         ...settings,
         updated_at: serverTimestamp()
       }, { merge: true });
-      alert('Pengaturan berhasil disimpan!');
+      triggerSuccessNotification();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'site_settings/global');
     } finally {
@@ -861,7 +899,7 @@ function SubscriptionsManager() {
         whatsapp: settings.whatsapp,
         updated_at: serverTimestamp()
       }, { merge: true });
-      alert('Harga langganan & nomor WA sukses disimpan!');
+      triggerSuccessNotification();
     } catch (err) {
       console.error("Gagal simpan setting:", err);
       alert('Gagal simpan setting: ' + (err as any).message);
@@ -1184,6 +1222,7 @@ function LinksManager() {
       }
       setIsModalOpen(false);
       fetchLinks();
+      triggerSuccessNotification();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'useful_links');
     }
@@ -1623,6 +1662,7 @@ function CategoriesManager() {
       }
       setIsModalOpen(false);
       fetchData();
+      triggerSuccessNotification();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'categories');
     }
@@ -1777,7 +1817,7 @@ function LogosManager() {
     try {
       const docRef = doc(db, 'site_settings', 'global');
       await setDoc(docRef, { partner_title: partnerTitle }, { merge: true });
-      alert('Teks Heading Marquee berhasil diperbarui!');
+      triggerSuccessNotification();
     } catch (err) {
       console.error('Error saving partner title:', err);
       alert('Gagal memperbarui teks heading.');
@@ -1812,6 +1852,7 @@ function LogosManager() {
       }
       setIsModalOpen(false);
       fetchData();
+      triggerSuccessNotification();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'client_logos');
     }
@@ -2009,6 +2050,7 @@ function CommunityManager() {
       }
       setIsModalOpen(false);
       fetchData();
+      triggerSuccessNotification();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'communities');
     } finally {
@@ -2255,6 +2297,7 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
       setEditingItem(null);
       setFormData(getInitialFormData());
       await fetchData();
+      triggerSuccessNotification();
     } catch (err: any) {
       handleFirestoreError(err, OperationType.WRITE, type);
     } finally {
