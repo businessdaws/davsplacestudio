@@ -105,7 +105,6 @@ export default function EventPage() {
       try {
         const q = query(
           collection(db, 'events'),
-          where('is_published', '==', true),
           orderBy('created_at', 'desc')
         );
         const querySnapshot = await getDocs(q);
@@ -114,8 +113,11 @@ export default function EventPage() {
           ...doc.data() 
         })) as unknown as EventItem[];
         
-        if (fbData && fbData.length > 0) {
-          setEvents(fbData);
+        // Filter is_published client-side to bypass Firebase composite index requirements
+        const publishedEvents = fbData.filter((ev: any) => ev.is_published !== false);
+
+        if (publishedEvents && publishedEvents.length > 0) {
+          setEvents(publishedEvents);
         } else {
           setEvents(FALLBACK_EVENTS);
         }
