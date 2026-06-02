@@ -2154,7 +2154,8 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
       case 'events':
         return { 
           title: '', date: '', location: '', type: 'online', 
-          price: 'Free', image_url: '', is_published: true, content: ''
+          price: 'Free', image_url: '', is_published: true, content: '',
+          description: '', category: '', link: ''
         };
       case 'portfolios':
         return { 
@@ -2229,6 +2230,12 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
       const cat = categories.find(c => c.id === formData.category_id);
       if (cat) payload.category = cat.name;
     }
+
+    if (type === 'events') {
+      const desc = formData.content || formData.description || '';
+      payload.description = desc;
+      payload.content = desc;
+    }
     
     try {
       if (editingItem) {
@@ -2272,10 +2279,16 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
 
   const openEdit = (item: any) => {
     setEditingItem(item);
+    const initial = getInitialFormData();
     const data: any = {};
-    Object.keys(getInitialFormData()).forEach(key => {
-      data[key] = item[key] ?? (getInitialFormData() as any)[key];
+    Object.keys(initial).forEach(key => {
+      data[key] = item[key] ?? (initial as any)[key];
     });
+    if (type === 'events') {
+      const desc = item.description || item.content || '';
+      data.description = desc;
+      data.content = desc;
+    }
     setFormData(data);
     setIsModalOpen(true);
   };
@@ -2595,6 +2608,22 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
                     <input 
                       type="text" required placeholder="Free / Rp 100.000" value={formData.price}
                       onChange={(e) => setFormData({...formData, price: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Kategori Event</label>
+                    <input 
+                      type="text" required placeholder="e.g. AI & Tech / Design / Web Dev" value={formData.category}
+                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Link Pendaftaran (RSVP Link)</label>
+                    <input 
+                      type="text" placeholder="e.g. https://..." value={formData.link}
+                      onChange={(e) => setFormData({...formData, link: e.target.value})}
                       className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
                     />
                   </div>
