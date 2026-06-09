@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { auth, db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { 
@@ -52,7 +53,9 @@ import {
   Key,
   Award,
   Check,
-  Copy
+  Copy,
+  Activity,
+  ShieldAlert
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -71,8 +74,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatDate } from '../../lib/utils';
 import ImagePromptGenerator from '../../components/ImagePromptGenerator';
 import AdminContentGeneratorUI from '../../components/AdminContentGeneratorUI';
+import HealthMonitorManager from '../../components/HealthMonitorManager';
 
-type Tab = 'overview' | 'leads' | 'content_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings' | 'subscriptions';
+type Tab = 'overview' | 'leads' | 'content_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings' | 'subscriptions' | 'health_monitor';
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
@@ -198,7 +202,7 @@ export default function AdminDashboard() {
     navigate('/admin/login');
   };
 
-  const generateAIContent = async (prompt: string, context: string, provider: 'gemini' | 'nvidia-nemotron' = 'nvidia-nemotron') => {
+  const generateAIContent = async (prompt: string, context: string, provider: 'gemini' | 'nvidia-nemotron' = 'gemini') => {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
@@ -295,6 +299,7 @@ export default function AdminDashboard() {
           { id: 'logos', icon: Users, label: 'Client Logos' },
           { id: 'settings', icon: Settings, label: 'System Settings' },
           { id: 'subscriptions', icon: Key, label: 'Subscriptions & Codes' },
+          { id: 'health_monitor', icon: Activity, label: 'Diagnosis & Safety' },
         ].map((item) => (
           <button
             key={item.id}
@@ -471,6 +476,7 @@ export default function AdminDashboard() {
                     {activeTab === 'logos' && (<>CLIENT <span className="text-accent-yellow italic">LOGOS</span></>)}
                     {activeTab === 'settings' && (<>SYSTEM <span className="text-accent-yellow italic">SETTINGS</span></>)}
                     {activeTab === 'subscriptions' && (<>MANAGE <span className="text-accent-yellow italic">SUBSCRIPTIONS</span></>)}
+                    {activeTab === 'health_monitor' && (<>SYSTEM <span className="text-accent-yellow italic">DIAGNOSTICS & SAFETY</span></>)}
                   </h1>
                   <p className="text-[10px] md:text-sm text-text-secondary font-sans tracking-widest uppercase font-bold text-accent-yellow/60">
                     {activeTab.replace('_', ' ')}
@@ -490,6 +496,7 @@ export default function AdminDashboard() {
               {activeTab === 'logos' && <LogosManager />}
               {activeTab === 'settings' && <SettingsManager />}
               {activeTab === 'subscriptions' && <SubscriptionsManager />}
+              {activeTab === 'health_monitor' && <HealthMonitorManager onGenerateAI={generateAIContent} setActiveTab={setActiveTab} />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -2176,6 +2183,18 @@ function CommunityManager() {
   );
 }
 
+const slugify = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           // Ganti spasi dengan -
+    .replace(/[^\w\-]+/g, '')       // Hapus karakter non-alphanumeric selain -
+    .replace(/\-\-+/g, '-')         // Ganti multi - dengan satu -
+    .replace(/^-+/, '')             // Hapus - di awal
+    .replace(/-+$/, '');            // Hapus - di akhir
+};
+
 function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 'portfolios', onGenerateAI?: (p: string, c: string) => Promise<string> }) {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -2185,6 +2204,7 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pub' | 'draft'>('all');
+  const [contentTab, setContentTab] = useState<'write' | 'preview'>('write');
   
   const getInitialFormData = () => {
     switch (type) {
@@ -2317,6 +2337,7 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
   const openAdd = () => {
     setEditingItem(null);
     setFormData(getInitialFormData());
+    setContentTab('write');
     setIsModalOpen(true);
   };
 
@@ -2333,6 +2354,7 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
       data.content = desc;
     }
     setFormData(data);
+    setContentTab('write');
     setIsModalOpen(true);
   };
 
@@ -2524,9 +2546,24 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
                       type="button"
                       onClick={async () => {
                         setIsGenerating(true);
-                        const res = await onGenerateAI('Buatkan judul yang menarik dan SEO friendly untuk konten ini', formData.content || formData.description || 'Belum ada konten');
-                        setFormData({ ...formData, title: res.replace(/"/g, '') });
-                        setIsGenerating(false);
+                        try {
+                          const res = await onGenerateAI('Buatkan judul yang menarik dan SEO friendly untuk konten ini', formData.content || formData.description || 'Belum ada konten');
+                          const sanitizedTitle = res.replace(/"/g, '');
+                          const updated: any = { title: sanitizedTitle };
+                          if (type === 'articles') {
+                            const currentSlug = formData.slug || '';
+                            const oldExpectedSlug = slugify(formData.title || '');
+                            if (!currentSlug || currentSlug === oldExpectedSlug) {
+                              updated.slug = slugify(sanitizedTitle);
+                            }
+                          }
+                          setFormData({ ...formData, ...updated });
+                        } catch (err: any) {
+                          console.error('Error generating title:', err);
+                          alert('Gagal menghasilkan judul dengan AI: ' + (err.message || err));
+                        } finally {
+                          setIsGenerating(false);
+                        }
                       }}
                       className="text-[10px] flex items-center gap-1 font-black text-accent-yellow hover:text-white transition-colors uppercase"
                     >
@@ -2536,7 +2573,18 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
                 </div>
                 <input 
                   type="text" required value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  onChange={(e) => {
+                    const newTitle = e.target.value;
+                    const updated: any = { title: newTitle };
+                    if (type === 'articles') {
+                      const currentSlug = formData.slug || '';
+                      const oldExpectedSlug = slugify(formData.title || '');
+                      if (!currentSlug || currentSlug === oldExpectedSlug) {
+                        updated.slug = slugify(newTitle);
+                      }
+                    }
+                    setFormData({ ...formData, ...updated });
+                  }}
                   className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
                 />
               </div>
@@ -2572,12 +2620,31 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
               {type === 'articles' && (
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase text-text-secondary ml-1">Slug</label>
+                    <div className="flex justify-between items-center px-1">
+                      <label className="text-xs font-black uppercase text-text-secondary">Slug</label>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (formData.title) {
+                            setFormData({ ...formData, slug: slugify(formData.title) });
+                          } else {
+                            alert('Silakan isi Judul terlebih dahulu untuk membuat slug otomatis.');
+                          }
+                        }}
+                        className="text-[10px] flex items-center gap-1 font-black text-accent-yellow hover:text-white transition-colors uppercase tracking-wider"
+                      >
+                        <Sparkles className="w-3 h-3" /> Auto Slug
+                      </button>
+                    </div>
                     <input 
                       type="text" required value={formData.slug}
-                      onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                      onChange={(e) => setFormData({...formData, slug: slugify(e.target.value)})}
+                      placeholder="e.g. judul-artikel"
                       className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
                     />
+                    <p className="text-[10px] text-text-secondary font-mono italic px-1 truncate">
+                      Link: {window.location.origin}/artikel/{formData.slug || 'judul-artikel'}
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black uppercase text-text-secondary ml-1">Penulis</label>
@@ -2599,9 +2666,15 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
                         type="button"
                         onClick={async () => {
                           setIsGenerating(true);
-                          const res = await onGenerateAI('Buatkan ringkasan singkat (maks 150 karakter) dari konten ini', formData.content || 'Belum ada konten');
-                          setFormData({ ...formData, excerpt: res });
-                          setIsGenerating(false);
+                          try {
+                            const res = await onGenerateAI('Buatkan ringkasan singkat (maks 150 karakter) dari konten ini', formData.content || 'Belum ada konten');
+                            setFormData({ ...formData, excerpt: res });
+                          } catch (err: any) {
+                            console.error('Error generating excerpt:', err);
+                            alert('Gagal menghasilkan ringkasan dengan AI: ' + (err.message || err));
+                          } finally {
+                            setIsGenerating(false);
+                          }
                         }}
                         className="text-[10px] flex items-center gap-1 font-black text-accent-yellow hover:text-white transition-colors uppercase"
                       >
@@ -2786,36 +2859,110 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
                 )}
               </div>
 
-              {type === 'articles' && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">Excerpt</label>
-                  <textarea 
-                    rows={2} required value={formData.excerpt}
-                    onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all"
-                  />
-                </div>
-              )}
-
               {(type === 'articles' || type === 'events' || type === 'portfolios') && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-text-secondary ml-1">
-                    {type === 'articles' ? 'Konten Artikel' : type === 'events' ? 'Deskripsi Event' : 'Deskripsi Proyek'}
-                  </label>
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle/30 pb-2">
+                    <label className="text-xs font-black uppercase text-text-secondary ml-1">
+                      {type === 'articles' ? 'Konten Artikel' : type === 'events' ? 'Deskripsi Event' : 'Deskripsi Proyek'}
+                    </label>
+                    {onGenerateAI && (
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          if (!formData.title) {
+                            alert('Silakan isi Judul terlebih dahulu sebelum melakukan generate konten.');
+                            return;
+                          }
+                          setIsGenerating(true);
+                          try {
+                            let prompt = '';
+                            let context = '';
+                            if (type === 'articles') {
+                              prompt = `Buatkan konten artikel lengkap, detail, berbobot, dan menarik dalam format Markdown (gunakan heading h3/h4, paragraf, list, dll.) dengan judul "${formData.title}" di kategori "${categories.find(c => c.id === formData.category_id)?.name || 'Umum'}" dengan ringkasan "${formData.excerpt || ''}". Tulis langsung isi kontennya saja tanpa pengantar atau penutup tambahan.`;
+                              context = formData.excerpt || '';
+                            } else if (type === 'events') {
+                              prompt = `Buatkan rincian deskripsi event lengkap, menarik, persuasif, dan informatif dalam format Markdown (gunakan heading h3/h4, paragraf, list, dll.) dengan nama/judul event "${formData.title}" di kategori "${formData.category || 'Umum'}". Sebutkan jadwal pada tanggal ${formData.date || 'mendatang'} di lokasi ${formData.location || 'Online'} dengan harga tiket ${formData.price || 'Free'}. Tulis langsung isi deskripsinya tanpa kata pengantar atau penutup tambahan.`;
+                              context = formData.description || '';
+                            } else if (type === 'portfolios') {
+                              prompt = `Buatkan penjelasan studi kasus/deskripsi proyek portofolio yang komprehensif, profesional, dan menonjol dalam format Markdown (gunakan heading h3/h4, paragraf, dll.) dengan judul "${formData.title}" untuk kategori/jenis layanan "${formData.category || 'Animasi/Video'}". Sebutkan kerja sama dengan klien ${formData.client_name || 'rahasia'}. Jabarkan tantangan, solusi yang kami berikan, dan hasil akhirnya secara mendalam. Tulis langsung deskripsi proyeknya tanpa sapaan santai pembuka dan penutup.`;
+                              context = formData.description || '';
+                            }
+
+                            const res = await onGenerateAI(prompt, context);
+                            
+                            if (type === 'articles') {
+                              setFormData({ ...formData, content: res });
+                            } else if (type === 'events') {
+                              setFormData({ ...formData, content: res, description: res });
+                            } else if (type === 'portfolios') {
+                              setFormData({ ...formData, description: res });
+                            }
+                          } catch (err: any) {
+                            console.error('Generated content error:', err);
+                            alert('Gagal menghasilkan konten dengan AI: ' + (err.message || err));
+                          } finally {
+                            setIsGenerating(false);
+                          }
+                        }}
+                        className="text-[10px] flex items-center gap-1 font-black text-accent-yellow hover:text-white transition-colors uppercase tracking-wider"
+                      >
+                        <Sparkles className="w-3 h-3 animate-pulse" /> Auto Buat Konten (AI)
+                      </button>
+                    )}
+                  </div>
+
+                  {type === 'articles' && (
+                    <div className="flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('write')}
+                        className={`px-4 py-1.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${
+                          contentTab === 'write' ? 'bg-accent-yellow text-bg-primary' : 'bg-bg-tertiary border border-border-subtle hover:border-accent-yellow text-text-secondary hover:text-white'
+                        }`}
+                      >
+                        Tulis Artikel (Markdown)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentTab('preview')}
+                        className={`px-4 py-1.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${
+                          contentTab === 'preview' ? 'bg-accent-yellow text-bg-primary' : 'bg-bg-tertiary border border-border-subtle hover:border-accent-yellow text-text-secondary hover:text-white'
+                        }`}
+                      >
+                        Preview Artikel
+                      </button>
+                    </div>
+                  )}
+
                   {type === 'portfolios' ? (
                     <textarea 
-                      rows={6} value={formData.description}
+                      rows={8} value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
                       className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-sans text-sm"
                     />
+                  ) : (type === 'articles' && contentTab === 'preview') ? (
+                    <div className="p-5 bg-bg-tertiary border border-border-subtle rounded-xl min-h-[250px] max-h-[400px] overflow-y-auto text-sm leading-relaxed text-text-primary">
+                      {formData.content ? (
+                        <div className="markdown-body prose prose-invert max-w-none prose-headings:font-display prose-headings:font-black prose-headings:uppercase prose-headings:tracking-wider prose-headings:text-accent-yellow prose-p:text-text-primary prose-a:text-accent-yellow prose-strong:text-white">
+                          <ReactMarkdown>{formData.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-text-secondary italic">Belum ada konten untuk ditinjau. Silakan tulis sesuatu terlebih dahulu.</p>
+                      )}
+                    </div>
                   ) : (
                     <textarea 
-                      rows={6} required value={formData.content}
+                      rows={12} required value={formData.content}
                       onChange={(e) => setFormData({...formData, content: e.target.value})}
-                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-3 px-4 outline-none focus:border-accent-yellow transition-all font-sans text-sm"
+                      placeholder={type === 'articles' ? "Tulis isi artikel Anda di sini menggunakan format Markdown (# Heading, **Bold**, dsb)..." : "Masukkan detail deskripsi di sini..."}
+                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-4 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm leading-relaxed"
                     />
                   )}
-                  <p className="text-[10px] text-text-secondary italic ml-1">Gunakan bahasa yang menarik untuk menjelaskan detail konten ini.</p>
+                  <p className="text-[10px] text-text-secondary italic ml-1">
+                    {type === 'articles' 
+                      ? 'Format tulisan mendukung sintaks Markdown penuh seperti heading (#), cetak tebal (**), daftar bullet (-), dsb.'
+                      : 'Gunakan bahasa yang menarik untuk menjelaskan detail konten ini.'}
+                  </p>
                 </div>
               )}
 
