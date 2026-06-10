@@ -6,7 +6,11 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/((?!api).*)",
+      "source": "/artikel/:slug",
+      "destination": "/api/index.ts?slug=:slug"
+    },
+    {
+      "source": "/((?!api|artikel).*)",
       "destination": "/index.html"
     }
   ]

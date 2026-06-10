@@ -1,88 +1,64 @@
-import { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Link } from 'react-router-dom';
-import { auth, db } from '../lib/firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { motion } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import CryptoTracker from '../components/CryptoTracker';
-import { CATEGORIES } from '../components/FeaturedArticles';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
 import SearchModal from '../components/SearchModal';
 import { 
   Calendar, 
   User, 
-  ArrowRight, 
+  ArrowLeft, 
   Share2, 
-  ChevronLeft, 
-  ChevronRight,
-  ClipboardCheck,
-  Check
+  Check, 
+  Clock,
+  ChevronRight
 } from 'lucide-react';
-import { cn } from '../lib/utils';
 
-export default function ArticlesPage() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [articles, setArticles] = useState<any[]>([]);
+export default function ArticleDetailPage() {
+  const { slug } = useParams();
+  const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  
-  const ARTICLES_PER_PAGE = 4;
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const fetchArticles = async () => {
+    const fetchArticle = async () => {
       setLoading(true);
       try {
         const q = query(
           collection(db, 'articles'),
-          where('is_published', '==', true),
-          orderBy('created_at', 'desc')
+          where('slug', '==', slug),
+          limit(1)
         );
         const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map(doc => ({ 
-          id: doc.id, 
-          ...doc.data(),
-          created_at: (doc.data() as any).created_at?.toDate?.()?.toISOString() || new Date().toISOString()
-        }));
-        if (data) setArticles(data);
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          setArticle({ 
+            id: doc.id, 
+            ...doc.data(),
+            created_at: (doc.data() as any).created_at?.toDate?.()?.toISOString() || new Date().toISOString()
+          });
+        }
       } catch (err) {
-        console.error('Fetch articles error:', err);
+        console.error('Fetch article error:', err);
       }
       setLoading(false);
     };
-    fetchArticles();
-  }, []);
 
-  const featuredArticle = articles[0] || null;
-  const otherArticles = articles.length > 0 ? articles : [];
+    fetchArticle();
+    window.scrollTo(0, 0);
+  }, [slug]);
 
-  // Filter articles by category
-  const filteredArticles = useMemo(() => {
-    return otherArticles.filter(article => {
-      const matchCategory = selectedCategory === 'All' || article.category === selectedCategory;
-      return matchCategory;
-    });
-  }, [otherArticles, selectedCategory]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredArticles.length / ARTICLES_PER_PAGE);
-  const paginatedArticles = useMemo(() => {
-    const startIndex = (currentPage - 1) * ARTICLES_PER_PAGE;
-    return filteredArticles.slice(startIndex, startIndex + ARTICLES_PER_PAGE);
-  }, [filteredArticles, currentPage]);
-
-  const handleShare = (slug: string) => {
-    const url = `${window.location.origin}/artikel/${slug}`;
-    navigator.clipboard.writeText(url);
-    setCopiedId(slug);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    setCurrentPage(1);
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
@@ -93,254 +69,126 @@ export default function ArticlesPage() {
     );
   }
 
+  if (!article) {
+    return (
+      <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center px-6">
+        <h1 className="text-4xl font-display font-black mb-6">ARTIKEL TIDAK DITEMUKAN</h1>
+        <Link to="/artikel" className="flex items-center gap-2 text-accent-yellow font-bold uppercase tracking-widest">
+          <ArrowLeft className="w-5 h-5" /> Kembali ke Artikel
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg-primary">
       <Navbar onSearchClick={() => setIsSearchOpen(true)} />
       <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
-      
-      <main className="pt-20 sm:pt-24 pb-24 lg:pb-0">
-        <div className="px-4 xs:px-6 py-6 sm:py-12 max-w-7xl mx-auto">
+
+      <main className="pt-20 sm:pt-28 md:pt-32 pb-24 sm:pb-20">
+        <div className="max-w-4xl mx-auto px-4 xs:px-6">
+          {/* Breadcrumbs */}
+          <nav className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-text-secondary mb-6 sm:mb-12 overflow-hidden whitespace-nowrap">
+            <Link to="/" className="hover:text-accent-yellow transition-colors shrink-0">Home</Link>
+            <ChevronRight className="w-2.5 h-2.5 shrink-0" />
+            <Link to="/artikel" className="hover:text-accent-yellow transition-colors shrink-0">Artikel</Link>
+            <ChevronRight className="w-2.5 h-2.5 shrink-0" />
+            <span className="text-accent-yellow truncate">{article.title}</span>
+          </nav>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-10 sm:mb-16"
           >
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-4 sm:mb-6 leading-none">
-              LATEST <span className="text-accent-yellow">ARTICLES</span>
-            </h1>
-            <p className="text-base sm:text-xl text-text-secondary max-w-2xl font-sans">
-              Wawasan, tutorial, dan berita terbaru dari dunia industri kreatif digital.
-            </p>
-          </motion.div>
-
-          {/* Featured Article Section */}
-          {featuredArticle && (
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mb-12 sm:mb-20"
-            >
-              <div className="group relative grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 bg-bg-secondary rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden border border-border-subtle hover:border-accent-yellow transition-all duration-500">
-                <div className="relative aspect-[16/10] lg:aspect-auto h-[220px] xs:h-[280px] lg:h-auto overflow-hidden bg-bg-tertiary">
-                  <img 
-                    src={featuredArticle.cover_image || featuredArticle.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
-                    alt={featuredArticle.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
-                    <span className="px-4 py-1.5 sm:px-5 sm:py-2 bg-accent-yellow text-bg-primary text-[9px] sm:text-xs font-black rounded-lg sm:rounded-xl uppercase tracking-widest">
-                      Featured Article
-                    </span>
+            {/* Header */}
+            <div className="mb-8 sm:mb-12">
+              <span className="px-3 py-1 bg-bg-tertiary text-accent-yellow text-[9px] sm:text-[10px] font-black rounded-lg uppercase tracking-[0.2em] mb-4 sm:mb-6 inline-block border border-border-subtle">
+                {article.category || 'Creative'}
+              </span>
+              <h1 className="text-2xl xs:text-3xl sm:text-4.5xl md:text-6xl font-display font-extrabold leading-tight tracking-tighter uppercase mb-6 sm:mb-8">
+                {article.title}
+              </h1>
+              
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-[10px] sm:text-xs text-text-secondary font-bold uppercase tracking-widest pt-6 sm:pt-8 border-t border-border-subtle">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-accent-yellow/20 flex items-center justify-center text-accent-yellow">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span>{article.author || 'Admin Davs'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
+                    <span>{new Date(article.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
+                    <span>5 Min Read</span>
                   </div>
                 </div>
-                
-                <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center">
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-[10px] sm:text-xs text-text-secondary font-bold mb-4 sm:mb-6 uppercase tracking-widest">
-                    <span className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
-                      {new Date(featuredArticle.created_at).toLocaleDateString('id-ID')}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
-                      {featuredArticle.author || 'Admin Davs'}
-                    </span>
-                  </div>
+                <button 
+                  onClick={handleShare}
+                  className="flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-border-subtle rounded-xl hover:border-accent-yellow transition-all active:scale-95 w-max"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Share2 className="w-3.5 h-3.5" />}
+                  <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-widest">{copied ? 'Copied' : 'Share'}</span>
+                </button>
+              </div>
+            </div>
 
-                  <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-extrabold mb-4 sm:mb-6 leading-tight group-hover:text-accent-yellow transition-colors">
-                    <Link to={`/artikel/${featuredArticle.slug}`}>{featuredArticle.title}</Link>
-                  </h2>
-                  
-                  <p className="text-text-secondary text-sm sm:text-lg leading-relaxed mb-6 sm:mb-8 font-sans line-clamp-3 sm:line-clamp-none">
-                    {featuredArticle.excerpt}
-                  </p>
+            {/* Featured Image */}
+            <div className="aspect-[16/10] sm:aspect-[21/9] rounded-2xl sm:rounded-[2rem] overflow-hidden mb-10 sm:mb-16 border border-border-subtle bg-bg-tertiary">
+              <img 
+                src={article.cover_image || article.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
+                alt={article.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between pt-6 sm:pt-8 border-t border-border-subtle">
-                    <Link to={`/artikel/${featuredArticle.slug}`} className="flex items-center gap-2 text-accent-yellow font-black uppercase text-xs sm:text-sm tracking-widest cursor-pointer group/link">
-                      Baca Selengkapnya
-                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover/link:translate-x-2 transition-transform" />
-                    </Link>
-                    <button 
-                      onClick={() => handleShare(featuredArticle.slug)}
-                      className="p-2.5 sm:p-3 bg-bg-tertiary text-text-secondary rounded-xl hover:bg-accent-yellow hover:text-bg-primary transition-all active:scale-95 flex items-center justify-center gap-2 w-max"
-                    >
-                      {copiedId === featuredArticle.slug ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Share</span>
+            {/* Content Container */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_120px] gap-8 lg:gap-12">
+              <div className="prose prose-invert prose-sm sm:prose-base md:prose-lg max-w-none prose-headings:font-display prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-p:font-sans prose-p:text-text-secondary prose-p:leading-relaxed prose-strong:text-white prose-strong:font-black prose-li:font-sans prose-li:text-text-secondary">
+                <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                  {article.content}
+                </ReactMarkdown>
+              </div>
+
+              {/* Sticky Sidebar (Desktop) */}
+              <div className="hidden lg:block">
+                <div className="sticky top-32 space-y-8">
+                  <div className="flex flex-col gap-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary rotate-90 origin-left translate-x-4 mb-12">Social Connect</p>
+                    <button className="w-12 h-12 rounded-full border border-border-subtle flex items-center justify-center hover:border-accent-yellow text-text-secondary hover:text-accent-yellow transition-all">
+                      <Share2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-
-          {/* Filtering Bar */}
-          <div className="flex flex-col gap-3 mb-8 sm:mb-12 border-b border-border-subtle pb-6">
-            <span className="text-[10px] font-black uppercase tracking-wider text-text-secondary">Filter Kategori</span>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap no-scrollbar">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
-                  className={cn(
-                    "px-4 py-2 sm:px-6 sm:py-2.5 rounded-full text-[10px] sm:text-xs font-bold transition-all border shrink-0",
-                    selectedCategory === cat 
-                      ? "bg-accent-yellow text-bg-primary border-accent-yellow" 
-                      : "bg-bg-secondary text-text-secondary border-border-subtle hover:border-accent-yellow"
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
             </div>
-          </div>
 
-          {/* Articles Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 min-h-[400px]">
-            <AnimatePresence mode="wait">
-              {paginatedArticles.length > 0 ? paginatedArticles.map((article, i) => (
-                <motion.article
-                  key={`${article.id}-${selectedCategory}-${currentPage}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
-                  className="group bg-bg-secondary border border-border-subtle rounded-3xl overflow-hidden hover:border-accent-yellow transition-all"
-                >
-                  <Link to={`/artikel/${article.slug}`} className="block relative aspect-[16/9] overflow-hidden">
-                    <img 
-                      src={article.cover_image || article.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=600&auto=format&fit=crop'} 
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <span className="px-3 py-1 bg-bg-primary/80 backdrop-blur-md text-accent-yellow text-[10px] font-black rounded-lg uppercase tracking-widest">
-                        {article.category || 'Creative'}
-                      </span>
-                    </div>
-                  </Link>
-
-                  <div className="p-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-accent-yellow" />
-                          {new Date(article.created_at).toLocaleDateString('id-ID')}
-                        </span>
-                        <span className="w-1 h-1 bg-border-subtle rounded-full" />
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3 text-accent-yellow" />
-                          {article.author || 'Admin Davs'}
-                        </span>
-                      </div>
-                      <button 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleShare(article.slug);
-                        }}
-                        className="p-2 transition-colors hover:text-accent-yellow"
-                      >
-                        {copiedId === article.slug ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
-                      </button>
-                    </div>
-
-                    <h3 className="text-xl md:text-2xl font-display font-bold mb-4 line-clamp-2 leading-snug group-hover:text-accent-yellow transition-colors">
-                      <Link to={`/artikel/${article.slug}`}>{article.title}</Link>
-                    </h3>
-                    
-                    <p className="text-text-secondary text-sm leading-relaxed line-clamp-2 mb-6 opacity-70">
-                      {article.excerpt}
-                    </p>
-
-                    <Link to={`/artikel/${article.slug}`} className="flex items-center justify-between pt-6 border-t border-border-subtle">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-yellow">Read Article</span>
-                      <ArrowRight className="w-4 h-4 text-accent-yellow group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                  </div>
-                </motion.article>
-              )) : (
-                <div className="col-span-full flex flex-col items-center justify-center py-20 text-text-secondary">
-                  <p className="text-xl font-display font-bold uppercase tracking-widest">Belum ada artikel dalam kategori ini.</p>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Pagination UI */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mb-24">
-              <button 
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="p-3 border border-border-subtle rounded-xl text-text-secondary disabled:opacity-30 hover:border-accent-yellow transition-all"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              
-              <div className="flex items-center gap-2">
-                {[...Array(totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={cn(
-                      "w-10 h-10 rounded-xl font-bold text-sm transition-all",
-                      currentPage === i + 1 
-                        ? "bg-accent-yellow text-bg-primary" 
-                        : "bg-bg-secondary border border-border-subtle text-text-secondary hover:border-accent-yellow"
-                    )}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-
-              <button 
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="p-3 border border-border-subtle rounded-xl text-text-secondary disabled:opacity-30 hover:border-accent-yellow transition-all"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-
-          {/* Final CTA Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="p-6 xs:p-8 sm:p-12 md:p-20 bg-bg-tertiary rounded-3xl sm:rounded-[3rem] border border-border-subtle text-center relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-accent-yellow/10 rounded-full blur-[100px]" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-yellow/10 rounded-full blur-[100px]" />
-            
-            <div className="relative z-10">
-              <p className="text-accent-yellow font-bold uppercase tracking-[0.4em] text-[9px] sm:text-[10px] mb-4 sm:mb-6">Stay Inspired</p>
-              <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-6xl font-display font-extrabold mb-6 sm:mb-8 tracking-tighter uppercase leading-none">
-                INGIN WAWASAN EKSKLUSIF <br className="hidden md:block" />
-                <span className="text-accent-yellow italic">DI EMAIL ANDA?</span>
-              </h2>
-              <p className="text-text-secondary text-sm sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10 font-sans leading-relaxed">
-                Berlangganan newsletter kami untuk mendapatkan tips desain, update tren pasar, dan penawaran khusus langsung di inbox Anda.
+            {/* CTA Box */}
+            <div className="mt-16 sm:mt-24 p-6 sm:p-12 bg-bg-tertiary border border-border-subtle rounded-2xl sm:rounded-[3rem] text-center relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-accent-yellow/5 rounded-full blur-[100px]" />
+              <h2 className="text-xl sm:text-3xl md:text-5xl font-display font-black mb-4 sm:mb-6 uppercase tracking-tighter">SUKA ARTIKEL <span className="text-accent-yellow italic">INI?</span></h2>
+              <p className="text-text-secondary text-sm sm:text-base mb-8 sm:mb-10 max-w-xl mx-auto font-sans leading-relaxed">
+                Kami membuat konten berkualitas seperti ini setiap minggu. Bergabunglah dengan 2,000+ subscriber lainnya untuk mendapatkan update eksklusif.
               </p>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
-                <input 
-                  type="email" 
-                  placeholder="Alamat email Anda..."
-                  className="w-full bg-bg-primary border border-border-subtle rounded-xl sm:rounded-2xl py-3.5 px-5 sm:py-4 sm:px-6 text-sm outline-none focus:border-accent-yellow transition-all"
-                />
-                <button className="w-full sm:w-auto px-6 py-3.5 sm:px-8 sm:py-4 bg-accent-yellow text-bg-primary text-xs sm:text-sm font-black rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all">
-                  GABUNG
-                  <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+                <Link 
+                  to="/artikel" 
+                  className="w-full sm:w-auto px-8 py-3.5 sm:px-10 sm:py-5 bg-white text-bg-primary text-xs sm:text-sm font-black rounded-xl sm:rounded-2xl flex items-center justify-center gap-3 hover:bg-accent-yellow transition-all"
+                >
+                  BACA LAGI
+                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 rotate-180" />
+                </Link>
               </div>
             </div>
           </motion.div>
-          
-          {/* Realtime CoinGecko Multi-Asset Tracker Section */}
-          <div className="mt-24 pt-16 border-t border-border-subtle/30">
-            <CryptoTracker variant="detailed" />
-          </div>
+        </div>
+
+        {/* Realtime CoinGecko Multi-Asset Tracker Section */}
+        <div className="max-w-7xl mx-auto px-6 mt-16 pt-16 border-t border-border-subtle/30">
+          <CryptoTracker variant="detailed" />
         </div>
       </main>
 
