@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import { auth, db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { 
@@ -55,7 +56,11 @@ import {
   Check,
   Copy,
   Activity,
-  ShieldAlert
+  ShieldAlert,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -2205,6 +2210,32 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pub' | 'draft'>('all');
   const [contentTab, setContentTab] = useState<'write' | 'preview'>('write');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleAlignText = (alignment: 'left' | 'center' | 'right' | 'justify') => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    
+    const selectedText = text.substring(start, end);
+    const textToAlign = selectedText.trim() || 'Teks Anda di sini';
+    
+    const wrappedText = `<div style="text-align: ${alignment}">\n\n${textToAlign}\n\n</div>`;
+    
+    const newContent = text.substring(0, start) + wrappedText + text.substring(end);
+    
+    setFormData({ ...formData, content: newContent });
+    
+    // Reset focus and selection
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + wrappedText.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 10);
+  };
   
   const getInitialFormData = () => {
     switch (type) {
@@ -2944,19 +2975,66 @@ function ContentManager({ type, onGenerateAI }: { type: 'articles' | 'events' | 
                     <div className="p-5 bg-bg-tertiary border border-border-subtle rounded-xl min-h-[250px] max-h-[400px] overflow-y-auto text-sm leading-relaxed text-text-primary">
                       {formData.content ? (
                         <div className="markdown-body prose prose-invert max-w-none prose-headings:font-display prose-headings:font-black prose-headings:uppercase prose-headings:tracking-wider prose-headings:text-accent-yellow prose-p:text-text-primary prose-a:text-accent-yellow prose-strong:text-white">
-                          <ReactMarkdown>{formData.content}</ReactMarkdown>
+                          <ReactMarkdown rehypePlugins={[rehypeRaw]}>{formData.content}</ReactMarkdown>
                         </div>
                       ) : (
                         <p className="text-text-secondary italic">Belum ada konten untuk ditinjau. Silakan tulis sesuatu terlebih dahulu.</p>
                       )}
                     </div>
                   ) : (
-                    <textarea 
-                      rows={12} required value={formData.content}
-                      onChange={(e) => setFormData({...formData, content: e.target.value})}
-                      placeholder={type === 'articles' ? "Tulis isi artikel Anda di sini menggunakan format Markdown (# Heading, **Bold**, dsb)..." : "Masukkan detail deskripsi di sini..."}
-                      className="w-full bg-bg-tertiary border border-border-subtle rounded-xl py-4 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm leading-relaxed"
-                    />
+                    <div className="space-y-0.5">
+                      {type === 'articles' && (
+                        <div className="flex flex-wrap items-center gap-1 p-2 bg-bg-tertiary/70 border border-border-subtle rounded-t-xl border-b-0">
+                          <span className="text-[10px] uppercase font-black tracking-widest text-text-secondary px-2 border-r border-border-subtle/40 mr-1.5">Rata Paragraf:</span>
+                          <button
+                            type="button"
+                            onClick={() => handleAlignText('left')}
+                            className="p-1 px-2.5 text-text-secondary hover:text-white hover:bg-bg-primary rounded-lg transition-all flex items-center justify-center gap-1.5 text-[10px] font-bold"
+                            title="Rata Kiri"
+                          >
+                            <AlignLeft className="w-3.5 h-3.5 text-accent-yellow" />
+                            <span>Kiri</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAlignText('center')}
+                            className="p-1 px-2.5 text-text-secondary hover:text-white hover:bg-bg-primary rounded-lg transition-all flex items-center justify-center gap-1.5 text-[10px] font-bold"
+                            title="Rata Tengah"
+                          >
+                            <AlignCenter className="w-3.5 h-3.5 text-accent-yellow" />
+                            <span>Tengah</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAlignText('right')}
+                            className="p-1 px-2.5 text-text-secondary hover:text-white hover:bg-bg-primary rounded-lg transition-all flex items-center justify-center gap-1.5 text-[10px] font-bold"
+                            title="Rata Kanan"
+                          >
+                            <AlignRight className="w-3.5 h-3.5 text-accent-yellow" />
+                            <span>Kanan</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAlignText('justify')}
+                            className="p-1 px-2.5 text-text-secondary hover:text-white hover:bg-bg-primary rounded-lg transition-all flex items-center justify-center gap-1.5 text-[10px] font-bold"
+                            title="Rata Kiri Kanan (Justify)"
+                          >
+                            <AlignJustify className="w-3.5 h-3.5 text-accent-yellow" />
+                            <span>Justify</span>
+                          </button>
+                          <span className="ml-auto text-[9px] text-text-secondary font-mono italic pr-2 hidden md:inline">
+                            Blok teks lalu pilih tombol format di atas.
+                          </span>
+                        </div>
+                      )}
+                      <textarea 
+                        ref={textareaRef}
+                        rows={12} required value={formData.content}
+                        onChange={(e) => setFormData({...formData, content: e.target.value})}
+                        placeholder={type === 'articles' ? "Tulis isi artikel Anda di sini menggunakan format Markdown (# Heading, **Bold**, dsb)..." : "Masukkan detail deskripsi di sini..."}
+                        className={`w-full bg-bg-tertiary border border-border-subtle ${type === 'articles' ? 'rounded-b-xl' : 'rounded-xl'} py-4 px-4 outline-none focus:border-accent-yellow transition-all font-mono text-sm leading-relaxed`}
+                      />
+                    </div>
                   )}
                   <p className="text-[10px] text-text-secondary italic ml-1">
                     {type === 'articles' 

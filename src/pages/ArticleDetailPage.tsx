@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
@@ -147,7 +148,7 @@ export default function ArticleDetailPage() {
             {/* Content Container */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_120px] gap-8 lg:gap-12">
               <div className="prose prose-invert prose-sm sm:prose-base md:prose-lg max-w-none prose-headings:font-display prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-p:font-sans prose-p:text-text-secondary prose-p:leading-relaxed prose-strong:text-white prose-strong:font-black prose-li:font-sans prose-li:text-text-secondary">
-                <ReactMarkdown>
+                <ReactMarkdown rehypePlugins={[rehypeRaw]}>
                   {article.content}
                 </ReactMarkdown>
               </div>
