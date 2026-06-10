@@ -1,210 +1,63 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import { motion } from 'motion/react';
+import { MessageSquare, Zap, Target } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useSettings } from '../context/SettingsContext';
 
-/**
- * Davsplace Studio
- * Principal: Senior Full-stack Engineer & UI/UX Designer
- */
-
-import { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import SearchModal from './components/SearchModal';
-import ScrollToBottomButton from './components/ScrollToBottomButton';
-import { MobileTopbar, MobileBottomNavbar } from './components/MobileNavigation';
-import { cn } from './lib/utils';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { Loader2 } from 'lucide-react';
-
-// Lazy load sections for performance
-const HeroSection = lazy(() => import('./components/HeroSection'));
-const ClientMarquee = lazy(() => import('./components/ClientMarquee'));
-const ServicesSection = lazy(() => import('./components/ServicesSection'));
-const FeaturedPortfolio = lazy(() => import('./components/FeaturedPortfolio'));
-const FeaturedEvents = lazy(() => import('./components/FeaturedEvents'));
-const FeaturedArticles = lazy(() => import('./components/FeaturedArticles'));
-const TentangSection = lazy(() => import('./components/TentangSection'));
-const CTASection = lazy(() => import('./components/CTASection'));
-const CryptoTracker = lazy(() => import('./components/CryptoTracker'));
-
-// Pages
-const AdminLogin = lazy(() => import('./pages/admin/Login'));
-const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
-const UserDashboard = lazy(() => import('./pages/UserDashboard'));
-const AboutPage = lazy(() => import('./pages/AboutPage'));
-const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
-const ArticleDetailPage = lazy(() => import('./pages/ArticleDetailPage'));
-const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
-const CollabPage = lazy(() => import('./pages/CollabPage'));
-const SocialMediaGenerator = lazy(() => import('./pages/SocialMediaGenerator'));
-const EventPage = lazy(() => import('./pages/EventPage'));
-const WatermarkEditor = lazy(() => import('./pages/WatermarkEditor'));
-
-import { SettingsProvider } from './context/SettingsContext';
-
-function PageLoader() {
+export default function CTASection() {
+  const { settings } = useSettings();
+  
   return (
-    <div className="min-h-screen bg-bg-primary flex items-center justify-center">
-      <Loader2 className="w-10 h-10 text-accent-yellow animate-spin" />
-    </div>
-  );
-}
+    <section className="py-12 sm:py-24 md:py-32 bg-bg-primary overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 xs:px-6">
+        <div className="relative bg-bg-tertiary/50 border border-border-subtle rounded-2xl sm:rounded-[2.5rem] p-6 xs:p-8 sm:p-12 md:p-20 overflow-hidden group">
+          {/* Background Accents */}
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-accent-yellow/5 blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-1/4 h-1/2 bg-accent-yellow/5 blur-[100px] pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="w-12 h-12 sm:w-16 sm:h-16 bg-accent-yellow rounded-xl sm:rounded-2xl flex items-center justify-center text-bg-primary mb-6 sm:mb-10 shadow-xl shadow-accent-yellow/20"
+            >
+              <Target className="w-6 h-6 sm:w-8 sm:h-8" />
+            </motion.div>
 
-function AnalyticsTracker() {
-  const location = useLocation();
-
-  useEffect(() => {
-    if (typeof (window as any).gtag === 'function') {
-      const measurementId = (import.meta as any).env.VITE_GA_MEASUREMENT_ID || 'G-PR4X8QKBGT';
-      (window as any).gtag('config', measurementId, {
-        page_path: location.pathname + location.search,
-        page_location: window.location.href,
-        page_title: document.title || 'Davsplace Studio'
-      });
-    }
-  }, [location]);
-
-  return null;
-}
-
-export default function App() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  return (
-    <ErrorBoundary>
-      <SettingsProvider>
-        <Router>
-          <AnalyticsTracker />
-          <div className="min-h-screen bg-bg-primary selection:bg-accent-yellow/30 selection:text-accent-yellow overflow-x-hidden">
-          <Routes>
-            {/* Admin Routes */}
-            <Route path="/admin/login" element={
-              <Suspense fallback={<PageLoader />}>
-                <AdminLogin />
-              </Suspense>
-            } />
-            <Route path="/admin/dashboard" element={
-              <Suspense fallback={<PageLoader />}>
-                <AdminDashboard />
-              </Suspense>
-            } />
+            <h2 className="text-2xl xs:text-3xl sm:text-5xl md:text-7xl font-display font-black leading-tight uppercase tracking-tighter mb-4 sm:mb-8 max-w-4xl">
+              SIAP MEMBAWA BRAND ANDA KE <span className="text-accent-yellow underline underline-offset-8">LEVEL</span> BERIKUTNYA?
+            </h2>
             
-            <Route path="/dashboard" element={
-              <Suspense fallback={<PageLoader />}>
-                <UserDashboard />
-              </Suspense>
-            } />
+            <p className="text-sm sm:text-lg md:text-xl text-text-secondary max-w-2xl mb-8 sm:mb-12 font-sans leading-relaxed">
+              Konsultasikan ide brilian Anda dengan tim ahli kami dan mari kita ciptakan sesuatu yang luar biasa bersama-sama.
+            </p>
 
-            {/* New Page Routes */}
-            <Route path="/tentang" element={
-              <Suspense fallback={<PageLoader />}>
-                <AboutPage />
-              </Suspense>
-            } />
-            <Route path="/artikel" element={
-              <Suspense fallback={<PageLoader />}>
-                <ArticlesPage />
-              </Suspense>
-            } />
-            <Route path="/artikel/:slug" element={
-              <Suspense fallback={<PageLoader />}>
-                <ArticleDetailPage />
-              </Suspense>
-            } />
-            <Route path="/portofolio" element={
-              <Suspense fallback={<PageLoader />}>
-                <PortfolioPage />
-              </Suspense>
-            } />
-            <Route path="/kolaborasi" element={
-              <Suspense fallback={<PageLoader />}>
-                <CollabPage />
-              </Suspense>
-            } />
-            <Route path="/generator" element={
-              <Suspense fallback={<PageLoader />}>
-                <SocialMediaGenerator />
-              </Suspense>
-            } />
-            <Route path="/event" element={
-              <Suspense fallback={<PageLoader />}>
-                <EventPage />
-              </Suspense>
-            } />
-            <Route path="/watermark" element={
-              <Suspense fallback={<PageLoader />}>
-                <WatermarkEditor />
-              </Suspense>
-            } />
-
-            {/* Public Route (Home) */}
-            <Route path="/" element={
-              <>
-                <Navbar onSearchClick={() => setIsSearchOpen(true)} />
-                <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
-                
-                <main className={cn(
-                  "flex-1",
-                  "pt-0 lg:pt-0", // Adjusted for fixed headers
-                  "pb-20 lg:pb-0" // Bottom navbar space on mobile
-                )}>
-                  <div className="pt-14 lg:pt-0"> {/* Mobile topbar offset */}
-                    <Suspense fallback={<div className="h-screen bg-bg-primary" />}>
-                      <HeroSection />
-                    </Suspense>
-
-                  <Suspense fallback={<div className="h-32 bg-bg-secondary" />}>
-                    <ClientMarquee />
-                  </Suspense>
-
-                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                    <ServicesSection />
-                  </Suspense>
-
-                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                    <FeaturedPortfolio />
-                  </Suspense>
-
-                  <Suspense fallback={<div className="py-20 bg-bg-secondary" />}>
-                    <FeaturedEvents />
-                  </Suspense>
-
-                  <Suspense fallback={<div className="py-20 bg-bg-secondary" />}>
-                    <FeaturedArticles />
-                  </Suspense>
-
-                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                    <TentangSection />
-                  </Suspense>
-
-                  <Suspense fallback={<div className="py-20 bg-bg-primary" />}>
-                    <CTASection />
-                  </Suspense>
-                </div>
-              </main>
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 w-full sm:w-auto">
+              <a 
+                href={`https://wa.me/${settings.whatsapp}?text=Halo Davsplace Studio, saya ingin konsultasi mengenai project saya.`} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-xl sm:rounded-2xl flex items-center justify-center gap-3 hover:bg-white hover:scale-105 transition-all text-xs sm:text-sm tracking-widest shadow-lg shadow-accent-yellow/20"
+              >
+                MULAI KONSULTASI
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+              </a>
               
-              <Suspense fallback={<div className="h-10 bg-black animate-pulse" />}>
-                <CryptoTracker variant="ticker" />
-              </Suspense>
+              <a 
+                href="mailto:davsplaceindustries@gmail.com?subject=Proposal Proyek - Davsplace Studio"
+                className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-bg-secondary border border-border-subtle text-text-primary font-black uppercase rounded-xl sm:rounded-2xl flex items-center justify-center gap-3 hover:border-accent-yellow hover:bg-bg-tertiary transition-all text-xs sm:text-sm tracking-widest"
+              >
+                PROPOSAL PROYEK
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-accent-yellow" />
+              </a>
+            </div>
+          </div>
 
-              <Footer />
-                <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
-                <ScrollToBottomButton />
-              </>
-            } />
-          </Routes>
-
-          <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+          <div className="absolute bottom-4 right-8 opacity-5 hidden md:flex items-center gap-2 pointer-events-none">
+            <p className="text-[12rem] font-display font-black leading-none">DVS</p>
+          </div>
         </div>
-        </Router>
-      </SettingsProvider>
-    </ErrorBoundary>
+      </div>
+    </section>
   );
 }
-
-
-
-

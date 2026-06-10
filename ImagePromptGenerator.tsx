@@ -1,144 +1,114 @@
-import { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Stars, Sphere, MeshDistortMaterial } from '@react-three/drei';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play } from 'lucide-react';
-import * as THREE from 'three';
+import { Calendar, ArrowRight, User } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { formatDate } from '../lib/utils';
 
-function Particles({ count = 200 }) {
-  const points = useRef<THREE.Points>(null!);
-  
-  const particlesPosition = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 10;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 10;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 10;
-    }
-    return pos;
-  }, [count]);
+// Keeping CATEGORIES as export for ArticlesPage
+export const CATEGORIES = ['All', 'Desain', 'Video', 'Branding', 'Marketing', 'Tech', 'Creative'];
 
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    for (let i = 0; i < count; i++) {
-        const i3 = i * 3;
-        points.current.geometry.attributes.position.array[i3 + 1] += Math.sin(time + points.current.geometry.attributes.position.array[i3]) * 0.002;
-    }
-    points.current.geometry.attributes.position.needsUpdate = true;
-    points.current.rotation.y += 0.001;
-  });
+export default function FeaturedArticles() {
+  const [articles, setArticles] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const q = query(
+          collection(db, 'articles'),
+          where('is_published', '==', true),
+          orderBy('created_at', 'desc'),
+          limit(3)
+        );
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (data) setArticles(data);
+      } catch (err) {
+        console.error('Fetch articles error:', err);
+      }
+    };
+    fetchArticles();
+  }, []);
 
   return (
-    <points ref={points}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={particlesPosition.length / 3}
-          array={particlesPosition}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial size={0.015} color="#F5C518" transparent opacity={0.4} sizeAttenuation />
-    </points>
-  );
-}
-
-function Scene() {
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={1} />
-      <Particles count={300} />
-      <Float speed={2} rotationIntensity={1} floatIntensity={1}>
-        <Sphere args={[1, 100, 100]} scale={1.5} position={[3, 0, -2]}>
-          <MeshDistortMaterial
-            color="#F5C518"
-            attach="material"
-            distort={0.4}
-            speed={1.5}
-            roughness={0.2}
-            metalness={0.8}
-          />
-        </Sphere>
-      </Float>
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-    </>
-  );
-}
-
-export default function HeroSection() {
-  return (
-    <section className="relative h-screen w-full flex items-center overflow-hidden">
-      {/* 3D Background */}
-      <div className="absolute inset-0 z-0 bg-bg-primary">
-        <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-          <Scene />
-        </Canvas>
-        <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-transparent to-transparent" />
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 w-full pt-20">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="max-w-3xl text-center md:text-left mx-auto md:mx-0"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-[10px] font-accent mb-6 tracking-wide uppercase">
-            <span className="w-2 h-2 bg-accent-yellow rounded-full animate-pulse" />
-            Digital Creative Solution
+    <section id="artikel" className="py-32 px-6 bg-bg-secondary">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-16">
+          <div>
+            <p className="text-accent-yellow font-bold uppercase tracking-[0.3em] text-xs mb-4">Wawasan & Inspirasi</p>
+            <h2 className="text-4xl md:text-5xl font-display font-bold">ARTIKEL TERBARU</h2>
           </div>
-          
-          <h1 className="text-[2.5rem] xs:text-5xl sm:text-7xl md:text-[8.5rem] font-display font-black leading-[0.9] sm:leading-[0.85] mb-6 sm:mb-8 tracking-tighter uppercase">
-            ELEVATE YOUR <br className="hidden sm:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-yellow via-accent-yellow-bright to-accent-yellow-dark">DIGITAL VISION</span>
-          </h1>
-          
-          <p className="text-sm md:text-xl text-text-secondary font-medium leading-relaxed mb-10 sm:mb-12 max-w-2xl mx-auto md:mx-0">
-            Platform bisnis digital untuk kreator & brand lokal Indonesia yang ingin tampil berkelas, futuristik, dan mendunia.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center md:justify-start">
-            <Link to="/kolaborasi" className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-white transition-all group active:scale-95 tracking-widest text-[10px] sm:text-xs">
-              Mulai Project
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            
-            <Link to="/portofolio" className="w-full sm:w-auto px-10 py-5 bg-bg-secondary/50 backdrop-blur-sm border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95 tracking-widest text-[10px] sm:text-xs">
-              Portfolio
-            </Link>
-          </div>
-
-          {/* Stats */}
-          <div className="mt-12 sm:mt-24 flex flex-wrap justify-center md:justify-start gap-8 sm:gap-20 border-t border-border-subtle/50 pt-8 sm:pt-12">
-            <div className="group cursor-default">
-              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">50+</p>
-              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Project</p>
-            </div>
-            <div className="group cursor-default">
-              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">30+</p>
-              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Client</p>
-            </div>
-            <div className="group cursor-default">
-              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">4</p>
-              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Service</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Scroll Indicator */}
-      <motion.div 
-        animate={{ y: [0, 10, 0] }}
-        transition={{ repeat: Infinity, duration: 2 }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-      >
-        <div className="w-6 h-10 border-2 border-border-subtle rounded-full flex justify-center p-1">
-          <div className="w-1 h-2 bg-accent-yellow rounded-full" />
+          <Link to="/artikel" className="hidden md:flex items-center gap-2 font-bold text-accent-yellow group">
+            Lihat Semua Artikel
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+          </Link>
         </div>
-      </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 mb-16 min-h-[400px]">
+          {articles.length > 0 ? articles.map((article, i) => (
+            <motion.article
+              key={article.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="group flex flex-col h-full"
+            >
+              <Link to={`/artikel/${article.slug}`} className="flex flex-col h-full">
+                <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden mb-8 bg-bg-tertiary shadow-2xl border border-border-subtle group-hover:border-accent-yellow transition-all duration-500">
+                  <img 
+                    src={article.cover_image || article.image_url || 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=600&h=400&auto=format&fit=crop'} 
+                    alt={article.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-6 left-6">
+                    <span className="px-4 py-2 bg-accent-yellow text-bg-primary text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
+                      {article.category || 'Insight'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col px-2">
+                  <div className="flex items-center gap-6 text-[10px] text-text-secondary font-black mb-6 uppercase tracking-[0.2em]">
+                    <span className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-accent-yellow" />
+                      {formatDate(article.created_at)}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-accent-yellow" />
+                      {article.author || 'Admin'}
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-2xl md:text-3xl font-display font-black mb-6 group-hover:text-accent-yellow transition-colors line-clamp-2 leading-tight uppercase tracking-tight">
+                    {article.title}
+                  </h3>
+                  
+                  <p className="text-text-secondary text-sm md:text-base leading-relaxed line-clamp-3 mb-8 font-sans font-medium">
+                    {article.excerpt}
+                  </p>
+
+                  <div className="mt-auto pt-8 border-t border-border-subtle flex items-center justify-between group-hover:border-accent-yellow transition-colors">
+                    <span className="text-[10px] font-black text-accent-yellow uppercase tracking-[0.3em]">READ ARTICLE</span>
+                    <div className="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center group-hover:bg-accent-yellow group-hover:text-bg-primary transition-all">
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.article>
+          )) : (
+            <div className="col-span-full py-20 text-center text-text-secondary italic">
+              Sepertinya belum ada artikel yang dipublish.
+            </div>
+          )}
+        </div>
+
+        <Link to="/artikel" className="w-full md:hidden py-4 bg-bg-tertiary text-text-primary border border-border-subtle font-bold rounded-xl flex items-center justify-center">
+          Lihat Semua Artikel
+        </Link>
+      </div>
     </section>
   );
 }

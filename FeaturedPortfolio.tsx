@@ -1,7 +1,9 @@
-{
-  "name": "node-domexception",
-  "version": "1.0.0",
-  "description": "Native DOMException wrapper to suppress deprecation warning",
-  "main": "index.js",
-  "license": "MIT"
-}
+const NativeDOMException = globalThis.DOMException || class DOMException extends Error {
+  constructor(message, name) {
+    super(message);
+    this.name = name || 'DOMException';
+    this.code = 0;
+  }
+};
+
+module.exports = NativeDOMException;

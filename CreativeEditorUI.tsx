@@ -1,247 +1,551 @@
 import { useState, useEffect } from 'react';
-import { auth, db } from '../../lib/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut, 
-  signInWithPopup, 
-  GoogleAuthProvider,
-  User
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { Shield, ArrowLeft, Loader2, Mail, Lock } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { 
+  Sparkles, 
+  Send, 
+  Copy, 
+  Check, 
+  Hash, 
+  FileText, 
+  Link as LinkIcon, 
+  Loader2,
+  AlertCircle,
+  LogOut,
+  Zap,
+  Bookmark,
+  BookmarkCheck,
+  LayoutDashboard,
+  Image as ImageIcon
+} from 'lucide-react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Link } from 'react-router-dom';
+import { generateSocialMediaContent, generateArticleContent } from '../lib/gemini';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
+import SearchModal from '../components/SearchModal';
+import UserDashboardNav from '../components/UserDashboardNav';
+import { cn } from '../lib/utils';
 
-// ✅ Daftar email yang diizinkan sebagai admin
-const ADMIN_EMAILS = [
-  'davsplacestudio@gmail.com',
-  'businessdaws@gmail.com',
-  'buainessdaws@gmail.com',
-  'admin@davs.studio',
-  'fajarmuniri@gmail.com'
-];
-
-export default function AdminLogin() {
-  const [loading, setLoading] = useState(false);
+export default function SocialMediaGenerator() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [generatorType, setGeneratorType] = useState<'social-media' | 'article'>('social-media');
+  const [writingStyle, setWritingStyle] = useState('professional');
+  const [result, setResult] = useState<any>(null);
+  const [selectedProvider, setSelectedProvider] = useState<'gemini' | 'nvidia-nemotron'>('gemini');
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  
   const navigate = useNavigate();
 
-  const syncProfile = async (user: User) => {
-    const normalizedEmail = user.email?.toLowerCase();
-    const isAdminEmail = normalizedEmail && ADMIN_EMAILS.some(e => e.toLowerCase() === normalizedEmail);
-
-    // Cek apakah email ada di daftar admin
-    if (!isAdminEmail) {
-      await signOut(auth);
-      setError(`Akses ditolak. Akun ${user.email} tidak terdaftar sebagai admin.`);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Upsert profile sebagai admin
-      const profileRef = doc(db, 'profiles', user.uid);
-      await setDoc(profileRef, {
-        id: user.uid,
-        role: 'admin',
-        full_name: user.displayName || user.email?.split('@')[0] || 'Admin',
-        avatar_url: user.photoURL || '',
-        updated_at: serverTimestamp(),
-      }, { merge: true });
-
-      // Verifikasi apakah role sudah benar-benar tersimpan
-      const profileSnap = await getDoc(profileRef);
-      const profileData = profileSnap.data();
-
-      if (profileData?.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        setError('Data admin gagal divalidasi. Coba login kembali.');
-        setLoading(false);
-      }
-    } catch (err: any) {
-      console.error('Sync Profile Error:', err);
-      setError('Gagal sinkronisasi profil: ' + (err.message || 'Coba lagi.'));
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setLoading(true);
-        syncProfile(user);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+      if (u) {
+        navigate('/dashboard?tab=generator', { replace: true });
       }
     });
-
     return () => unsubscribe();
   }, [navigate]);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+  useEffect(() => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await syncProfile(userCredential.user);
-    } catch (err: any) {
-      console.error('Login error:', err);
-      if (err.message?.includes('auth/unauthorized-domain')) {
-        setError(
-          'DOMAIN TIDAK TEROTORISASI: Link aplikasi ini belum didaftarkan di Firebase Console. ' +
-          'Silakan masuk ke Firebase Console > Authentication > Settings > Authorized Domains, lalu tambahkan domain: ' +
-          window.location.hostname
-        );
-      } else if (err.message === 'Firebase: Error (auth/user-not-found).') {
-        setError('Email tidak terdaftar.');
-      } else if (err.message === 'Firebase: Error (auth/wrong-password).') {
-        setError('Password salah.');
-      } else {
-        setError(err.message || 'Terjadi kesalahan saat login.');
+      const pendingSocialPrompt = localStorage.getItem('analyzer_social_prompt');
+      if (pendingSocialPrompt) {
+        setTopic(`Buat caption sosial media menarik berdasarkan ringkasan riset berikut:\n\n${pendingSocialPrompt}`);
+        localStorage.removeItem('analyzer_social_prompt');
       }
-      setLoading(false);
+    } catch (e) {
+      console.error(e);
     }
-  };
+  }, []);
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
+  const handleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (err: any) {
-      console.error('Google login error:', err);
-      if (err.message?.includes('auth/unauthorized-domain')) {
-        setError(
-          'DOMAIN TIDAK TEROTORISASI: Link aplikasi ini belum didaftarkan di Firebase Console. ' +
-          'Silakan masuk ke Firebase Console > Authentication > Settings > Authorized Domains, lalu tambahkan domain: ' +
-          window.location.hostname
-        );
-      } else {
-        setError(err.message || 'Gagal login dengan Google.');
-      }
-      setLoading(false);
+      setError('Gagal login: ' + err.message);
     }
   };
 
+  const handleLogout = async () => {
+    await signOut(auth);
+    setResult(null);
+  };
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topic.trim()) return;
+
+    setGenerating(true);
+    setIsSaved(false);
+    setError(null);
+    try {
+      let data;
+      if (generatorType === 'article') {
+        data = await generateArticleContent(topic, writingStyle, selectedProvider);
+      } else {
+        data = await generateSocialMediaContent(topic, selectedProvider);
+      }
+      setResult(data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Maaf, ada masalah saat memproses AI. Silakan coba lagi.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!result || !user) return;
+    
+    setSaving(true);
+    try {
+      await addDoc(collection(db, 'saved_contents'), {
+        user_id: user.uid,
+        topic: topic,
+        type: generatorType,
+        headline: result.headline || result.title_options?.[0],
+        caption: result.caption || result.content,
+        hashtags: result.hashtags || [],
+        sources: result.sources || [],
+        image_prompt: result.image_prompt || '',
+        provider: selectedProvider,
+        writing_style: writingStyle,
+        created_at: serverTimestamp()
+      });
+      setIsSaved(true);
+    } catch (err: any) {
+      console.error("Gagal menyimpan:", err);
+      setError("Gagal menyimpan konten. Silakan coba lagi.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-accent-yellow animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-bg-primary flex items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--glow-yellow)_0%,_transparent_70%)]">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm bg-bg-secondary border border-border-subtle p-10 rounded-[1.5rem] shadow-2xl"
-      >
-        {/* Back button */}
-        <button
-          onClick={() => navigate('/')}
-          className="mb-8 flex items-center gap-2 text-text-secondary hover:text-accent-yellow transition-colors text-sm font-bold"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Kembali ke Beranda
-        </button>
+    <div className="min-h-screen bg-bg-primary">
+      <Navbar onSearchClick={() => setIsSearchOpen(true)} />
+      <MobileTopbar onSearchClick={() => setIsSearchOpen(true)} />
 
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <div className="w-16 h-16 bg-accent-yellow rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(245,197,24,0.3)]">
-            <Shield className="w-8 h-8 text-bg-primary" />
-          </div>
-          <h1 className="text-2xl font-black mb-2 uppercase tracking-tight">Admin Access</h1>
-          <p className="text-text-secondary text-sm">Davsplace Studio Management Portal</p>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-medium text-center leading-relaxed">
-            {error}
-          </div>
-        )}
-
-        {/* Email/Password Form */}
-        <form onSubmit={handleLogin} className="space-y-4 mb-8">
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{ fontSize: '16px' }}
-                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
-                placeholder="admin@davsplace.studio"
-              />
-            </div>
+      <main className="pt-24 pb-20">
+        <div className="max-w-5xl mx-auto px-6 py-12">
+          {user && <UserDashboardNav user={user} />}
+          
+          {/* Header */}
+          <div className="mb-16 text-center lg:text-left">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent-yellow/10 text-accent-yellow text-[10px] font-black rounded-lg uppercase tracking-[0.2em] mb-6 border border-accent-yellow/20">
+                <Sparkles className="w-3 h-3" />
+                AI-Powered Creativity
+              </div>
+              <h1 className="text-5xl md:text-7xl font-display font-extrabold tracking-tighter uppercase mb-6 leading-none">
+                AI CONTENT <span className="text-accent-yellow">GENERATOR</span>
+              </h1>
+              <p className="text-xl text-text-secondary max-w-2xl font-sans">
+                Buat konten sosial media dan artikel profesional dalam hitungan detik langsung dari AI Davsplace.
+              </p>
+            </motion.div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
-              <input 
-                type="password" 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ fontSize: '16px' }}
-                className="w-full bg-bg-tertiary border border-border-subtle py-3 pl-11 pr-4 rounded-xl outline-none focus:border-accent-yellow transition-all"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 mt-2 bg-accent-yellow text-bg-primary font-black rounded-xl shadow-xl hover:bg-accent-yellow-bright transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'MASUK KE DASHBOARD'}
-          </button>
-        </form>
-
-        <div className="relative mb-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border-subtle"></div>
-          </div>
-          <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
-            <span className="bg-bg-secondary px-2 text-text-secondary">Atau</span>
-          </div>
-        </div>
-
-        {/* Google Login Button */}
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full py-4 bg-white text-gray-900 font-bold rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
+          {!user ? (
+            /* Login State */
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-bg-secondary border border-border-subtle p-12 rounded-[2rem] text-center"
+            >
+              <div className="w-20 h-20 bg-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-8">
+                <Zap className="w-10 h-10 text-accent-yellow" />
+              </div>
+              <h2 className="text-3xl font-display font-black mb-4 uppercase">Akses Eksklusif</h2>
+              <p className="text-text-secondary mb-10 max-w-md mx-auto">
+                Fitur ini hanya tersedia untuk member Davsplace. Silakan login untuk mulai membuat konten.
+              </p>
+              <button 
+                onClick={handleLogin}
+                className="px-10 py-5 bg-accent-yellow text-bg-primary font-black rounded-2xl flex items-center justify-center gap-3 mx-auto hover:scale-105 active:scale-95 transition-all shadow-lg shadow-accent-yellow/20"
+              >
+                Login dengan Google
+              </button>
+            </motion.div>
           ) : (
-            <>
-              <svg width="20" height="20" viewBox="0 0 48 48">
-                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
-                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
-                <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
-                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
-              </svg>
-              Masuk dengan Google
-            </>
+            /* Tool State */
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+              <div className="space-y-8">
+                {/* Type Selection Tabs */}
+                <div className="flex p-1.5 bg-bg-secondary border border-border-subtle rounded-2xl">
+                  <button
+                    onClick={() => {
+                      setGeneratorType('social-media');
+                      setResult(null);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      generatorType === 'social-media' 
+                        ? "bg-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20" 
+                        : "text-text-secondary hover:text-white"
+                    )}
+                  >
+                    Social Media
+                  </button>
+                  <button
+                    onClick={() => {
+                      setGeneratorType('article');
+                      setResult(null);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative flex items-center justify-center gap-2",
+                      generatorType === 'article' 
+                        ? "bg-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20" 
+                        : "text-text-secondary hover:text-white"
+                    )}
+                  >
+                    Artikel Generator
+                    <span className="px-1.5 py-0.5 bg-bg-primary text-accent-yellow text-[8px] rounded uppercase">Beta</span>
+                  </button>
+                </div>
+
+                {/* Trial Notice */}
+                <AnimatePresence>
+                  {generatorType === 'article' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="p-4 bg-accent-yellow/10 border border-accent-yellow/20 rounded-2xl flex items-center gap-3 text-accent-yellow overflow-hidden"
+                    >
+                      <AlertCircle className="w-5 h-5 shrink-0" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider">
+                        Info: Fitur Artikel Generator masih dalam tahap uji coba selama sebulan.
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Input Area */}
+                <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                  <form onSubmit={handleGenerate} className="space-y-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                        Apa topik yang ingin kamu jadikan konten?
+                      </label>
+                      <textarea 
+                        rows={3}
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder={generatorType === 'article' ? "Contoh: Panduan lengkap memulai investasi kripto untuk pemula..." : "Contoh: Manfaat desain minimalis untuk branding startup..."}
+                        className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl p-6 outline-none focus:border-accent-yellow transition-all text-lg font-sans resize-none"
+                      />
+                    </div>
+
+                    {generatorType === 'article' && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                          Gaya Penulisan
+                        </label>
+                        <select
+                          value={writingStyle}
+                          onChange={(e) => setWritingStyle(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl p-4 outline-none focus:border-accent-yellow transition-all text-sm font-sans appearance-none cursor-pointer"
+                        >
+                          <option value="professional">Professional & Kredibel</option>
+                          <option value="formal">Formal & Serius</option>
+                          <option value="relaxed">Santai & Dekat</option>
+                          <option value="informative">Informatif & Edukatif</option>
+                          <option value="persuasive">Persuasif & Menyakinkan</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                        Pilih Model AI
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('gemini')}
+                          className={cn(
+                            "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
+                            selectedProvider === 'gemini' 
+                              ? "bg-accent-yellow/10 border-accent-yellow text-accent-yellow shadow-lg shadow-accent-yellow/5" 
+                              : "bg-bg-tertiary border-border-subtle text-text-secondary grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                          )}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                            <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304dfad33318282.svg" className="w-5 h-5" alt="Gemini" />
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Google Gemini</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProvider('nvidia-nemotron')}
+                          className={cn(
+                            "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
+                            selectedProvider === 'nvidia-nemotron' 
+                              ? "bg-blue-500/10 border-blue-500 text-blue-500 shadow-lg shadow-blue-500/5" 
+                              : "bg-bg-tertiary border-border-subtle text-text-secondary grayscale opacity-60 hover:opacity-100 hover:grayscale-0"
+                          )}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                            <Zap className="w-5 h-5" />
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">NVIDIA Nemotron</span>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      type="submit"
+                      disabled={generating || !topic.trim()}
+                      className="w-full py-5 bg-accent-yellow text-bg-primary font-black rounded-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                          MEMPROSES...
+                        </>
+                      ) : (
+                        <>
+                          GENERATE CONTENT
+                          <Send className="w-5 h-5" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Result Area */}
+                <AnimatePresence mode="wait">
+                  {result && (
+                    <motion.div
+                      key="result"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-6"
+                    >
+                      {/* Action Bar */}
+                      <div className="flex items-center justify-between bg-bg-secondary border border-border-subtle p-4 rounded-2xl">
+                        <div className="flex items-center gap-2">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full animate-pulse",
+                            selectedProvider === 'gemini' ? "bg-accent-yellow" : "bg-blue-500"
+                          )} />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                            Generated by {selectedProvider === 'gemini' ? 'Gemini' : 'Nemotron'}
+                          </span>
+                        </div>
+                        
+                        <button
+                          onClick={handleSave}
+                          disabled={saving || isSaved}
+                          className={cn(
+                            "flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
+                            isSaved 
+                              ? "bg-green-500/10 text-green-500 border border-green-500/20 cursor-default"
+                              : "bg-accent-yellow text-bg-primary hover:scale-105 active:scale-95"
+                          )}
+                        >
+                          {saving ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : isSaved ? (
+                            <BookmarkCheck className="w-3 h-3" />
+                          ) : (
+                            <Bookmark className="w-3 h-3" />
+                          )}
+                          {isSaved ? 'TERSIPAN' : 'SIMPAN KONTEN'}
+                        </button>
+                      </div>
+
+                       {/* Headline/Title Card */}
+                      <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem] group">
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                              <Zap className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                              {generatorType === 'social-media' ? 'Headline' : 'Rekomendasi Judul'}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => copyToClipboard(generatorType === 'social-media' ? result.headline : result.title_options?.join('\n'), 'headline')}
+                            className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
+                          >
+                            {copied === 'headline' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                          </button>
+                        </div>
+                        {generatorType === 'social-media' ? (
+                          <h3 className="text-2xl md:text-3xl font-display font-bold leading-tight uppercase">
+                            {result.headline}
+                          </h3>
+                        ) : (
+                          <div className="space-y-4">
+                            {result.title_options?.map((title: string, i: number) => (
+                              <div key={i} className="p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                                <p className="font-display font-bold text-lg uppercase leading-tight">{title}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Caption/Content Card */}
+                      <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                              {generatorType === 'social-media' ? 'Caption' : 'Konten Artikel'}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => copyToClipboard(generatorType === 'social-media' ? result.caption : result.content, 'caption')}
+                            className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
+                          >
+                            {copied === 'caption' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                          </button>
+                        </div>
+                        <div className={cn(
+                          "text-text-secondary font-sans leading-relaxed whitespace-pre-wrap",
+                          generatorType === 'article' && "prose prose-invert max-w-none text-lg"
+                        )}>
+                          {generatorType === 'social-media' ? result.caption : result.content}
+                        </div>
+                      </div>
+
+                      {/* Hashtags Card */}
+                      <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                              <Hash className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Hashtags</span>
+                          </div>
+                          <button 
+                            onClick={() => copyToClipboard(result.hashtags.join(' '), 'hashtags')}
+                            className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
+                          >
+                            {copied === 'hashtags' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {result.hashtags.map((tag: string, i: number) => (
+                            <span key={i} className="px-3 py-1.5 bg-bg-tertiary border border-border-subtle rounded-lg text-xs font-bold text-accent-yellow">
+                              {tag.startsWith('#') ? tag : `#${tag}`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Image Prompt Card */}
+                      {result.image_prompt && (
+                        <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                                <ImageIcon className="w-5 h-5" />
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">AI Image Prompt</span>
+                            </div>
+                            <button 
+                              onClick={() => copyToClipboard(result.image_prompt, 'image_prompt')}
+                              className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
+                            >
+                              {copied === 'image_prompt' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                            </button>
+                          </div>
+                          <div className="p-6 bg-bg-tertiary border border-border-subtle rounded-2xl">
+                            <p className="text-sm text-text-secondary font-mono leading-relaxed italic">
+                              "{result.image_prompt}"
+                            </p>
+                          </div>
+                          <p className="mt-4 text-[10px] text-text-secondary italic">
+                            *Gunakan prompt di atas pada tools AI Image seperti Midjourney, DALL-E, atau Canva Magic Media.
+                          </p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {error && (
+                  <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-4 text-red-500">
+                    <AlertCircle className="w-6 h-6 shrink-0" />
+                    <div>
+                      <p className="font-bold mb-1 uppercase text-xs">Generation Error</p>
+                      <p className="text-sm opacity-90">{error}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar Info */}
+              <div className="space-y-6">
+                <div className="space-y-6">
+                  <div className="bg-bg-tertiary border border-border-subtle p-8 rounded-[2rem]">
+                    <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mb-4">Credible Sources</p>
+                    <div className="space-y-3">
+                      {result?.sources ? result.sources.map((src: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3 p-3 bg-bg-primary rounded-xl border border-border-subtle text-xs truncate">
+                          <LinkIcon className="w-4 h-4 text-accent-yellow shrink-0" />
+                          <span className="truncate opacity-70 italic">{src}</span>
+                        </div>
+                      )) : (
+                        <p className="text-xs text-text-secondary opacity-50 italic">Generate content to see sources here.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-8 bg-accent-yellow rounded-[2rem] text-bg-primary">
+                    <h4 className="text-lg font-display font-black mb-4 uppercase leading-none">Pro Tip!</h4>
+                    <p className="text-sm font-sans font-medium leading-relaxed opacity-90">
+                      Berikan detail seperti target audience atau nada bicara (formal/santai) pada input topik untuk hasil yang lebih presisi.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
-        </button>
-
-        <p className="text-center text-[10px] text-text-secondary mt-5 leading-relaxed">
-          Hanya akun yang terdaftar sebagai admin<br/>yang dapat mengakses dashboard ini.
-        </p>
-
-        <div className="mt-10 text-center text-[8px] text-text-secondary font-bold uppercase tracking-widest opacity-30">
-          Davsplace Studio © 2026
         </div>
-      </motion.div>
+      </main>
+
+      <Footer />
+      <MobileBottomNavbar onSearchClick={() => setIsSearchOpen(true)} />
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }

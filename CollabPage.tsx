@@ -1,140 +1,74 @@
-import { Type } from "@google/genai";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
 
-export async function getChatResponse(prompt: string) {
+const app = initializeApp(firebaseConfig);
+// @ts-ignore
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+
+// Test Connection
+async function testConnection() {
   try {
-    const response = await fetch("/api/ai/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, context: "Chatbot interaction" }),
-    });
-    
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || "Gagal menghubungi chatbot.");
-    }
-    
-    const data = await response.json();
-    return data.text;
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firestore connected successfully.");
   } catch (error) {
-    console.error("Gemini chat error:", error);
-    throw error;
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration or internet connection.");
+    } else {
+      console.error("Firestore connectivity error:", error);
+    }
   }
 }
 
-export async function smartSearch(query: string, context: string) {
-  try {
-    const response = await fetch("/api/ai/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        prompt: `Berdasarkan konteks data berikut:\n${context}\n\nJawablah pertanyaan/pencarian berikut: "${query}"\nBerikan hasil pencarian yang relevan, informatif, dan ramah dalam Bahasa Indonesia.`,
-        context: "Smart Search Utility" 
-      }),
-    });
+testConnection();
 
-    if (!response.ok) return "Maaf, sistem pencarian AI kami sedang sibuk. Silakan coba lagi nanti.";
-    
-    const data = await response.json();
-    return data.text;
-  } catch (error) {
-    console.error("Gemini search error:", error);
-    return "Maaf, sistem pencarian AI kami sedang sibuk. Silakan coba lagi nanti.";
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
   }
 }
 
-export async function analyzeBrief(brief: string) {
-  // This would ideally have a dedicated endpoint if complex schema is needed
-  // For now, let's keep it simple or use the generate endpoint
-  try {
-    const response = await fetch("/api/ai/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        prompt: `Analisis brief proyek berikut dan berikan scope, klarifikasi, saran, dan kompleksitas (low/medium/high) dalam format JSON:\n"${brief}"`,
-        context: "Brief Analysis" 
-      }),
-    });
-
-    if (!response.ok) return null;
-    const data = await response.json();
-    try {
-      // Try to parse if the server returned it as a string
-      return JSON.parse(data.text);
-    } catch {
-      return { scope: data.text };
-    }
-  } catch (error) {
-    console.error("Gemini brief analysis error:", error);
-    return null;
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
   }
-}
-
-export async function generateSocialMediaContent(topic: string, provider: "gemini" | "nvidia-nemotron" = "gemini") {
-  try {
-    const response = await fetch("/api/ai/social-media", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ topic, provider }),
-    });
-
-    const contentType = response.headers.get("content-type");
-    const isJson = contentType && contentType.includes("application/json");
-
-    if (!response.ok) {
-      let errorMessage = "Gagal memproses AI.";
-      if (isJson) {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorMessage;
-      } else {
-        errorMessage = `Server Error (${response.status}): Silakan coba beberapa saat lagi.`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    if (!isJson) {
-      throw new Error("Format respon server tidak valid (Bukan JSON).");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("AI social media generator error:", error);
-    throw error;
-  }
-}
-
-export async function generateArticleContent(topic: string, style: string, provider: "gemini" | "nvidia-nemotron" = "gemini") {
-  try {
-    const response = await fetch("/api/ai/article", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ topic, style, provider }),
-    });
-
-    const contentType = response.headers.get("content-type");
-    const isJson = contentType && contentType.includes("application/json");
-
-    if (!response.ok) {
-      let errorMessage = "Gagal memproses AI.";
-      if (isJson) {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorMessage;
-      } else {
-        errorMessage = `Server Error (${response.status}): Silakan coba beberapa saat lagi.`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    if (!isJson) {
-      throw new Error("Format respon server tidak valid (Bukan JSON).");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("AI article generator error:", error);
-    throw error;
-  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
 }

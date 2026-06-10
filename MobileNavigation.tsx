@@ -1,116 +1,144 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Send, X, Sparkles, Loader2 } from 'lucide-react';
-import { getChatResponse } from '../lib/gemini';
+import { useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Float, Stars, Sphere, MeshDistortMaterial } from '@react-three/drei';
+import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Play } from 'lucide-react';
+import * as THREE from 'three';
 
-export default function MiniChatbot() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: 'Halo! Saya asisten virtual Davsplace Studio. Ada yang bisa saya bantu terkait layanan desain atau video kami?' }
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = input;
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
-    setIsLoading(true);
-
-    const prompt = `Kamu adalah asisten virtual Davsplace Studio. 
-    Bantu pengunjung memahami layanan kami (Desain Grafis, Video Editing, Dokumentasi, Konsultasi Brand).
-    Arahkan mereka untuk menghubungi tim via WhatsApp untuk detail lebih lanjut.
-    
-    User bertanya: "${userMessage}"`;
-
-    try {
-      const responseText = await getChatResponse(prompt);
-      setMessages(prev => [...prev, { role: 'ai', text: responseText || 'Maaf, saya tidak bisa menjangjawab saat ini.' }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Maaf, saya sedang mengalami kendala teknis. Silakan hubungi kami via WhatsApp.' }]);
-    } finally {
-      setIsLoading(false);
+function Particles({ count = 200 }) {
+  const points = useRef<THREE.Points>(null!);
+  
+  const particlesPosition = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 10;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 10;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 10;
     }
-  };
+    return pos;
+  }, [count]);
+
+  useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+    for (let i = 0; i < count; i++) {
+        const i3 = i * 3;
+        points.current.geometry.attributes.position.array[i3 + 1] += Math.sin(time + points.current.geometry.attributes.position.array[i3]) * 0.002;
+    }
+    points.current.geometry.attributes.position.needsUpdate = true;
+    points.current.rotation.y += 0.001;
+  });
 
   return (
-    <div className="fixed bottom-20 right-4 lg:bottom-8 lg:right-8 z-[100]">
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="absolute bottom-20 right-0 w-[400px] max-w-[calc(100vw-4rem)] bg-bg-secondary border border-border-subtle rounded-2xl shadow-2xl overflow-hidden"
-          >
-            {/* Header */}
-            <div className="p-6 bg-accent-yellow flex items-center justify-between">
-              <div className="flex items-center gap-3 text-bg-primary">
-                <div className="w-10 h-10 bg-bg-primary rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-accent-yellow" />
-                </div>
-                <div>
-                  <h4 className="font-display font-bold">Tanya Davsplace</h4>
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">AI Assistant</p>
-                </div>
-              </div>
-              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-black/10 rounded-full transition-colors text-bg-primary">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Chat Body */}
-            <div className="h-[400px] overflow-y-auto p-6 flex flex-col gap-4 scroll-smooth">
-              {messages.map((msg, i) => (
-                <div key={i} className={cn(
-                  "max-w-[80%] p-4 rounded-xl text-sm leading-relaxed",
-                  msg.role === 'user' 
-                    ? "bg-accent-yellow text-bg-primary font-medium self-end rounded-tr-none" 
-                    : "bg-bg-tertiary text-text-primary self-start rounded-tl-none border border-border-subtle"
-                )}>
-                  {msg.text}
-                </div>
-              ))}
-              {isLoading && (
-                <div className="bg-bg-tertiary text-text-secondary p-4 rounded-xl rounded-tl-none self-start border border-border-subtle flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-xs font-bold uppercase tracking-widest animate-pulse">Mengetik...</span>
-                </div>
-              )}
-            </div>
-
-            {/* Input */}
-            <form onSubmit={handleSend} className="p-4 bg-bg-tertiary border-t border-border-subtle flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ketik pertanyaan..."
-                style={{ fontSize: '16px' }}
-                className="flex-1 bg-bg-secondary border border-border-subtle rounded-xl px-4 py-3 text-sm focus:border-accent-yellow outline-none transition-all"
-              />
-              <button className="w-12 h-12 bg-accent-yellow rounded-lg flex items-center justify-center text-bg-primary hover:rotate-12 transition-transform">
-                <Send className="w-5 h-5" />
-              </button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 bg-accent-yellow rounded-xl shadow-2xl flex items-center justify-center text-bg-primary group relative overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-        {isOpen ? <X className="w-7 h-7 relative z-10" /> : <MessageSquare className="w-7 h-7 relative z-10" />}
-      </motion.button>
-    </div>
+    <points ref={points}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={particlesPosition.length / 3}
+          array={particlesPosition}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial size={0.015} color="#F5C518" transparent opacity={0.4} sizeAttenuation />
+    </points>
   );
 }
 
-import { cn } from '../lib/utils';
+function Scene() {
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} intensity={1} />
+      <Particles count={300} />
+      <Float speed={2} rotationIntensity={1} floatIntensity={1}>
+        <Sphere args={[1, 100, 100]} scale={1.5} position={[3, 0, -2]}>
+          <MeshDistortMaterial
+            color="#F5C518"
+            attach="material"
+            distort={0.4}
+            speed={1.5}
+            roughness={0.2}
+            metalness={0.8}
+          />
+        </Sphere>
+      </Float>
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+    </>
+  );
+}
+
+export default function HeroSection() {
+  return (
+    <section className="relative h-screen w-full flex items-center overflow-hidden">
+      {/* 3D Background */}
+      <div className="absolute inset-0 z-0 bg-bg-primary">
+        <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
+          <Scene />
+        </Canvas>
+        <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-transparent to-transparent" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-6 w-full pt-20">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-3xl text-center md:text-left mx-auto md:mx-0"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-[10px] font-accent mb-6 tracking-wide uppercase">
+            <span className="w-2 h-2 bg-accent-yellow rounded-full animate-pulse" />
+            Digital Creative Solution
+          </div>
+          
+          <h1 className="text-[2.5rem] xs:text-5xl sm:text-7xl md:text-[8.5rem] font-display font-black leading-[0.9] sm:leading-[0.85] mb-6 sm:mb-8 tracking-tighter uppercase">
+            ELEVATE YOUR <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-yellow via-accent-yellow-bright to-accent-yellow-dark">DIGITAL VISION</span>
+          </h1>
+          
+          <p className="text-sm md:text-xl text-text-secondary font-medium leading-relaxed mb-10 sm:mb-12 max-w-2xl mx-auto md:mx-0">
+            Platform bisnis digital untuk kreator & brand lokal Indonesia yang ingin tampil berkelas, futuristik, dan mendunia.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center md:justify-start">
+            <Link to="/kolaborasi" className="w-full sm:w-auto px-10 py-5 bg-accent-yellow text-bg-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-white transition-all group active:scale-95 tracking-widest text-[10px] sm:text-xs">
+              Mulai Project
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            
+            <Link to="/portofolio" className="w-full sm:w-auto px-10 py-5 bg-bg-secondary/50 backdrop-blur-sm border border-border-subtle text-text-primary font-black uppercase rounded-2xl flex items-center justify-center gap-2 hover:bg-bg-tertiary transition-all active:scale-95 tracking-widest text-[10px] sm:text-xs">
+              Portfolio
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-12 sm:mt-24 flex flex-wrap justify-center md:justify-start gap-8 sm:gap-20 border-t border-border-subtle/50 pt-8 sm:pt-12">
+            <div className="group cursor-default">
+              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">50+</p>
+              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Project</p>
+            </div>
+            <div className="group cursor-default">
+              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">30+</p>
+              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Client</p>
+            </div>
+            <div className="group cursor-default">
+              <p className="text-3xl sm:text-5xl font-display font-black text-white group-hover:text-accent-yellow transition-colors">4</p>
+              <p className="text-[9px] sm:text-[11px] text-text-secondary uppercase font-black tracking-[0.2em] mt-2 group-hover:ml-1 transition-all">Service</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Scroll Indicator */}
+      <motion.div 
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+      >
+        <div className="w-6 h-10 border-2 border-border-subtle rounded-full flex justify-center p-1">
+          <div className="w-1 h-2 bg-accent-yellow rounded-full" />
+        </div>
+      </motion.div>
+    </section>
+  );
+}

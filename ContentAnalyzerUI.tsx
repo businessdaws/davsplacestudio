@@ -1,12 +1,13 @@
 import { motion } from 'motion/react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import TentangSection from '../components/TentangSection';
+import FeaturedPortfolio from '../components/FeaturedPortfolio';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
 import { useState } from 'react';
 import SearchModal from '../components/SearchModal';
+import CTASection from '../components/CTASection';
 
-export default function AboutPage() {
+export default function PortfolioPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
@@ -22,15 +23,19 @@ export default function AboutPage() {
             className="mb-8 sm:mb-12"
           >
             <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-extrabold tracking-tighter uppercase mb-4 sm:mb-6 leading-none">
-              KNOW <span className="text-accent-yellow">ABOUT US</span>
+              OUR <span className="text-accent-yellow italic">PORTFOLIO</span>
             </h1>
             <p className="text-base sm:text-xl text-text-secondary max-w-2xl font-sans">
-              Kami adalah tim kreatif yang berfokus pada inovasi digital dan estetika futuristik.
+              Eksplorasi karya-karya digital kami yang menggabungkan teknologi dan seni.
             </p>
           </motion.div>
         </div>
 
-        <TentangSection />
+        <FeaturedPortfolio />
+        
+        <div className="mt-12 sm:mt-20">
+          <CTASection />
+        </div>
       </main>
 
       <Footer />

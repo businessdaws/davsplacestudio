@@ -1,52 +1,140 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Sparkles, LayoutDashboard, Film, FileText, Palette, Camera } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Type } from "@google/genai";
 
-export default function UserDashboardNav({ user }: { user: any }) {
-  const location = useLocation();
-  const path = location.pathname;
-  
-  const searchParams = new URLSearchParams(location.search);
-  const currentTab = searchParams.get('tab') || 'saved';
+export async function getChatResponse(prompt: string) {
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, context: "Chatbot interaction" }),
+    });
+    
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Gagal menghubungi chatbot.");
+    }
+    
+    const data = await response.json();
+    return data.text;
+  } catch (error) {
+    console.error("Gemini chat error:", error);
+    throw error;
+  }
+}
 
-  const navItems = [
-    { name: 'AI Generator', href: '/dashboard?tab=generator', icon: Sparkles, tab: 'generator' },
-    { name: 'Content Analyzer', href: '/dashboard?tab=analyzer', icon: FileText, tab: 'analyzer' },
-    { name: 'Visual Engine', href: '/dashboard?tab=visual-engine', icon: Film, tab: 'visual-engine' },
-    { name: 'Creative Editor', href: '/dashboard?tab=editor', icon: Palette, tab: 'editor', isBeta: true },
-    { name: 'Virtual Studio', href: '/dashboard?tab=virtual-studio', icon: Camera, tab: 'virtual-studio', isBeta: true },
-    { name: 'Watermarking', href: '/dashboard?tab=watermarking', icon: Camera, tab: 'watermarking' },
-    { name: 'Saved Content', href: '/dashboard', icon: LayoutDashboard, tab: 'saved' },
-  ];
+export async function smartSearch(query: string, context: string) {
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        prompt: `Berdasarkan konteks data berikut:\n${context}\n\nJawablah pertanyaan/pencarian berikut: "${query}"\nBerikan hasil pencarian yang relevan, informatif, dan ramah dalam Bahasa Indonesia.`,
+        context: "Smart Search Utility" 
+      }),
+    });
 
-  return (
-    <div className="w-full mb-12">
-      <div className="flex flex-wrap gap-2 md:gap-4 justify-start items-center">
-        {navItems.map((item) => {
-          const isActive = path === '/dashboard' && currentTab === item.tab;
+    if (!response.ok) return "Maaf, sistem pencarian AI kami sedang sibuk. Silakan coba lagi nanti.";
+    
+    const data = await response.json();
+    return data.text;
+  } catch (error) {
+    console.error("Gemini search error:", error);
+    return "Maaf, sistem pencarian AI kami sedang sibuk. Silakan coba lagi nanti.";
+  }
+}
 
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "flex-1 sm:flex-initial flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest relative overflow-visible",
-                isActive
-                  ? "bg-accent-yellow border-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20"
-                  : "bg-bg-secondary border-border-subtle text-text-secondary hover:text-white hover:border-accent-yellow/30"
-              )}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              <span>{item.name}</span>
-              {item.isBeta && (
-                <span className="text-[7.5px] bg-[#3b82f6]/25 text-[#60a5fa] border border-[#60a5fa]/20 font-black px-1 py-0.2 rounded uppercase tracking-normal">
-                  BETA
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
+export async function analyzeBrief(brief: string) {
+  // This would ideally have a dedicated endpoint if complex schema is needed
+  // For now, let's keep it simple or use the generate endpoint
+  try {
+    const response = await fetch("/api/ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        prompt: `Analisis brief proyek berikut dan berikan scope, klarifikasi, saran, dan kompleksitas (low/medium/high) dalam format JSON:\n"${brief}"`,
+        context: "Brief Analysis" 
+      }),
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    try {
+      // Try to parse if the server returned it as a string
+      return JSON.parse(data.text);
+    } catch {
+      return { scope: data.text };
+    }
+  } catch (error) {
+    console.error("Gemini brief analysis error:", error);
+    return null;
+  }
+}
+
+export async function generateSocialMediaContent(topic: string, provider: "gemini" | "nvidia-nemotron" = "gemini") {
+  try {
+    const response = await fetch("/api/ai/social-media", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ topic, provider }),
+    });
+
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+
+    if (!response.ok) {
+      let errorMessage = "Gagal memproses AI.";
+      if (isJson) {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } else {
+        errorMessage = `Server Error (${response.status}): Silakan coba beberapa saat lagi.`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (!isJson) {
+      throw new Error("Format respon server tidak valid (Bukan JSON).");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("AI social media generator error:", error);
+    throw error;
+  }
+}
+
+export async function generateArticleContent(topic: string, style: string, provider: "gemini" | "nvidia-nemotron" = "gemini") {
+  try {
+    const response = await fetch("/api/ai/article", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ topic, style, provider }),
+    });
+
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+
+    if (!response.ok) {
+      let errorMessage = "Gagal memproses AI.";
+      if (isJson) {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } else {
+        errorMessage = `Server Error (${response.status}): Silakan coba beberapa saat lagi.`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (!isJson) {
+      throw new Error("Format respon server tidak valid (Bukan JSON).");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("AI article generator error:", error);
+    throw error;
+  }
 }
