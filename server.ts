@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { GoogleGenAI, Type } from "@google/genai";
 import OpenAI from "openai";
 import dotenv from "dotenv";
@@ -1543,6 +1544,144 @@ app.all("/api/*", (req, res) => {
   res.status(404).json({
     error: `API route not found: ${req.method} ${req.path}`
   });
+});
+
+// Intercept article details route to serve dynamic Open Graph / SEO metadata previews
+app.get("/artikel/:slug", async (req, res, next) => {
+  const { slug } = req.params;
+  
+  if (!slug || slug.includes(".") || slug === "index.html") {
+    return next();
+  }
+
+  console.log(`[SEO Crawler] Intercepted article detail request for slug: "${slug}"`);
+
+  let articleData = null;
+
+  try {
+    // 1. Fetch metadata from Firestore database via REST API
+    const projectId = "davsplacestudio-64952";
+    const databaseId = "ai-studio-c20978b5-e910-4082-a5ab-478cbb615e63";
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
+
+    const payload = JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: "articles" }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: "slug" },
+            op: "EQUAL",
+            value: { stringValue: slug }
+          }
+        },
+        limit: 1
+      }
+    });
+
+    const parsedUrl = new URL(firestoreUrl);
+    
+    const rawResult = await new Promise<any>((resolve, reject) => {
+      const dbReq = https.request({
+        hostname: parsedUrl.hostname,
+        path: parsedUrl.pathname,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload)
+        },
+        timeout: 6000
+      }, (dbRes) => {
+        let body = "";
+        dbRes.on("data", (chunk) => { body += chunk; });
+        dbRes.on("end", () => {
+          if (dbRes.statusCode && dbRes.statusCode >= 200 && dbRes.statusCode < 300) {
+            try {
+              resolve(JSON.parse(body));
+            } catch (e) {
+              reject(new Error("Failed to parse Firestore REST API response"));
+            }
+          } else {
+            reject(new Error(`Firestore REST API returned status ${dbRes.statusCode}: ${body}`));
+          }
+        });
+      });
+
+      dbReq.on("error", (e) => reject(e));
+      dbReq.on("timeout", () => {
+        dbReq.destroy();
+        reject(new Error("Firestore query timed out"));
+      });
+      dbReq.write(payload);
+      dbReq.end();
+    });
+
+    // Parse the result from runQuery array
+    if (Array.isArray(rawResult) && rawResult.length > 0 && rawResult[0].document) {
+      const doc = rawResult[0].document;
+      const fields = doc.fields || {};
+      
+      const title = fields.title?.stringValue || "";
+      const excerpt = fields.excerpt?.stringValue || fields.description?.stringValue || "";
+      const coverImage = fields.cover_image?.stringValue || fields.image_url?.stringValue || "";
+      
+      if (title) {
+        articleData = {
+          title,
+          excerpt: excerpt.substring(0, 160).replace(/[#*`\n]/g, " ").trim(), // clean markdowns
+          coverImage: coverImage || "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=1200"
+        };
+      }
+    }
+  } catch (err) {
+    console.error("[SEO Crawler] Failed to retrieve article from Firestore:", err);
+  }
+
+  // 2. Open up index.html and inject metadata
+  try {
+    let indexPath = path.join(process.cwd(), "dist", "index.html");
+    if (!fs.existsSync(indexPath)) {
+      indexPath = path.join(process.cwd(), "index.html");
+    }
+
+    let html = fs.readFileSync(indexPath, "utf8");
+
+    if (articleData) {
+      console.log(`[SEO Crawler] Injecting metadata headers for: "${articleData.title}"`);
+      const fullTitle = `${articleData.title} | Davsplace Studio`;
+      const fullDesc = articleData.excerpt || "Baca selengkapnya di Davsplace Studio...";
+      const fullImg = articleData.coverImage;
+      const fullUrl = `https://davsplace.online/artikel/${slug}`;
+
+      // Replace Page Title tag
+      html = html.replace(/<title>[^<]*<\/title>/g, `<title>${fullTitle}</title>`);
+      
+      // Replace Meta tag titles
+      html = html.replace(/<meta name="title" content="[^"]*"\s*\/?>/g, `<meta name="title" content="${fullTitle}" />`);
+      html = html.replace(/<meta property="og:title" content="[^"]*"\s*\/?>/g, `<meta property="og:title" content="${fullTitle}" />`);
+      html = html.replace(/<meta property="twitter:title" content="[^"]*"\s*\/?>/g, `<meta property="twitter:title" content="${fullTitle}" />`);
+
+      // Replace Meta tag descriptions
+      html = html.replace(/<meta name="description" content="[^"]*"\s*\/?>/g, `<meta name="description" content="${fullDesc}" />`);
+      html = html.replace(/<meta property="og:description" content="[^"]*"\s*\/?>/g, `<meta property="og:description" content="${fullDesc}" />`);
+      html = html.replace(/<meta property="twitter:description" content="[^"]*"\s*\/?>/g, `<meta property="twitter:description" content="${fullDesc}" />`);
+
+      // Replace Meta tag images
+      html = html.replace(/<meta property="og:image" content="[^"]*"\s*\/?>/g, `<meta property="og:image" content="${fullImg}" />`);
+      html = html.replace(/<meta property="twitter:image" content="[^"]*"\s*\/?>/g, `<meta property="twitter:image" content="${fullImg}" />`);
+
+      // Replace Meta tag urls
+      html = html.replace(/<meta property="og:url" content="[^"]*"\s*\/?>/g, `<meta property="og:url" content="${fullUrl}" />`);
+      html = html.replace(/<meta property="twitter:url" content="[^"]*"\s*\/?>/g, `<meta property="twitter:url" content="${fullUrl}" />`);
+    } else {
+      console.log(`[SEO Crawler] Serving fallback tags - Article slug not found in DB`);
+    }
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.send(html);
+  } catch (htmlErr) {
+    console.error("[SEO Crawler] Failed to read index.html or replace meta tags:", htmlErr);
+    return next();
+  }
 });
 
 // Setup Vite or static serving
