@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Send, X, Sparkles, Loader2 } from 'lucide-react';
 import { getChatResponse } from '../lib/gemini';
+import { cn } from '../lib/utils';
 
 export default function MiniChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -112,5 +113,3 @@ export default function MiniChatbot() {
     </div>
   );
 }
-
-import { cn } from '../lib/utils';

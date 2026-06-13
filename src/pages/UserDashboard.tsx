@@ -7,8 +7,10 @@ import VisualEngineUI from '../components/VisualEngineUI';
 import ContentAnalyzerUI from '../components/ContentAnalyzerUI';
 import CreativeEditorUI from '../components/CreativeEditorUI';
 import AIGeneratorUI from '../components/AIGeneratorUI';
+import ContentGeneratorUI from '../components/ContentGeneratorUI';
 import VirtualStudioUI from '../components/VirtualStudioUI';
 import WatermarkEditor from './WatermarkEditor';
+import DataVisualizerUI from '../components/DataVisualizerUI';
 import { 
   collection, 
   query, 
@@ -277,7 +279,7 @@ export default function UserDashboard() {
               <Loader2 className="w-8 h-8 text-accent-yellow animate-spin" />
               <p className="text-[10px] font-black uppercase text-text-secondary tracking-widest mt-4">Memverifikasi Lisensi...</p>
             </div>
-          ) : (!loadingProfile && !profile?.is_premium && (profile?.trial_count || 0) >= 3 && ['generator', 'visual-engine', 'analyzer', 'editor'].includes(activeTab)) ? (
+          ) : (!loadingProfile && !profile?.is_premium && (profile?.trial_count || 0) >= 3 && ['generator', 'visual-engine', 'analyzer', 'editor', 'visualizer'].includes(activeTab)) ? (
             <div className="py-20 flex justify-center items-center">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -352,6 +354,13 @@ export default function UserDashboard() {
               onIncrementTrial={handleIncrementTrial} 
               settings={settings} 
             />
+          ) : activeTab === 'content-generator' ? (
+            <ContentGeneratorUI 
+              user={user} 
+              profile={profile} 
+              onIncrementTrial={handleIncrementTrial} 
+              settings={settings} 
+            />
           ) : activeTab === 'visual-engine' ? (
             <VisualEngineUI 
               user={user} 
@@ -370,6 +379,8 @@ export default function UserDashboard() {
             <VirtualStudioUI user={user} profile={profile} />
           ) : activeTab === 'watermarking' ? (
             <WatermarkEditor isEmbedded={true} />
+          ) : activeTab === 'visualizer' ? (
+            <DataVisualizerUI user={user} profile={profile} />
           ) : (
             <>
               {/* Header */}

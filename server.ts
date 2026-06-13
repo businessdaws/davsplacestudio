@@ -117,15 +117,31 @@ function robustJSONParse(text: string): any {
     console.warn("[JSON Parse] Direct parse failed, attempting robust cleaning and bracket matching...");
   }
 
-  // 3. Bracket-matching parsing to extract single valid JSON object
+  // Bracket matching for either `{` or `[`
   const firstBrace = cleaned.indexOf('{');
-  if (firstBrace !== -1) {
+  const firstBracket = cleaned.indexOf('[');
+  
+  let startIdx = -1;
+  let endChar = '';
+  let startChar = '';
+  
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIdx = firstBrace;
+    startChar = '{';
+    endChar = '}';
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+    startChar = '[';
+    endChar = ']';
+  }
+
+  if (startIdx !== -1) {
     let braceCount = 0;
     let inString = false;
     let escapeNext = false;
-    let lastMatchingBraceIndex = -1;
+    let lastMatchingIndex = -1;
 
-    for (let i = firstBrace; i < cleaned.length; i++) {
+    for (let i = startIdx; i < cleaned.length; i++) {
       const char = cleaned[i];
 
       if (escapeNext) {
@@ -144,26 +160,25 @@ function robustJSONParse(text: string): any {
       }
 
       if (!inString) {
-        if (char === '{') {
+        if (char === startChar) {
           braceCount++;
-        } else if (char === '}') {
+        } else if (char === endChar) {
           braceCount--;
           if (braceCount === 0) {
-            lastMatchingBraceIndex = i;
+            lastMatchingIndex = i;
             break;
           }
         }
       }
     }
 
-    if (lastMatchingBraceIndex !== -1) {
-      const candidate = cleaned.slice(firstBrace, lastMatchingBraceIndex + 1);
+    if (lastMatchingIndex !== -1) {
+      const candidate = cleaned.slice(startIdx, lastMatchingIndex + 1);
       try {
         return JSON.parse(candidate);
       } catch (parseErr: any) {
-        console.warn("[JSON Parse] Bracket matched slice failed, cleaning whitespace/unescaped characters in strings...", parseErr.message);
+        console.warn("[JSON Parse] Bracket matched slice failed, cleaning whitespace/unescaped characters...", parseErr.message);
         
-        // Escape control characters inside string fields specifically (like actual newlines in blocks)
         try {
           const sanitized = candidate.replace(/[\u0000-\u001F]+/g, (match) => {
             if (match.includes('\n')) return '\\n';
@@ -173,17 +188,17 @@ function robustJSONParse(text: string): any {
           });
           return JSON.parse(sanitized);
         } catch (sanitizeErr) {
-          console.warn("[JSON Parse] Sanitization extraction failed, falling back to basic checks.");
+          console.warn("[JSON Parse] Sanitization extraction failed, trying greedy replacement.");
         }
       }
     }
   }
 
-  // 4. Greedy match fallback
-  const startIdx = cleaned.indexOf('{');
-  const endIdx = cleaned.lastIndexOf('}');
-  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-    const candidate = cleaned.slice(startIdx, endIdx + 1);
+  // Greedy match fallback for objects
+  const objStart = cleaned.indexOf('{');
+  const objEnd = cleaned.lastIndexOf('}');
+  if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
+    const candidate = cleaned.slice(objStart, objEnd + 1);
     try {
       return JSON.parse(candidate);
     } catch (greedyErr: any) {
@@ -196,9 +211,44 @@ function robustJSONParse(text: string): any {
         });
         return JSON.parse(sanitized);
       } catch (finalErr) {
-        // Continue to throw below
+        // failed
       }
     }
+  }
+
+  // Greedy match fallback for arrays
+  const arrStart = cleaned.indexOf('[');
+  const arrEnd = cleaned.lastIndexOf(']');
+  if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
+    const candidate = cleaned.slice(arrStart, arrEnd + 1);
+    try {
+      return JSON.parse(candidate);
+    } catch (greedyErr: any) {
+      try {
+        const sanitized = candidate.replace(/[\u0000-\u001F]+/g, (match) => {
+          if (match.includes('\n')) return '\\n';
+          if (match.includes('\r')) return '\\r';
+          if (match.includes('\t')) return '\\t';
+          return '';
+        });
+        return JSON.parse(sanitized);
+      } catch (finalErr) {
+        // failed
+      }
+    }
+  }
+
+  // Last resort: try to replace unescaped control characters in the entire string and parse
+  try {
+    const fullySanitized = cleaned.replace(/[\u0000-\u001F]+/g, (match) => {
+      if (match.includes('\n')) return '\\n';
+      if (match.includes('\r')) return '\\r';
+      if (match.includes('\t')) return '\\t';
+      return '';
+    });
+    return JSON.parse(fullySanitized);
+  } catch (lastResortErr) {
+    // continue
   }
 
   throw new Error("Invalid JSON format from AI response.");
@@ -554,6 +604,384 @@ app.post("/api/ai/article", async (req, res) => {
   }
 });
 
+// AI Content Generator API (All-in-One Content Studio)
+app.post("/api/ai/content-generator", async (req, res) => {
+  try {
+    const {
+      contentType = "single_post",
+      topic = "",
+      platform = "Instagram",
+      tone = "professional",
+      language = "bahasa indonesia",
+      brandVoice = "",
+      keywords = [],
+      negativeTopics = [],
+      callToAction = "",
+      slidesCount = 5,
+      provider = "gemini"
+    } = req.body;
+
+    if (!topic || !topic.trim()) {
+      return res.status(400).json({ error: "Topik atau brief konten wajib diisi." });
+    }
+
+    // Build optimized prompts for specific content types
+    let specificRequirementPrompt = "";
+    let jsonSchemaPrompt = "";
+
+    const keywordsStr = keywords.length > 0 ? keywords.join(", ") : "";
+    const negativesStr = negativeTopics.length > 0 ? negativeTopics.join(", ") : "";
+
+    const contextContext = `
+Jenis Konten: ${contentType}
+Topik/Brief Utama: "${topic}"
+Platform Target: ${platform}
+Tone/Nada Bicara: ${tone}
+Bahasa Output: ${language}
+${brandVoice ? `Brand Voice Profile: "${brandVoice}"` : ""}
+${keywordsStr ? `Keywords yang wajib ada: "${keywordsStr}"` : ""}
+${negativesStr ? `Hindari topik/kata-kata berikut: "${negativesStr}"` : ""}
+${callToAction ? `Call-to-Action (CTA): "${callToAction}"` : ""}
+    `;
+
+    if (contentType === "carousel") {
+      specificRequirementPrompt = `Hasilkan konsep microblogging Carousel lengkap yang terdiri dari ${slidesCount} slides. Tiap slide harus memiliki judul yang menggugah, deskripsi detail isi slide, dan prompt instruksi visual slide-by-slide untuk desainer grafis.`;
+      jsonSchemaPrompt = `{
+        "headline": "Judul Utama / Slide 1 Hook",
+        "caption": "Caption promo pendukung utama (untuk postingan utama)",
+        "hashtags": ["tag1", "tag2"],
+        "carousel_slides": [
+          { "id": 1, "title": "Slide 1: Hook Utama", "content": "Detil penjelasan...", "visual_prompt": "Instruksi visual slide ke-1" }
+        ],
+        "image_prompt": "Prompt visual cover (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "threads") {
+      specificRequirementPrompt = `Hasilkan struktur Thread untuk platform Twitter/X yang mengupas tuntas topik ini secara logis, ringkas, dan bertahap. Tiap tweet wajib menyertakan no-urut (misal: 1/, 2/) dan memiliki formatting spasi yang rapi (maksimal 280 karakter per tweet).`;
+      jsonSchemaPrompt = `{
+        "headline": "Hook Tweet Pertama",
+        "caption": "Review / Rangkuman benang merah thread ini",
+        "hashtags": ["tag1", "tag2"],
+        "thread_tweets": [
+          { "id": 1, "text": "Isi tweet pertama (maksimal 280 karakter)...", "visual_description": "Saran elemen grafis pendukung" }
+        ],
+        "image_prompt": "Prompt visual banner thread (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "video_script") {
+      specificRequirementPrompt = `Hasilkan naskah Video pendek (Reels/TikTok/Shorts). Buat naskah yang berdurasi 30-60 detik dengan timeline scene yang jelas, dimulai dengan hook 3-detik pertama yang intens, petunjuk audio/efek suara, petunjuk visual scene, naskah spoken words yang natural, caption video, dan tag.`;
+      jsonSchemaPrompt = `{
+        "headline": "Nama Konsep / Judul Video",
+        "caption": "Deskripsi caption postingan video",
+        "hashtags": ["tag1", "tag2"],
+        "video_timeline": [
+          { "time": "0:00 - 0:03", "section": "Hook Pertama", "script": "Kata-kata lisan saya...", "visual": "Tampilan kamera...", "audio": "Musik latar belakang up-beat..." }
+        ],
+        "image_prompt": "Prompt visual Thumbnail Video (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "article" || contentType === "newsletter") {
+      specificRequirementPrompt = `Hasilkan artikel mendalam atau newsletter. Konten harus terstruktur secara profesional menggunakan Markdown dengan heading bertingkat (H2, H3), paragraf analitis, bullet points yang mendidik, dan penutup yang persuasif.`;
+      jsonSchemaPrompt = `{
+        "headline": "Rekomendasi Judul Utama atau Subjek Email",
+        "content": "Isi lengkap tulisan berskala panjang berformat MD (Markdown)...",
+        "caption": "Ringkasan pendek isi tulisan untuk teaser beranda",
+        "hashtags": ["tag1", "tag2"],
+        "image_prompt": "Prompt visual editorial cover image (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "linkedin") {
+      specificRequirementPrompt = `Hasilkan postingan profesional LinkedIn. Postingan menggunakan teknik storytelling (line-breaks berjarak, poin penting yang profesional), diakhiri dengan key takeaway yang prestisius, engagement call (pertanyaan interaktif pembaca), dan list tagar.`;
+      jsonSchemaPrompt = `{
+        "headline": "Kalimat Hook Pembuka LinkedIn",
+        "caption": "Isi lengkap caption LinkedIn dengan line-break berjarak...",
+        "hashtags": ["tag1", "tag2"],
+        "image_prompt": "Prompt visual infografis atau professional corporate photo (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "caption_pack") {
+      specificRequirementPrompt = `Hasilkan kemasan "Caption Pack" yang berisi 3 alternatif gaya tulisan yang berbeda untuk mempromosikan topik ini: 1. Informative (kaya ilmu rincian), 2. Playful (lucu, santai, dengan emoji rona), 3. Urgent (seruan mendesak dan mendorong konversi segera).`;
+      jsonSchemaPrompt = `{
+        "headline": "Headline Caption Pack",
+        "caption": "Ringkasan/penjelasan singkat paket caption ini",
+        "caption_alternatives": {
+          "informative": "Alternatif caption edukatif rincian...",
+          "playful": "Alternatif caption santai penuh humor...",
+          "urgent": "Alternatif caption mendesak CTA cepat..."
+        },
+        "hashtags": ["tag1", "tag2"],
+        "image_prompt": "Visual graphic card prompt (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "product_copy") {
+      specificRequirementPrompt = `Hasilkan teks pemasaran produk profesional mengikuti pola formula AIDA (Attention, Interest, Desire, Action) yang dirancang untuk merayu calon costumer agar segera membeli produk ini.`;
+      jsonSchemaPrompt = `{
+        "headline": "Slogan UVP (Unique Value Proposition) Produk",
+        "content": "Struktur lengkap AIDA (Attention\\nInterest\\nDesire\\nAction) yang detail...",
+        "caption": "Caption media sosial untuk promosi produk",
+        "hashtags": ["tag1", "tag2"],
+        "image_prompt": "Studio lighting product photography prompt (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "event_promo") {
+      specificRequirementPrompt = `Hasilkan teks promosi Event yang memikat. Tuliskan detail acara dengan sangat menarik termasuk rincian tanggal, agenda, keuntungan berpartisipasi, dan kalimat desakan konversi pemesanan tiket (CTA).`;
+      jsonSchemaPrompt = `{
+        "headline": "Judul Poster Utama Event",
+        "content": "Rencana agenda lengkap, tanggal acara, serta keuntungan peserta format markdown...",
+        "caption": "Caption medsos teaser info pendaftaran event",
+        "hashtags": ["tag1", "tag2"],
+        "image_prompt": "Event promotional banner graphic design concept (Bahasa Inggris)"
+      }`;
+    } else if (contentType === "ads_copy") {
+      specificRequirementPrompt = `Hasilkan variasi salinan iklan (Facebook/Google Ads). Sediakan 2 variasi Headline yang menggugah, 2 variasi teks primer promosi (Primary Text), 2 variasi rincian deskripsi pendek (Description), serta rekomendasi tombol Call-To-Action (CTA) berkonversi tinggi.`;
+      jsonSchemaPrompt = `{
+        "headline_variants": ["Headline Iklan 1", "Headline Iklan 2"],
+        "primary_text_variants": ["Teks Utama Iklan 1", "Teks Utama Iklan 2"],
+        "description_variants": ["Rincian deskripsi 1", "Rincian deskripsi 2"],
+        "cta_recommendations": ["Learn More", "Book Now"],
+        "caption": "Caption pelengkap iklan di feed sosial media",
+        "hashtags": ["tag1", "tag2"],
+        "image_prompt": "High click-through-rate advertising graphic illustration idea (Bahasa Inggris)"
+      }`;
+    } else {
+      // Default single post
+      specificRequirementPrompt = `Hasilkan postingan media sosial informatif dan orisinal mengenai topik yang diajukan. Tulislah headline yang hooky, caption detail diiringi penyematan emoji yang pas, dan tagar trending.`;
+      jsonSchemaPrompt = `{
+        "headline": "Judul Posting / Hook Utama",
+        "caption": "Isi postingan (caption) detail lengkap...",
+        "hashtags": ["tag1", "tag2"],
+        "image_prompt": "Prompt visual pendukung postingan (Bahasa Inggris)"
+      }`;
+    }
+
+    const systemInstructions = `
+You are a highly-skilled senior digital copywriting specialist and expert campaign producer.
+Your output must be structured, rich in marketing value, highly persuasive, and fully localized to Indonesian (except image_prompt, which must be a detailed photography/illustration command written strictly in English for Midjourney/DALL-E).
+
+Your output MUST be a valid JSON object matching the requested schema EXACTLY.
+Make sure all strings are properly escaped to avoid parse issues.
+Do not include any extra text beside the JSON. No markdown wrappers unless requested inside fields.
+
+Schema to strictly return:
+${jsonSchemaPrompt}
+    `;
+
+    const userPrompt = `
+Konteks pembuatan konten:
+${contextContext}
+
+Tugas Khusus:
+${specificRequirementPrompt}
+
+Ingat: Pastikan respons Anda HANYA berupa valid JSON object yang valid dan bisa langsung di-parse dengan JSON.parse().
+    `;
+
+    let result;
+
+    if (provider === "nvidia-nemotron") {
+      const apiKey = (process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        return res.status(500).json({ error: "NVIDIA API Key is required. Please set NVIDIA_API_KEY." });
+      }
+
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        baseURL: "https://integrate.api.nvidia.com/v1",
+      });
+
+      const modelName = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+
+      const completion = await openai.chat.completions.create({
+        model: modelName,
+        messages: [
+          { role: "system", content: systemInstructions },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      });
+
+      let contentResponse = completion.choices[0].message.content || "{}";
+      
+      console.log("[Content Generator] NVIDIA Raw Output (preview):", contentResponse.substring(0, 150));
+
+      contentResponse = contentResponse.replace(/<thought>[\s\S]*?<\/thought>/g, "");
+      contentResponse = contentResponse.replace(/```json\n?|\n?```/g, "").trim();
+
+      try {
+        result = robustJSONParse(contentResponse);
+      } catch (parseError) {
+        console.error("Failed to parse NVIDIA response:", contentResponse);
+        throw new Error("Respon AI tidak valid (JSON parse failed).");
+      }
+    } else {
+      // Default: Gemini API using gemini-3.5-flash with fallback
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        return res.status(500).json({ error: "Gemini API Key is required. Please set GEMINI_API_KEY." });
+      }
+
+      const promptFull = `
+${systemInstructions}
+
+---
+
+${userPrompt}
+      `;
+
+      const response = await generateContentWithFallback({
+        contents: promptFull,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      let text = response.text || "";
+      console.log("[Content Generator] Gemini Raw Output (preview):", text.substring(0, 150));
+
+      text = text.replace(/```json\n?|\n?```/g, "").trim();
+
+      try {
+        result = robustJSONParse(text || "{}");
+      } catch (parseError) {
+        console.error("Failed to parse Gemini response:", text);
+        throw new Error("Respon AI tidak valid (JSON parse failed).");
+      }
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Content Generator AI Error:", error);
+    if (error.status === 401 || (error.message && error.message.includes("API key not valid"))) {
+      return res.status(401).json({
+        error: "API Key tidak valid. Pastikan API Key Anda sudah benar di panel Settings > Secrets."
+      });
+    }
+    res.status(500).json({ error: error.message || "Gagal memproses AI Content Generator." });
+  }
+});
+
+// AI Hook Generator API
+app.post("/api/ai/hook-generator", async (req, res) => {
+  try {
+    const { topic, targetAudience = "Umum", platform = "Instagram", length = "sedang", provider = "gemini" } = req.body;
+    
+    if (!topic || !topic.trim()) {
+      return res.status(400).json({ error: "Topik atau brief konten wajib diisi." });
+    }
+
+    const systemInstructions = `
+You are a highly-skilled senior digital copywriting specialist and expert hook engineer.
+Your role is to write 15 high-performing, attention-grabbing hooks in Indonesian based on the user's topic, target audience, and platform.
+
+The 15 hooks MUST match the 15 formulas EXACTLY:
+1. Question Hook (❓)
+2. Shock/Data Hook (📊)
+3. Story Hook (📖)
+4. Fear/Loss Hook (😨)
+5. Benefit/Result Hook (💎)
+6. Controversial Hook (🔥)
+7. How-To Hook (🛠️)
+8. Mistake Hook (❌)
+9. Secret Hook (🤫)
+10. List/Number Hook (📝)
+11. Comparison/VS Hook (⚖️)
+12. Challenge Hook (🎯)
+13. Authority Hook (👑)
+14. Trend/Viral Hook (🔮)
+15. POV Hook (👀)
+
+Your output MUST be a valid JSON array matching this format EXACTLY:
+[
+  {
+    "formula": "Question Hook",
+    "emoji": "❓",
+    "hook": "teks hook disini",
+    "why": "penjelasan singkat kenapa hook ini efektif untuk topik ini (1 kalimat)",
+    "platform_fit": ["Instagram", "TikTok"],
+    "strength": 85
+  },
+  ...
+]
+
+Do not return any extra text or thought blocks, only return the JSON array of 15 elements.
+Keep all strings properly escaped.
+    `;
+
+    const userPrompt = `
+Topic: "${topic}"
+Target Audience: "${targetAudience}"
+Platform: "${platform}"
+Length: "${length}" (pendek: 1 kalimat, sedang: 2 kalimat, panjang: 3 kalimat)
+    `;
+
+    let result;
+
+    if (provider === "nvidia-nemotron") {
+      const apiKey = (process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        return res.status(500).json({ error: "NVIDIA API Key is required. Please set NVIDIA_API_KEY." });
+      }
+
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        baseURL: "https://integrate.api.nvidia.com/v1",
+      });
+
+      const modelName = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+
+      const completion = await openai.chat.completions.create({
+        model: modelName,
+        messages: [
+          { role: "system", content: systemInstructions },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      });
+
+      let contentResponse = completion.choices[0].message.content || "[]";
+      contentResponse = contentResponse.replace(/<thought>[\s\S]*?<\/thought>/g, "");
+      contentResponse = contentResponse.replace(/```json\n?|\n?```/g, "").trim();
+
+      try {
+        result = robustJSONParse(contentResponse);
+      } catch (e) {
+        console.error("Failed to parse NVIDIA response:", contentResponse);
+        throw new Error("Respon AI (NVIDIA) tidak valid.");
+      }
+    } else {
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
+      if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+        return res.status(500).json({ error: "Gemini API Key is required. Please set GEMINI_API_KEY." });
+      }
+
+      const promptFull = `
+${systemInstructions}
+
+---
+
+${userPrompt}
+      `;
+
+      const response = await generateContentWithFallback({
+        contents: promptFull,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      let text = response.text || "[]";
+      text = text.replace(/```json\n?|\n?```/g, "").trim();
+
+      try {
+        result = robustJSONParse(text || "[]");
+      } catch (e) {
+        console.error("Failed to parse Gemini response:", text);
+        throw new Error("Respon AI (Gemini) tidak valid.");
+      }
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Hook Generator AI Error:", error);
+    res.status(500).json({ error: error.message || "Gagal memproses Hook Generator." });
+  }
+});
+
 // AI Visual Engine API
 app.post("/api/ai/visual-engine", async (req, res) => {
   try {
@@ -562,6 +990,7 @@ app.post("/api/ai/visual-engine", async (req, res) => {
     if (!topic || !topic.trim()) {
       return res.status(400).json({ error: "Silakan masukkan konsep atau visual intent Anda." });
     }
+
 
     const systemPrompt = `You are the AI engine behind a premium web application feature called "Visual Engine".
 
@@ -1220,6 +1649,408 @@ Ensure the output is valid JSON. Use double quotes for property names and string
   }
 });
 
+// === DARI SUMBER (FROM SOURCE) ENDPOINTS ===
+
+// Route: Extract and analyze text/base64 file content (or PDF/image)
+app.post("/api/ai/analyze-source-file", async (req, res) => {
+  try {
+    const { fileData, mimeType, fileName } = req.body;
+    if (!fileData || !mimeType) {
+      return res.status(400).json({ error: "File data dan tipe MIME wajib disediakan." });
+    }
+
+    const base64Clean = fileData.includes(";base64,")
+      ? fileData.split(";base64,")[1]
+      : fileData;
+
+    console.log(`[Analyze Source File] Extracting and analyzing file: ${fileName || "document"} (${mimeType})`);
+
+    let contentParts: any[] = [];
+    const lowerMime = mimeType.toLowerCase();
+
+    const isImage = lowerMime.startsWith("image/");
+    const isPdf = lowerMime.includes("pdf");
+
+    if (isImage || isPdf) {
+      // Pass the file content natively via inlineData multimodal support
+      contentParts.push({
+        inlineData: {
+          data: base64Clean,
+          mimeType: mimeType
+        }
+      });
+    } else {
+      if (lowerMime.includes("text/") || lowerMime.includes("json") || lowerMime.includes("csv") || lowerMime.includes("xml")) {
+        try {
+          const textContent = Buffer.from(base64Clean, "base64").toString("utf8");
+          contentParts.push({ text: `Isi teks dokumen:\n\n${textContent.slice(0, 50000)}` });
+        } catch (err) {
+          console.warn("[Analyze Source] Text decoding failed, passing as doc detail.");
+          contentParts.push({ text: `Nama file: ${fileName}\nTipe file: ${mimeType}\nUkuran file: ${Buffer.from(base64Clean, "base64").length} bytes` });
+        }
+      } else {
+        // Pass the file as inlineData
+        contentParts.push({
+          inlineData: {
+            data: base64Clean,
+            mimeType: mimeType
+          }
+        });
+      }
+    }
+
+    contentParts.push({
+      text: `Analisa dokumen atau sumber media ini untuk dijadikan bahan pembuatan materi promosi atau konten media sosial.
+Ekstrak esensi konten dan kembalikan output berupa JSON murni dengan struktur persis seperti di bawah ini:
+{
+  "topic": "Judul atau topik utama yang paling mewakili isi dokumen",
+  "keyPoints": [
+    "Poin penting 1 yang mendalam",
+    "Poin penting 2 yang mendalam",
+    "Poin penting 3 yang mendalam"
+  ],
+  "detectedTone": "Analisa nada bicara/gaya bahasa dokumen (misal: profesional, santai, berapi-api, informatif, dll)",
+  "detectedAudience": "Analisa target audiens yang dituju oleh dokumen ini (misal: pebisnis, ibu rumah tangga, pelajar, umum, dll)",
+  "contentSummary": "Tulis 3-4 kalimat ringkasan/rangkuman eksekutif dari isi dokumen ini secara menyeluruh",
+  "sourceName": "${fileName || "Berkas Unggahan"}",
+  "competitorAnalysis": null
+}
+
+Pastikan tulisan dalam Bahasa Indonesia yang profesional dan informatif. Jangan berikan penjelasan teks apa pun di luar blok JSON.`
+    });
+
+    const response = await generateContentWithFallback({
+      contents: contentParts,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const text = response.text || "";
+    const parsedData = robustJSONParse(text);
+
+    res.json(parsedData);
+  } catch (err: any) {
+    console.error("Error in analyze-source-file endpoint:", err);
+    res.status(500).json({ error: err.message || "Gagal menganalisis file menggunakan AI." });
+  }
+});
+
+// Route: Fetch and analyze URL content safely
+app.post("/api/ai/analyze-source-link", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: "URL wajib disediakan." });
+    }
+
+    console.log(`[Analyze Source Link] Parsing URL: ${url}`);
+    
+    let isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
+    let isSocial = url.includes("instagram.com") || url.includes("tiktok.com") || url.includes("linkedin.com") || url.includes("twitter.com") || url.includes("x.com");
+    
+    let pageTitle = "";
+    let pageText = "";
+    let pageMeta = "";
+
+    if (isYoutube) {
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+        const oembedData = await fetchHttpsJson(oembedUrl, {}, 3000);
+        if (oembedData && oembedData.title) {
+          pageTitle = oembedData.title;
+          pageText = `Judul Video YouTube: ${oembedData.title}\nPembuat/Author: ${oembedData.author_name || "Pembuat Konten"}\nTipe Media: Video YouTube`;
+        }
+      } catch (err) {
+        console.warn("[Analyze Link] YouTube oEmbed fetch failed, using fallback parsing.", err);
+      }
+    } else {
+      try {
+        const parsedUrl = new URL(url);
+        const headers = {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+        };
+        
+        const html = await new Promise<string>((resolve, reject) => {
+          const reqModuleGet = https.get({
+            hostname: parsedUrl.hostname,
+            path: parsedUrl.pathname + parsedUrl.search,
+            headers: headers,
+            timeout: 3000
+          }, (linkRes) => {
+            if (!linkRes.statusCode || linkRes.statusCode < 200 || linkRes.statusCode >= 300) {
+              linkRes.resume();
+              return reject(new Error(`Status ${linkRes.statusCode}`));
+            }
+            let data = "";
+            linkRes.on("data", (chunk) => { data += chunk; });
+            linkRes.on("end", () => resolve(data));
+          });
+          reqModuleGet.on("error", (e) => reject(e));
+          reqModuleGet.on("timeout", () => {
+            reqModuleGet.destroy();
+            reject(new Error("Timeout"));
+          });
+        });
+
+        const titleMatch = html.match(/<title>([\s\S]*?)<\/title>/i);
+        if (titleMatch) {
+          pageTitle = titleMatch[1].trim();
+        }
+        
+        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([\s\S]*?)["']/i) || 
+                          html.match(/<meta[^>]*content=["']([\s\S]*?)["'][^>]*name=["']description["']/i);
+        if (descMatch) {
+          pageMeta = descMatch[1].trim();
+        }
+
+        let bodyOnly = html.match(/<body[\s\S]*?>([\s\S]*?)<\/body>/i)?.[1] || html;
+        bodyOnly = bodyOnly.replace(/<script[\s\S]*?<\/script>/gi, "");
+        bodyOnly = bodyOnly.replace(/<style[\s\S]*?<\/style>/gi, "");
+        bodyOnly = bodyOnly.replace(/<\/?[^>]+(>|$)/g, "");
+        pageText = bodyOnly.replace(/\s+/g, " ").trim().slice(0, 10000);
+      } catch (err: any) {
+        console.warn(`[Analyze Link] Server-side page fetching failed for ${url}:`, err.message || err);
+      }
+    }
+
+    let promptInstruction = "";
+    if (isSocial) {
+      promptInstruction = `Analisa link media sosial / kompetitor berikut: "${url}".
+Karena ini adalah link media sosial kompetitor, berikan analisis mendalam tentang gaya penulisan mereka, taktik menarik perhatian yang mereka gunakan, dan celah konten (content gap) yang bisa kita masuki dengan produk Davsplace Studio.
+
+Format output Anda sebagai JSON murni dengan struktur berikut:
+{
+  "topic": "Nama brand/creator atau tema utama dari postingan kompetitor ini",
+  "keyPoints": [
+    "Strategi hook yang mereka gunakan",
+    "Pola penyusunan caption (misal: spasi panjang, emoji, no-break)",
+    "Pola call-to-action yang diamati"
+  ],
+  "detectedTone": "Nada bicara kompetitor (misal: mendesak, santai, menantang, edukatif)",
+  "detectedAudience": "Target audiens spesifik kompetitor (misal: kreator konten pemula, UMKM)",
+  "contentSummary": "Tulis ringkasan singkat dari konten link kompetitor ini",
+  "sourceName": "${url}",
+  "competitorAnalysis": {
+    "hookStyle": "Uraikan gaya hook pembuka yang mereka gunakan secara taktis",
+    "captionPattern": "Uraikan pola visual/struktur tulisan di tubuh caption",
+    "contentGap": "Temukan celah konten (content gap) berharga yang kita bisa unggul atau masuki",
+    "tacticalAdvice": "Saran taktis instan untuk bersaing dengan pembuat konten ini"
+  }
+}`;
+    } else if (isYoutube) {
+      promptInstruction = `Analisa tautan video YouTube berikut: "${url}".
+Informasi metadata terdeteksi:
+Judul: ${pageTitle || "Video YouTube Kreatif"}
+Detail Tambahan: ${pageMeta || "Video edukatif atau promosi dari content creator"}
+
+Berikan analisa dan rangkuman rinci video YouTube ini. Format output Anda sebagai JSON murni dengan struktur berikut:
+{
+  "topic": "Judul video YouTube atau konsep utama video ini",
+  "keyPoints": [
+    "Poin pembahasan utama 1 dalam video",
+    "Poin pembahasan utama 2 dalam video",
+    "Poin pembahasan utama 3 dalam video"
+  ],
+  "detectedTone": "Nada bicara pembicara di video (misal: persuasif, energik, berbobot, ramah)",
+  "detectedAudience": "Segmentasi penonton video ini (misal: tech enthusiast, marketer, awam)",
+  "contentSummary": "Tulis ringkasan eksekutif 3-4 kalimat mengenai isi video dan apa saja ilmu yang dibahas",
+  "sourceName": "${pageTitle || "Video YouTube"}",
+  "competitorAnalysis": null
+}`;
+    } else {
+      promptInstruction = `Analisa website / artikel dari URL berikut: "${url}".
+Informasi metadata terdeteksi:
+Judul Halaman: ${pageTitle || "Artikel / Halaman Web"}
+Deskripsi Meta: ${pageMeta || ""}
+Kutipan Isi Teks: ${pageText ? pageText.substring(0, 1000) : "Tidak dapat mengekstrak teks langsung (blocked/CORS). Analisa berdasarkan subjek URL, brand, atau topik umum terkait."}
+
+Format output Anda sebagai JSON murni dengan struktur berikut:
+{
+  "topic": "Judul utama halaman atau topik industri utama yang dikupas",
+  "keyPoints": [
+    "Poin penting 1 dari pembacaan artikel",
+    "Poin penting 2 dari pembacaan artikel",
+    "Poin penting 3 dari rincian halaman"
+  ],
+  "detectedTone": "Nada penulisan website (misal: formal korporat, edukasi, meyakinkan)",
+  "detectedAudience": "Profil pengunjung utama halaman ini",
+  "contentSummary": "Tulis 3-4 kalimat rangkuman isi artikel atau halaman landas ini",
+  "sourceName": "${pageTitle || "Tautan Web"}",
+  "competitorAnalysis": null
+}`;
+    }
+
+    const response = await generateContentWithFallback({
+      contents: [{ text: `${promptInstruction}\n\nPENTING: Tulis respons hanya berupa JSON murni tanpa pemformatan markdown lain. Hubungkan analisis Anda se-konkrit mungkin.` }],
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const responseText = response.text || "";
+    const parsedData = robustJSONParse(responseText);
+    res.json(parsedData);
+  } catch (err: any) {
+    console.error("Error in analyze-source-link endpoint:", err);
+    res.status(500).json({ error: err.message || "Gagal menganalisis URL menggunakan AI." });
+  }
+});
+
+// === DATA VISUALIZER ENDPOINTS ===
+
+// Route 1: Extract data from uploaded file (multimodal PDF, Image, Document)
+app.post("/api/ai/visualizer-extract", async (req, res) => {
+  try {
+    const { fileData, mimeType, fileName } = req.body;
+    if (!fileData || !mimeType) {
+      return res.status(400).json({ error: "File data dan tipe MIME wajib disediakan." });
+    }
+
+    const base64Clean = fileData.includes(";base64,")
+      ? fileData.split(";base64,")[1]
+      : fileData;
+
+    console.log(`[Visualizer Extract] Extracting table data from file: ${fileName || "document"} (${mimeType})`);
+
+    const contentParts = [
+      {
+        inlineData: {
+          data: base64Clean,
+          mimeType: mimeType
+        }
+      },
+      {
+        text: `Ekstrak semua data numerik, statistik, dan tabel dari dokumen atau gambar ini.
+Format output sebagai JSON murni dengan struktur persis seperti di bawah ini:
+{
+  "title": "judul atau topik data utama",
+  "headers": ["Nama Kolom 1", "Nama Kolom 2", "Nama Kolom 3"],
+  "rows": [
+    ["Kategori A", 12500, 10000],
+    ["Kategori B", 15200, 12000]
+  ],
+  "notes": "catatan, ringkasan singkat, atau konteks tambahan dari data"
+}
+
+PENTING:
+- Pastikan semua nilai angka murni dikonversi menjadi tipe data number (bukan string) jika memungkinkan untuk grafik.
+- Bersihkan tanda baca ribuan dari nilai angka agar dapat dibaca sebagai angka numerik murni.
+- Jangan berikan penjelasan teks apa pun di luar blok JSON.`
+      }
+    ];
+
+    const response = await generateContentWithFallback({
+      contents: contentParts,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const text = response.text || "";
+    const parsedData = robustJSONParse(text);
+
+    res.json(parsedData);
+  } catch (err: any) {
+    console.error("Error in visualizer-extract endpoint:", err);
+    res.status(500).json({ error: err.message || "Gagal mengesktrak data menggunakan AI." });
+  }
+});
+
+// Route 2: Generate Business Insights from dataset table
+app.post("/api/ai/visualizer-generate-insight", async (req, res) => {
+  try {
+    const { tableData, selectedChartType } = req.body;
+    if (!tableData) {
+      return res.status(400).json({ error: "Data tabel wajib disediakan." });
+    }
+
+    console.log(`[Visualizer Insight] Analyzing data for visualizer insights...`);
+
+    const clientPrompt = `Analisa data berikut dan berikan analisis serta rekomendasi bisnis yang siap actionable dalam bahasa Indonesia:
+Data: ${JSON.stringify(tableData)}
+Tipe visualisasi terpilih: ${selectedChartType || "Bar/Line"}
+
+Berikan output berupa JSON murni dengan struktur berikut:
+{
+  "headline": "satu kalimat insight bisnis paling penting dan dinamis",
+  "insights": [
+    "insight detail ke-1 berdasarkan angka/tren konkret dalam data (1-2 kalimat)",
+    "insight detail ke-2 berdasarkan perbandingan atau fluktuasi (1-2 kalimat)",
+    "insight detail ke-3 berupa penguatan atau pola data (1-2 kalimat)"
+  ],
+  "recommendation": "satu solusi konkrit/langkah taktis sebagai rekomendasi tindakan bisnis berdasarkan temuan data di atas",
+  "trend": "naik" | "turun" | "stabil",
+  "anomaly": "penjelasan anomali, outlier, lonjakan tidak wajar atau 'tidak ada pencilan' jika semua normal"
+}
+
+PENTING: Tulis respons hanya berupa JSON murni tanpa pemformatan markdown lain.`;
+
+    const response = await generateContentWithFallback({
+      contents: [{ text: clientPrompt }],
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const text = response.text || "";
+    const parsedData = robustJSONParse(text);
+    res.json(parsedData);
+  } catch (err: any) {
+    console.error("Error in visualizer-generate-insight endpoint:", err);
+    res.status(500).json({ error: err.message || "Gagal membuat insight analisis dari data." });
+  }
+});
+
+// Route 3: Generate realistic Dummy Dataset from user text prompt
+app.post("/api/ai/visualizer-generate-data", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: "Deskripsi data wajib disediakan." });
+    }
+
+    console.log(`[Visualizer Dummy Gen] Generating data structure for prompt: ${prompt}`);
+
+    const clientPrompt = `Generate data tabel dummy yang realistis, menarik, dan sangat kontekstual berdasarkan deskripsi atau instruksi dari user di bawah ini.
+Instruksi User: "${prompt}"
+
+Keharusan:
+- Pastikan rentang data rasional dan logis.
+- Batasi jumlah baris maksimal 12 baris (misal untuk bulanan, kategori produk dll) agar muat digambar.
+- Output harus berupa tabel terstruktur dalam format JSON murni:
+{
+  "title": "Judul Laporan Data yang Mewakili",
+  "headers": ["Kolom Sumbu X/Kategori", "Kolom Seri Data 1", "Kolom Seri Data 2"],
+  "rows": [
+    ["Januari", 450, 600],
+    ["Februari", 510, 580],
+    ["Maret", 480, 620]
+  ]
+}
+
+PENTING:
+- Sumbu X (indeks 0 di tiap 'row') harus berupa string kategori atau nama interval waktu.
+- Seri data pengikutnya harus berupa tipe data number (bukan string) murni agar Chart.js bisa langsung memetakan datanya.
+- Berikan output hanya JSON murni tanpa ada penjelasan teks lain.`;
+
+    const response = await generateContentWithFallback({
+      contents: [{ text: clientPrompt }],
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const text = response.text || "";
+    const parsedData = robustJSONParse(text);
+    res.json(parsedData);
+  } catch (err: any) {
+    console.error("Error in visualizer-generate-data endpoint:", err);
+    res.status(500).json({ error: err.message || "Gagal membuat data menggunakan AI." });
+  }
+});
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
@@ -1351,7 +2182,7 @@ app.post("/api/health/notify", async (req, res) => {
 });
 
 // Helper to perform secure, high-compatibility Node.js HTTPS request bypassing undici/fetch constraints
-function fetchHttpsJson(url: string, headers: any): Promise<any> {
+function fetchHttpsJson(url: string, headers: any, timeout: number = 3000): Promise<any> {
   return new Promise((resolve, reject) => {
     try {
       const parsedUrl = new URL(url);
@@ -1360,7 +2191,7 @@ function fetchHttpsJson(url: string, headers: any): Promise<any> {
         path: parsedUrl.pathname + parsedUrl.search,
         method: "GET",
         headers: headers,
-        timeout: 10000
+        timeout: timeout
       };
       
       const req = https.get(options, (res) => {
@@ -1396,45 +2227,83 @@ app.get("/api/coingecko/markets", async (req, res) => {
   const apiKey = customKey || "CG-T8EEAujTTiZhENcZzFhExvt6";
   const ids = req.query.ids || "bitcoin,ethereum,binancecoin,solana,ripple,cardano";
   
-  const headers = {
+  // Decide which base URL to use based on key properties to prevent double request timeouts on Vercel
+  let targetUrl = "";
+  const isDemo = apiKey.startsWith("CG-");
+  const isPro = !isDemo && apiKey.length > 20; // Pro keys are typically longer and do not have CG- prefix
+  
+  if (isDemo) {
+    targetUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=10&page=1&sparkline=true&price_change_percentage=24h`;
+  } else if (isPro) {
+    targetUrl = `https://pro-api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=10&page=1&sparkline=true&price_change_percentage=24h`;
+  } else {
+    // Public endpoint (might be heavily rate-limited but free of keys)
+    targetUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=10&page=1&sparkline=true&price_change_percentage=24h`;
+  }
+
+  const headers: any = {
     "Accept": "application/json",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "x-cg-demo-api-key": apiKey
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
   };
 
-  try {
-    const publicUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=10&page=1&sparkline=true&price_change_percentage=24h`;
-    
-    console.log(`[CoinGecko Proxy] Fetching market data via https-native module; key suffix: ...${apiKey.slice(-6)}`);
-    let data;
-    try {
-      data = await fetchHttpsJson(publicUrl, headers);
-    } catch (primaryErr: any) {
-      console.warn(`[CoinGecko Proxy] Native primary request on api.coingecko.com failed (${primaryErr.message || primaryErr}), trying demo-api.coingecko.com fallback...`);
-      const demoUrl = `https://demo-api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&per_page=10&page=1&sparkline=true&price_change_percentage=24h`;
-      data = await fetchHttpsJson(demoUrl, headers);
-    }
+  if (isDemo) {
+    headers["x-cg-demo-api-key"] = apiKey;
+  } else if (isPro) {
+    headers["x-cg-pro-api-key"] = apiKey;
+  }
 
-    return res.json({ source: "coingecko-api", data });
-  } catch (error: any) {
-    console.warn("[CoinGecko Proxy] Failed to fetch live data, returning beautiful robust fallback offline values:", error.message || error);
+  try {
+    console.log(`[CoinGecko Proxy] Fetching market data from: ${targetUrl.split('?')[0]} using Key type: ${isDemo ? 'Demo' : isPro ? 'Pro' : 'Public'}`);
     
-    // We construct a high-quality fallback that mimics the real structure
+    // Fetch with a short 3-second timeout to prevent serverless function hangs on Vercel
+    const data = await fetchHttpsJson(targetUrl, headers, 3000);
+    
+    if (data && Array.isArray(data)) {
+      return res.json({ source: "coingecko-api", data });
+    } else {
+      throw new Error("Invalid or empty data format received from CoinGecko.");
+    }
+  } catch (error: any) {
+    console.warn("[CoinGecko Proxy] Failed to fetch live data (blocked/rate-limited/timeout), returning beautiful fallback live simulation:", error.message || error);
+    
+    // We construct a high-quality fallback that mimics the real structure but with dynamic real-time moving price changes
+    const now = Date.now();
+    // Sinusoidal wave + slight noise so it updates live on every refresh/interval
+    const getWiggle = (baseVal: number, freqSeconds: number) => {
+      const slowWave = Math.sin(now / (freqSeconds * 1000)) * 0.003; // 0.3% max swing slow
+      const fastNoise = (Math.sin(now / 1500) * 0.001) + ((Math.random() - 0.5) * 0.0004); // 0.14% noisy swing
+      return baseVal * (1 + slowWave + fastNoise);
+    };
+
+    const btcPrice = getWiggle(68420.50, 60);
+    const ethPrice = getWiggle(3512.20, 45);
+    const bnbPrice = getWiggle(598.40, 30);
+    const solPrice = getWiggle(172.85, 20);
+    const xrpPrice = getWiggle(0.542, 15);
+    const adaPrice = getWiggle(0.468, 10);
+
+    const btcPct = 1.82 + Math.sin(now / 18000) * 0.2;
+    const ethPct = -1.24 + Math.sin(now / 15000) * 0.15;
+    const bnbPct = 0.75 + Math.sin(now / 12000) * 0.18;
+    const solPct = 4.12 + Math.cos(now / 9000) * 0.35;
+    const xrpPct = -0.32 + Math.sin(now / 7000) * 0.1;
+    const adaPct = 1.15 + Math.cos(now / 10000) * 0.15;
+
     const fallbackCoins = [
       {
         id: "bitcoin",
         symbol: "btc",
         name: "Bitcoin",
         image: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
-        current_price: 68420.50,
+        current_price: btcPrice,
         market_cap: 1345672900210,
         market_cap_rank: 1,
         total_volume: 32410920102,
-        high_24h: 69120.00,
-        low_24h: 67200.00,
-        price_change_percentage_24h: 1.82,
+        high_24h: btcPrice * 1.015,
+        low_24h: btcPrice * 0.985,
+        price_change_percentage_24h: btcPct,
         sparkline_in_7d: {
-          price: [67100, 67400, 67200, 67800, 68100, 68000, 68420]
+          price: [67100, 67400, 67200, 67800, 68100, btcPrice * 0.995, btcPrice]
         }
       },
       {
@@ -1442,15 +2311,15 @@ app.get("/api/coingecko/markets", async (req, res) => {
         symbol: "eth",
         name: "Ethereum",
         image: "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
-        current_price: 3512.20,
+        current_price: ethPrice,
         market_cap: 421009872110,
         market_cap_rank: 2,
         total_volume: 18456120911,
-        high_24h: 3580.00,
-        low_24h: 3450.00,
-        price_change_percentage_24h: -1.24,
+        high_24h: ethPrice * 1.012,
+        low_24h: ethPrice * 0.982,
+        price_change_percentage_24h: ethPct,
         sparkline_in_7d: {
-          price: [3560, 3540, 3580, 3550, 3510, 3530, 3512]
+          price: [3560, 3540, 3580, 3550, 3510, ethPrice * 0.99, ethPrice]
         }
       },
       {
@@ -1458,15 +2327,15 @@ app.get("/api/coingecko/markets", async (req, res) => {
         symbol: "bnb",
         name: "BNB",
         image: "https://assets.coingecko.com/coins/images/825/large/binance-coin-logo.png",
-        current_price: 598.40,
+        current_price: bnbPrice,
         market_cap: 89765210980,
         market_cap_rank: 4,
         total_volume: 1245091872,
-        high_24h: 605.20,
-        low_24h: 588.10,
-        price_change_percentage_24h: 0.75,
+        high_24h: bnbPrice * 1.01,
+        low_24h: bnbPrice * 0.99,
+        price_change_percentage_24h: bnbPct,
         sparkline_in_7d: {
-          price: [590, 592, 591, 595, 598, 594, 598.4]
+          price: [590, 592, 591, 595, 598, bnbPrice * 0.993, bnbPrice]
         }
       },
       {
@@ -1474,15 +2343,15 @@ app.get("/api/coingecko/markets", async (req, res) => {
         symbol: "sol",
         name: "Solana",
         image: "https://assets.coingecko.com/coins/images/4128/large/solana.png",
-        current_price: 172.85,
+        current_price: solPrice,
         market_cap: 78912345098,
         market_cap_rank: 5,
         total_volume: 3892019827,
-        high_24h: 178.50,
-        low_24h: 168.10,
-        price_change_percentage_24h: 4.12,
+        high_24h: solPrice * 1.02,
+        low_24h: solPrice * 0.97,
+        price_change_percentage_24h: solPct,
         sparkline_in_7d: {
-          price: [165, 168, 166, 171, 174, 170, 172.85]
+          price: [165, 168, 166, 171, 174, solPrice * 0.98, solPrice]
         }
       },
       {
@@ -1490,15 +2359,15 @@ app.get("/api/coingecko/markets", async (req, res) => {
         symbol: "xrp",
         name: "Ripple",
         image: "https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-bg.png",
-        current_price: 0.542,
+        current_price: xrpPrice,
         market_cap: 30123456789,
         market_cap_rank: 7,
         total_volume: 987654321,
-        high_24h: 0.551,
-        low_24h: 0.534,
-        price_change_percentage_24h: -0.32,
+        high_24h: xrpPrice * 1.008,
+        low_24h: xrpPrice * 0.992,
+        price_change_percentage_24h: xrpPct,
         sparkline_in_7d: {
-          price: [0.545, 0.541, 0.548, 0.543, 0.539, 0.540, 0.542]
+          price: [0.545, 0.541, 0.548, 0.543, 0.539, xrpPrice * 0.997, xrpPrice]
         }
       },
       {
@@ -1506,20 +2375,20 @@ app.get("/api/coingecko/markets", async (req, res) => {
         symbol: "ada",
         name: "Cardano",
         image: "https://assets.coingecko.com/coins/images/975/large/cardano.png",
-        current_price: 0.468,
+        current_price: adaPrice,
         market_cap: 16876543210,
         market_cap_rank: 10,
         total_volume: 345678901,
-        high_24h: 0.478,
-        low_24h: 0.459,
-        price_change_percentage_24h: 1.15,
+        high_24h: adaPrice * 1.011,
+        low_24h: adaPrice * 0.989,
+        price_change_percentage_24h: adaPct,
         sparkline_in_7d: {
-          price: [0.460, 0.462, 0.465, 0.459, 0.466, 0.467, 0.468]
+          price: [0.460, 0.462, 0.465, 0.459, 0.466, adaPrice * 0.992, adaPrice]
         }
       }
     ];
 
-    return res.json({ source: "fallback-cache", data: fallbackCoins });
+    return res.json({ source: "fallback-cache-simulation", data: fallbackCoins });
   }
 });
 

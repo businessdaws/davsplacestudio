@@ -42,6 +42,7 @@ const CollabPage = lazy(() => import('./pages/CollabPage'));
 const SocialMediaGenerator = lazy(() => import('./pages/SocialMediaGenerator'));
 const EventPage = lazy(() => import('./pages/EventPage'));
 const WatermarkEditor = lazy(() => import('./pages/WatermarkEditor'));
+const MiniChatbot = lazy(() => import('./components/MiniChatbot'));
 
 import { SettingsProvider } from './context/SettingsContext';
 
@@ -198,6 +199,9 @@ export default function App() {
           </Routes>
 
           <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+          <Suspense fallback={null}>
+            <MiniChatbot />
+          </Suspense>
         </div>
         </Router>
       </SettingsProvider>
