@@ -94,6 +94,30 @@ const PRESET_PLACES: PlaceBlueprint[] = [
   }
 ];
 
+const DEFAULT_LENSES = [
+  'Anamorphic 35mm',
+  'Prime 85mm f/1.4',
+  'Prime 50mm f/1.2',
+  'Wide 24mm f/1.8',
+  'Cinema Lens 135mm'
+];
+
+const DEFAULT_CAMERAS = [
+  'ARRI Alexa 35',
+  'RED V-Raptor',
+  'Sony A7R V',
+  'Canon EOS R5',
+  'Hasselblad X2D'
+];
+
+const DEFAULT_FORMATS = [
+  '16:9 (Landscape - YouTube/Cinema)',
+  '9:16 (Portrait - TikTok/Story)',
+  '4:5 (Vertical - Instagram Feed)',
+  '1:1 (Square - Social Post)',
+  '2.39:1 (Cinematic Widescreen)'
+];
+
 const SHOT_FRAMINGS = [
   'Wide-angle tracking shot',
   'Extreme Close-up',
@@ -117,14 +141,134 @@ const LIGHTINGS = [
   'Neon streetlights',
   'Moody cinematic lighting',
   'Ethereal glowing light',
-  'Crisp daylight'
+  'Crisp daylight',
+  'CINE_LOOP_LIGHTING',
+  'CINE_BROAD_LIGHTING',
+  'CINE_HIGH_KEY',
+  'CINE_SOFT_KEY',
+  'CINE_BUTTERFLY_LIGHTING',
+  'CINE_KICKER_LIGHTING',
+  'CINE_RIM_LIGHTING',
+  'CINE_REMBRANDT_LIGHTING',
+  'CINE_WINDOW_LIGHTING',
+  'CINE_SHORT_LIGHTING',
+  'CINE_TOP_LIGHTING',
+  'CINE_BACKLIGHTING',
+  'CINE_GOD_RAYS',
+  'CINE_VOLUMETRIC_LIGHTING',
+  'CINE_EDGE_LIGHTING',
+  'CINE_MOONLIGHT',
+  'CINE_SPLIT_LIGHTING',
+  'CINE_LOW_KEY',
+  'CINE_SIDE_LIGHTING',
+  'CINE_UNDER_LIGHTING',
+  'CINE_HARD_KEY',
+  'CINE_CANDLELIGHT',
+  'CINE_GOLDEN_HOUR_LIGHTING',
+  'CINE_FIRELIGHT',
+  'CINE_NEON_LIGHTING',
+  'CINE_LED_RGB_LIGHTING'
+];
+
+const DEFAULT_MOTIONS = [
+  'Dynamic Panning',
+  'Slow Cinematic Push-In',
+  'Slow Cinematic Pull-Out',
+  'Smooth Dolly-In Movement',
+  'Smooth Dolly-Out Movement',
+  'Slow Cinematic Pan',
+  'Slow Tilt Upward',
+  'Slow Tilt Downward',
+  'Smooth Tracking Shot',
+  'Follow Shot from Behind',
+  'Smooth Orbit around Subject',
+  'Full Cinematic Orbit',
+  'Smooth Steadicam Movement',
+  'Smooth Gimbal Movement',
+  'Subtle Handheld Movement',
+  'Intense Shaky Camera',
+  'Cinematic Aerial Reveal',
+  'Drone descending toward subject',
+  'Dramatic Dolly Zoom Effect'
 ];
 
 const ACTION_EXAMPLES = [
-  { label: 'Minum Kopi', value: 'sitting quietly, drinking steaming hot coffee from a traditional glass' },
-  { label: 'Mengelas Robot', value: 'intently welding a complex metallic circuit with neon sparks flying' },
-  { label: 'Tersenyum', value: 'looking directly into the camera and smiling bright' },
-  { label: 'Di Tengah Hujan', value: 'standing calmly with black umbrella with rain drops washing off neon lights' }
+  { label: '✨ Auto (Sesuaikan)', value: 'AUTO_POSE' },
+  { label: '▼ Standing Relaxed', value: 'POSE_STANDING_RELAXED - standing relaxed, weight shifted onto one foot, natural asymmetrical posture, dynamic balance, subtle candid stance' },
+  { label: '▼ Walking', value: 'POSE_WALKING - walking gracefully forward, natural mid-stride motion, fluid lifelike body language' },
+  { label: '▼ Sitting Relaxed', value: 'POSE_SITTING_RELAXED - sitting in a deeply relaxed lounge posture, arm resting on cushion, relaxed legs placement' },
+  { label: '▼ Over Shoulder', value: 'POSE_OVER_SHOULDER - looking directly into the camera from over the shoulder, dramatic portrait depth' },
+  { label: '▼ Hero', value: 'POSE_HERO - low angle epic shot, absolute brave heroic stance with towering proud posture, wind blowing clothes' },
+  { label: '▼ CEO', value: 'POSE_CEO - sitting back behind massive modern boardroom table with high visionary confidence and premium executive posture' },
+  { label: '▼ Fashion Runway', value: 'POSE_FASHION_RUNWAY - walking down haute couture runway, striking dynamic posture, fierce look, artistic geometry' },
+  { label: '▼ Cinematic', value: 'POSE_CINEMATIC - classic movie still framing, perfectly placed in scene, narrative-driven natural body language' },
+  { label: '▼ Action', value: 'POSE_ACTION - dynamic mid-fight or chase pose, active limb placement, ready to spring, dramatic motion trail' },
+  { label: '▼ Explorer', value: 'POSE_EXPLORER - searching the horizon with intense focused eyes, shielding brows, rustic ranger gear' },
+  { label: 'Standing Confident', value: 'POSE_STANDING_CONFIDENT - standing confident with open, active posturing, chest slightly out, arms relaxed by sides, steady gaze' },
+  { label: 'Standing Casual', value: 'POSE_STANDING_CASUAL - casual stance, hands resting comfortably near pockets, shoulders loose and relaxed' },
+  { label: 'Hands in Pockets', value: 'POSE_HANDS_IN_POCKETS - standing with hands naturally deep inside pockets, leaning slightly back' },
+  { label: 'Arms Crossed', value: 'POSE_ARMS_CROSSED - arms crossed loosely over chest, comfortable shifted weight, relaxed head tilt' },
+  { label: 'Running', value: 'POSE_RUNNING - running with high dynamic speed, body leaned forward, arms pumping, detailed muscle tension' },
+  { label: 'Jogging', value: 'POSE_JOGGING - comfortable light jogging posture, relaxed smiling expression, athletic wear, natural step' },
+  { label: 'Leaning on Wall', value: 'POSE_LEANING_WALL - leaning back against rustic stone wall, one foot flat up, casual relaxed shoulder lean' },
+  { label: 'Leaning on Railing', value: 'POSE_LEANING_RAILING - leaning forward resting weight on metallic railing, looking out over scenery' },
+  { label: 'Looking Around', value: 'POSE_LOOKING_AROUND - looking around in wonder, slight head turn, eyes wide with curious candid look' },
+  { label: 'Looking Back', value: 'POSE_LOOKING_BACK - mid-turn looking back over shoulder with a sudden surprised, beautiful cinematic look' },
+  { label: 'Half Turn', value: 'POSE_HALF_TURN - body rotated 45 degrees, flattering three-quarter view, natural physical balance' },
+  { label: 'Full Profile', value: 'POSE_FULL_PROFILE - classic sharp full-profile side view, eyes focused straight ahead, clean silhouette lines' },
+  { label: 'Sitting on Chair', value: 'POSE_SITTING_CHAIR - sitting comfortably on aesthetic design chair, proper professional seating posture' },
+  { label: 'Sitting Cross-Legged', value: 'POSE_SITTING_CROSS_LEGGED - sitting on floor with legs crossed in a tranquil yoga or meditation pose' },
+  { label: 'Sitting Thinking', value: 'POSE_SITTING_THINKING - sitting deep in thought, resting elbow on knee and hand on chin, introspective' },
+  { label: 'Sitting on Edge', value: 'POSE_SITTING_EDGE - active seating pose perched on edge of bench, leaned slightly forward toward camera' },
+  { label: 'Kneeling', value: 'POSE_KNEELING - kneeling gracefully on one knee, grounded vertical posture, dramatic low level focal depth' },
+  { label: 'Crouching', value: 'POSE_CROUCHING - crouched low to ground, active tactical or explorer posture, hands touching knee' },
+  { label: 'Lying Down', value: 'POSE_LYING_DOWN - lying down comfortably facing upward, scenic grass backdrop, relaxed face, eyes soft' },
+  { label: 'Reclining', value: 'POSE_RECLINING - reclining half-seated on premium lounger, propped up with arm, luxurious vacation vibes' },
+  { label: 'Hand on Chin', value: 'POSE_HAND_ON_CHIN - head tilted slightly, hand resting gently beneath chin, sophisticated contemplative portrait' },
+  { label: 'Touching Face', value: 'POSE_TOUCHING_FACE - fingers softly brushing cheek or temple, raw emotional portrait feel, delicate interaction' },
+  { label: 'Touching Hair', value: 'POSE_TOUCHING_HAIR - hand running fingers back through hair, realistic hair physics simulation' },
+  { label: 'Adjusting Glasses', value: 'POSE_ADJUSTING_GLASSES - index finger and thumb gently sliding glasses bridge upward, smart focus' },
+  { label: 'Using Phone', value: 'POSE_USING_PHONE - looking straight down onto modern phone screen, screen glow illuminating face features' },
+  { label: 'Typing on Laptop', value: 'POSE_TYPING - fingers actively hitting backlit laptop keys, professional working focus' },
+  { label: 'Writing', value: 'POSE_WRITING - hand writing beautiful calligraphy script onto cream paper notebook with fountain pen' },
+  { label: 'Reading', value: 'POSE_READING - holding an antique linen book open, eyes focused on lines, serene intellectual pose' },
+  { label: 'Holding Coffee', value: 'POSE_HOLDING_COFFEE - wrapping warm hands around ceramic coffee mug, thin wisps of steam rising naturally' },
+  { label: 'Holding Book', value: 'POSE_HOLDING_BOOK - carrying a vintage leather book closed, held close to side' },
+  { label: 'Holding Bag', value: 'POSE_HOLDING_BAG - carrying high fashion tote bag, arm bent at elbow, runway street-style stroll' },
+  { label: 'Pointing', value: 'POSE_POINTING - hand raised pointing index finger forward with clear directional gaze' },
+  { label: 'Waving Hand', value: 'POSE_WAVING - raised hand waving towards camera in a friendly, enthusiastic welcome' },
+  { label: 'Peace Sign', value: 'POSE_PEACE_SIGN - cheerful hand holding up V peace symbol near face with joyful playful eyes' },
+  { label: 'Thumbs Up', value: 'POSE_THUMBS_UP - hand giving positive thumbs up pose, proud smile' },
+  { label: 'Prayingserene', value: 'POSE_PRAYING - hands held together at heart center, soft peaceful breathing, serene introspective focus' },
+  { label: 'Clapping', value: 'POSE_CLAPPING - active clapping hands action, cheering motion blur, bright smiling face' },
+  { label: 'Dancing', value: 'POSE_DANCING - captured mid-rotation in expressive contemporary dance pose, elegant flowing drapery' },
+  { label: 'Jumping', value: 'POSE_JUMPING - mid-air dynamic jump, knees tucked, hair flying upward, floating zero-gravity feel' },
+  { label: 'Stretching', value: 'POSE_STRETCHING - arms stretched high above head, long elegant body lines, fitness morning recovery' },
+  { label: 'Exercising', value: 'POSE_EXERCISING - athletic ready physical stance, perspiration drops, cinematic determination' },
+  { label: 'Yoga Pose', value: 'POSE_YOGA - standing on one leg in perfect tree pose balance, peaceful zen garden alignment' },
+  { label: 'Boxing Guard', value: 'POSE_BOXING - boxing guard stance, fists raised near face, sharp eyes drilling ahead, athletic boxer' },
+  { label: 'Martial Arts', value: 'POSE_MARTIAL_ARTS - solid kung fu stance, one hand palm forward, one fist tight, disciplined posture' },
+  { label: 'Power Stance', value: 'POSE_POWER - dominant standing posture with hands resting on hips, broad powerful shoulders' },
+  { label: 'Editorial pose', value: 'POSE_EDITORIAL - asymmetric angles, high fashion modeling, dramatic limbs, architectural placement' },
+  { label: 'Glamour Look', value: 'POSE_GLAMOUR - red carpet shoulder glance, dazzling smile, high sparkle spotlight reflections' },
+  { label: 'Romantic Smile', value: 'POSE_ROMANTIC - soft focused eyes, gentle head lean, extremely soft kind smile' },
+  { label: 'Shy Stance', value: 'POSE_SHY - head tucked down slightly, hands clasped, bashful innocent smile, looking away from lens' },
+  { label: 'Playful wink', value: 'POSE_PLAYFUL - winking playful facial expression, sticking out tongue quickly, extremely expressive' },
+  { label: 'Mysterious veil', value: 'POSE_MYSTERIOUS - face slightly concealed, heavy shadow mask across eyes, piercing enigmatic stare' },
+  { label: 'Dramatic cry', value: 'POSE_DRAMATIC - intense facial expression of gravity, hand clutching collarbone, cinematic shadow play' },
+  { label: 'Adventure view', value: 'POSE_ADVENTURE - standing proud atop mountain peak looking out at vast forest canopy, jacket blowing' },
+  { label: 'Traveler stroll', value: 'POSE_TRAVELER - rolling professional baggage suitcase behind while admiring departures board' },
+  { label: 'Business formal', value: 'POSE_BUSINESS - executive portrait stance, arms folded confidently across high quality suit jacket' },
+  { label: 'Teacher pointer', value: 'POSE_TEACHER - standing next to detailed wooden easel chalk-board, pointing explaining lesson' },
+  { label: 'Artist Brush', value: 'POSE_ARTIST - holding brush painted with oil colors, stepping back evaluating vibrant wet canvas' },
+  { label: 'Musician Guitar', value: 'POSE_MUSICIAN - fingers picking string of acoustic classical guitar with heartfelt musical focus' },
+  { label: 'Photographer eye', value: 'POSE_PHOTOGRAPHER - holding heavy black camera body up to eye, framing visual landscape shot' },
+  { label: 'Gamer focus', value: 'POSE_GAMER - professional esports gamer gripping modern translucent controller, digital monitor glow on face' },
+  { label: 'Streamer Wave', value: 'POSE_STREAMER - high energy talking into desktop broadcast microphone with neon stream light backdrop' },
+  { label: 'Chef Plating', value: 'POSE_CHEF - white chef uniform, using precision tweezers to place garnish on elegant plate' },
+  { label: 'Barista Espresso', value: 'POSE_BARISTA - precision milk pouring into leaf latte art top design of ceramic cup' },
+  { label: 'Engineer Helmet', value: 'POSE_ENGINEER - industrial engineer checking technical drawings on site with safety vest on' },
+  { label: 'Scientist Beaker', value: 'POSE_SCIENTIST - looking through blue glass fluid vial under powerful ultraviolet lab desk lamp' }
 ];
 
 const BACKDROP_EXAMPLES = [
@@ -148,6 +292,8 @@ interface VisualEngineResult {
     mood: string;
     environment: string;
     motion_style: string;
+    camera?: string;
+    format?: string;
   };
 }
 
@@ -191,12 +337,256 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
 
   const [selectedCharId, setSelectedCharId] = useState<string>('none');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string>('none');
-  const [shot, setShot] = useState(SHOT_FRAMINGS[0]);
-  const [style, setStyle] = useState(STYLES[0]);
-  const [lighting, setLighting] = useState(LIGHTINGS[0]);
+
+  // Adjustable custom presets for Framing, Lighting, Art Style
+  const [framingPresets, setFramingPresets] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_framings');
+      if (saved) return [...SHOT_FRAMINGS, ...JSON.parse(saved)];
+    } catch (_) {}
+    return SHOT_FRAMINGS;
+  });
+
+  const [lightingPresets, setLightingPresets] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_lightings');
+      if (saved) return [...LIGHTINGS, ...JSON.parse(saved)];
+    } catch (_) {}
+    return LIGHTINGS;
+  });
+
+  const [stylePresets, setStylePresets] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_styles');
+      if (saved) return [...STYLES, ...JSON.parse(saved)];
+    } catch (_) {}
+    return STYLES;
+  });
+
+  const [shot, setShot] = useState(() => framingPresets[0] || SHOT_FRAMINGS[0]);
+  const [style, setStyle] = useState(() => stylePresets[0] || STYLES[0]);
+  const [lighting, setLighting] = useState(() => lightingPresets[0] || LIGHTINGS[0]);
   const [location, setLocation] = useState('');
-  const [action, setAction] = useState('');
+  const [action, setAction] = useState('AUTO_POSE');
+
+  // UI state for adding custom items for framing, lighting, art style
+  const [newCustomFraming, setNewCustomFraming] = useState('');
+  const [isAddingFraming, setIsAddingFraming] = useState(false);
+
+  const [newCustomLighting, setNewCustomLighting] = useState('');
+  const [isAddingLighting, setIsAddingLighting] = useState(false);
+
+  const [newCustomStyle, setNewCustomStyle] = useState('');
+  const [isAddingStyle, setIsAddingStyle] = useState(false);
+
+  const handleAddNewFraming = () => {
+    if (!newCustomFraming.trim()) return;
+    const item = newCustomFraming.trim();
+    if (!framingPresets.includes(item)) {
+      const customOnly = framingPresets.filter(f => !SHOT_FRAMINGS.includes(f));
+      const updatedCustom = [...customOnly, item];
+      localStorage.setItem('davs_custom_framings', JSON.stringify(updatedCustom));
+      setFramingPresets([...SHOT_FRAMINGS, ...updatedCustom]);
+    }
+    setShot(item);
+    setNewCustomFraming('');
+    setIsAddingFraming(false);
+  };
+
+  const handleAddNewLighting = () => {
+    if (!newCustomLighting.trim()) return;
+    const item = newCustomLighting.trim();
+    if (!lightingPresets.includes(item)) {
+      const customOnly = lightingPresets.filter(l => !LIGHTINGS.includes(l));
+      const updatedCustom = [...customOnly, item];
+      localStorage.setItem('davs_custom_lightings', JSON.stringify(updatedCustom));
+      setLightingPresets([...LIGHTINGS, ...updatedCustom]);
+    }
+    setLighting(item);
+    setNewCustomLighting('');
+    setIsAddingLighting(false);
+  };
+
+  const handleAddNewStyle = () => {
+    if (!newCustomStyle.trim()) return;
+    const item = newCustomStyle.trim();
+    if (!stylePresets.includes(item)) {
+      const customOnly = stylePresets.filter(s => !STYLES.includes(s));
+      const updatedCustom = [...customOnly, item];
+      localStorage.setItem('davs_custom_styles', JSON.stringify(updatedCustom));
+      setStylePresets([...STYLES, ...updatedCustom]);
+    }
+    setStyle(item);
+    setNewCustomStyle('');
+    setIsAddingStyle(false);
+  };
+
+  const [motionPresets, setMotionPresets] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_motions');
+      if (saved) return [...DEFAULT_MOTIONS, ...JSON.parse(saved)];
+    } catch (_) {}
+    return DEFAULT_MOTIONS;
+  });
+
+  const [motionStyle, setMotionStyle] = useState(() => motionPresets[0] || DEFAULT_MOTIONS[0]);
+  const [newCustomMotion, setNewCustomMotion] = useState('');
+  const [isAddingMotion, setIsAddingMotion] = useState(false);
+
+  const handleAddNewMotion = () => {
+    if (!newCustomMotion.trim()) return;
+    const item = newCustomMotion.trim();
+    if (!motionPresets.includes(item)) {
+      const customOnly = motionPresets.filter(m => !DEFAULT_MOTIONS.includes(m));
+      const updatedCustom = [...customOnly, item];
+      localStorage.setItem('davs_custom_motions', JSON.stringify(updatedCustom));
+      setMotionPresets([...DEFAULT_MOTIONS, ...updatedCustom]);
+    }
+    setMotionStyle(item);
+    setNewCustomMotion('');
+    setIsAddingMotion(false);
+  };
   
+  // Custom camera, lens, format states
+  const [lenses, setLenses] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_lenses');
+      if (saved) return [...DEFAULT_LENSES, ...JSON.parse(saved)];
+    } catch (_) {}
+    return DEFAULT_LENSES;
+  });
+
+  const [cameras, setCameras] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_cameras');
+      if (saved) return [...DEFAULT_CAMERAS, ...JSON.parse(saved)];
+    } catch (_) {}
+    return DEFAULT_CAMERAS;
+  });
+
+  const [formats, setFormats] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_formats');
+      if (saved) return [...DEFAULT_FORMATS, ...JSON.parse(saved)];
+    } catch (_) {}
+    return DEFAULT_FORMATS;
+  });
+
+  const [lens, setLens] = useState(lenses[0]);
+  const [camera, setCamera] = useState(cameras[0]);
+  const [format, setFormat] = useState(formats[0]);
+
+  // UI state for adding custom items inline
+  const [newCustomLens, setNewCustomLens] = useState('');
+  const [isAddingLens, setIsAddingLens] = useState(false);
+
+  const [newCustomCam, setNewCustomCam] = useState('');
+  const [isAddingCam, setIsAddingCam] = useState(false);
+
+  const [newCustomFormat, setNewCustomFormat] = useState('');
+  const [isAddingFormat, setIsAddingFormat] = useState(false);
+
+  const handleAddNewLens = () => {
+    if (!newCustomLens.trim()) return;
+    const item = newCustomLens.trim();
+    if (!lenses.includes(item)) {
+      const customOnly = lenses.filter(l => !DEFAULT_LENSES.includes(l));
+      const updatedCustom = [...customOnly, item];
+      localStorage.setItem('davs_custom_lenses', JSON.stringify(updatedCustom));
+      setLenses([...DEFAULT_LENSES, ...updatedCustom]);
+    }
+    setLens(item);
+    setNewCustomLens('');
+    setIsAddingLens(false);
+  };
+
+  const handleAddNewCam = () => {
+    if (!newCustomCam.trim()) return;
+    const item = newCustomCam.trim();
+    if (!cameras.includes(item)) {
+      const customOnly = cameras.filter(c => !DEFAULT_CAMERAS.includes(c));
+      const updatedCustom = [...customOnly, item];
+      localStorage.setItem('davs_custom_cameras', JSON.stringify(updatedCustom));
+      setCameras([...DEFAULT_CAMERAS, ...updatedCustom]);
+    }
+    setCamera(item);
+    setNewCustomCam('');
+    setIsAddingCam(false);
+  };
+
+  const handleAddNewFormat = () => {
+    if (!newCustomFormat.trim()) return;
+    const item = newCustomFormat.trim();
+    if (!formats.includes(item)) {
+      const customOnly = formats.filter(f => !DEFAULT_FORMATS.includes(f));
+      const updatedCustom = [...customOnly, item];
+      localStorage.setItem('davs_custom_formats', JSON.stringify(updatedCustom));
+      setFormats([...DEFAULT_FORMATS, ...updatedCustom]);
+    }
+    setFormat(item);
+    setNewCustomFormat('');
+    setIsAddingFormat(false);
+  };
+
+  // Custom poses and backdrops states and helper functions
+  const [poses, setPoses] = useState<{ label: string; value: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_poses');
+      if (saved) return [...ACTION_EXAMPLES, ...JSON.parse(saved)];
+    } catch (_) {}
+    return ACTION_EXAMPLES;
+  });
+
+  const [backdrops, setBackdrops] = useState<{ label: string; value: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('davs_custom_backdrops');
+      if (saved) return [...BACKDROP_EXAMPLES, ...JSON.parse(saved)];
+    } catch (_) {}
+    return BACKDROP_EXAMPLES;
+  });
+
+  const [newPoseLabel, setNewPoseLabel] = useState('');
+  const [newPoseValue, setNewPoseValue] = useState('');
+  const [isAddingPose, setIsAddingPose] = useState(false);
+
+  const [newBackdropLabel, setNewBackdropLabel] = useState('');
+  const [newBackdropValue, setNewBackdropValue] = useState('');
+  const [isAddingBackdrop, setIsAddingBackdrop] = useState(false);
+
+  const handleAddNewPose = () => {
+    if (!newPoseLabel.trim() || !newPoseValue.trim()) return;
+    const l = newPoseLabel.trim();
+    const v = newPoseValue.trim();
+    const exists = poses.some(p => p.label.toLowerCase() === l.toLowerCase());
+    if (!exists) {
+      const customOnly = poses.filter(p => !ACTION_EXAMPLES.some(a => a.label === p.label));
+      const updatedCustom = [...customOnly, { label: l, value: v }];
+      localStorage.setItem('davs_custom_poses', JSON.stringify(updatedCustom));
+      setPoses([...ACTION_EXAMPLES, ...updatedCustom]);
+    }
+    setAction(v);
+    setNewPoseLabel('');
+    setNewPoseValue('');
+    setIsAddingPose(false);
+  };
+
+  const handleAddNewBackdrop = () => {
+    if (!newBackdropLabel.trim() || !newBackdropValue.trim()) return;
+    const l = newBackdropLabel.trim();
+    const v = newBackdropValue.trim();
+    const exists = backdrops.some(b => b.label.toLowerCase() === l.toLowerCase());
+    if (!exists) {
+      const customOnly = backdrops.filter(b => !BACKDROP_EXAMPLES.some(a => a.label === b.label));
+      const updatedCustom = [...customOnly, { label: l, value: v }];
+      localStorage.setItem('davs_custom_backdrops', JSON.stringify(updatedCustom));
+      setBackdrops([...BACKDROP_EXAMPLES, ...updatedCustom]);
+    }
+    setLocation(v);
+    setNewBackdropLabel('');
+    setNewBackdropValue('');
+    setIsAddingBackdrop(false);
+  };
+
   const [isRefining, setIsRefining] = useState(false);
 
   // --- Modal Blueprints Drawers states ---
@@ -212,15 +602,159 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
   const selectedPlace = places.find(p => p.id === selectedPlaceId);
 
   // Helper to construct manual formula prompt
+  const getAutoPoseValue = () => {
+    const charText = (selectedChar?.details || '').toLowerCase() + ' ' + (selectedChar?.name || '').toLowerCase();
+    const envText = (selectedPlace?.details || '').toLowerCase() + ' ' + (selectedPlace?.name || '').toLowerCase() + ' ' + location.toLowerCase();
+    const styleText = style.toLowerCase() + ' ' + shot.toLowerCase();
+    const allText = `${charText} ${envText} ${styleText}`;
+
+    // 1. CEO
+    if (
+      allText.includes('ceo') ||
+      allText.includes('executive') ||
+      allText.includes('boardroom') ||
+      allText.includes('office') ||
+      allText.includes('boss') ||
+      allText.includes('director') ||
+      allText.includes('manager') ||
+      allText.includes('corporate') ||
+      allText.includes('suit')
+    ) {
+      return 'POSE_CEO - sitting back behind massive modern boardroom table with high visionary confidence and premium executive posture, natural weight distribution';
+    }
+
+    // 2. Hero
+    if (
+      allText.includes('hero') ||
+      allText.includes('warrior') ||
+      allText.includes('soldier') ||
+      allText.includes('knight') ||
+      allText.includes('fighter') ||
+      allText.includes('combat') ||
+      allText.includes('battle') ||
+      allText.includes('armor')
+    ) {
+      return 'POSE_HERO - low angle epic shot, absolute brave heroic stance with towering proud posture, wind blowing clothes, realistic anatomy, authentic posture';
+    }
+
+    // 3. Fashion Runway
+    if (
+      allText.includes('model') ||
+      allText.includes('fashion') ||
+      allText.includes('runway') ||
+      allText.includes('designer') ||
+      allText.includes('dress') ||
+      allText.includes('gown') ||
+      allText.includes('chic') ||
+      allText.includes('vogue') ||
+      allText.includes('editorial')
+    ) {
+      return 'POSE_FASHION_RUNWAY - walking down haute couture runway, striking dynamic posture, fierce look, artistic geometry, elegant body alignment';
+    }
+
+    // 4. Action
+    if (
+      allText.includes('fight') ||
+      allText.includes('chase') ||
+      allText.includes('action') ||
+      allText.includes('jumping') ||
+      allText.includes('striking') ||
+      allText.includes('blade') ||
+      allText.includes('martial') ||
+      allText.includes('sword') ||
+      allText.includes('gun') ||
+      allText.includes('ninja') ||
+      allText.includes('combat')
+    ) {
+      return 'POSE_ACTION - dynamic mid-fight or chase pose, active limb placement, ready to spring, dramatic motion trail, dynamic balance';
+    }
+
+    // 5. Explorer
+    if (
+      allText.includes('explorer') ||
+      allText.includes('ranger') ||
+      allText.includes('safari') ||
+      allText.includes('hiker') ||
+      allText.includes('mountain') ||
+      allText.includes('forest') ||
+      allText.includes('jungle') ||
+      allText.includes('explore') ||
+      allText.includes('nature') ||
+      allText.includes('outdoor')
+    ) {
+      return 'POSE_EXPLORER - searching the horizon with intense focused eyes, shielding brows, rustic ranger gear, natural body language';
+    }
+
+    // 6. Sitting Relaxed
+    if (
+      allText.includes('sit') ||
+      allText.includes('sitting') ||
+      allText.includes('chair') ||
+      allText.includes('bench') ||
+      allText.includes('relaxed') ||
+      allText.includes('coffee') ||
+      allText.includes('cafe') ||
+      allText.includes('tea') ||
+      allText.includes('lounge') ||
+      allText.includes('read') ||
+      allText.includes('thinking')
+    ) {
+      return 'POSE_SITTING_RELAXED - sitting in a deeply relaxed lounge posture, arm resting on cushion, relaxed legs placement, subtle natural movement, candid body positioning';
+    }
+
+    // 7. Walking
+    if (
+      allText.includes('walk') ||
+      allText.includes('walking') ||
+      allText.includes('street') ||
+      allText.includes('stroll') ||
+      allText.includes('plaza') ||
+      allText.includes('boulevard') ||
+      allText.includes('sidewalk') ||
+      allText.includes('avenue')
+    ) {
+      return 'POSE_WALKING - walking gracefully forward, natural mid-stride motion, fluid lifelike body language, realistic weight distribution';
+    }
+
+    // 8. Over Shoulder
+    if (
+      allText.includes('looking back') ||
+      allText.includes('over shoulder') ||
+      allText.includes('portrait') ||
+      allText.includes('glance') ||
+      allText.includes('mystery') ||
+      allText.includes('covert') ||
+      allText.includes('sad') ||
+      allText.includes('lonely')
+    ) {
+      return 'POSE_OVER_SHOULDER - looking directly into the camera from over the shoulder, dramatic portrait depth, natural hand placement, authentic posture';
+    }
+
+    // 9. Cinematic
+    if (
+      allText.includes('cinematic') ||
+      allText.includes('movie') ||
+      allText.includes('film') ||
+      allText.includes('still') ||
+      allText.includes('drama') ||
+      allText.includes('epic')
+    ) {
+      return 'POSE_CINEMATIC - classic movie still framing, perfectly placed in scene, narrative-driven natural body language, authentic posture';
+    }
+
+    // 10. Standing Relaxed (Default)
+    return 'POSE_STANDING_RELAXED - standing relaxed, weight shifted onto one foot, natural asymmetrical posture, dynamic balance, subtle candid stance, realistic weight distribution, natural hand placement';
+  };
+
   const assembleLiteralPrompt = () => {
     let actPart = action.trim();
+    if (actPart === 'AUTO_POSE' || !actPart) {
+      actPart = getAutoPoseValue();
+    }
     let charPrefix = '';
     
     if (selectedChar && selectedCharId !== 'none') {
       charPrefix = `${selectedChar.details}`;
-      if (!actPart) {
-        actPart = 'stands confidently looking ahead';
-      }
     } else {
       charPrefix = actPart || '[Action/Subject]';
       actPart = '';
@@ -243,7 +777,7 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
 
     const mainBackdrop = locPart ? `${placePrefix}, ${locPart}` : placePrefix;
 
-    return `${shot} of ${mainSubject} at ${mainBackdrop}, illuminated by ${lighting}, showcasing a ${style} aesthetic.`;
+    return `${shot} of ${mainSubject} at ${mainBackdrop}, illuminated by ${lighting}, showcasing a ${style} aesthetic. Shot on ${camera} camera with ${lens} lens, formatted aspect ratio fits ${format}.`;
   };
 
   const handleAssembleFormula = () => {
@@ -267,18 +801,20 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
     const assembledResult: VisualEngineResult = {
       title: selectedCharId !== 'none' && selectedChar ? `${selectedChar.name} Scene` : 'Formula Assembled Scene',
       image_prompt: literalPrompt,
-      motion_prompt: `Cinematic panning cinematic action shot, tracking ${shot.toLowerCase()}, ${lighting.toLowerCase()}, matching ${style.toLowerCase()} art direction, realistic physics simulation.`,
+      motion_prompt: `Cinematic motion: ${motionStyle.toLowerCase()}, tracking ${shot.toLowerCase()}, under ${lighting.toLowerCase()} setup, matching ${style.toLowerCase()} art direction, realistic physics simulation, natural motion flow, professional camera operation.`,
       negative_prompt: "deformed, bad anatomy, bad quality, low resolution, extra limb, blurry, watermarks, signatures, chaotic background",
       metadata: {
         genre: "Cinematic Scene",
         style: style,
         camera_shot: shot,
         camera_angle: "Eye level",
-        lens: "Anamorphic 35mm",
+        lens: lens,
         lighting: lighting,
         mood: "Atmospheric",
         environment: selectedPlaceId !== 'none' && selectedPlace ? selectedPlace.name : 'Scenic Set',
-        motion_style: "Dynamic Panning"
+        motion_style: motionStyle,
+        camera: camera,
+        format: format
       }
     };
 
@@ -322,7 +858,7 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          topic: `Refine and compile this formula structure into deep filmmaking prompt parameters:\n"${basePrompt}"\nCharacter: ${selectedChar?.details || "None"}\nEnvironment: ${selectedPlace?.details || "None"}`,
+          topic: `Refine and compile this formula structure into deep filmmaking prompt parameters:\n"${basePrompt}"\nCharacter: ${selectedChar?.details || "None"}\nEnvironment: ${selectedPlace?.details || "None"}\nCamera/Motion Movement Selection: ${motionStyle}`,
           provider: activeProvider
         })
       });
@@ -347,18 +883,20 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
       const literalResult: VisualEngineResult = {
         title: selectedCharId !== 'none' && selectedChar ? `${selectedChar.name} Scene` : 'Formula Assembled Scene',
         image_prompt: basePrompt,
-        motion_prompt: `Cinematic panning cinematic action shot, tracking ${shot.toLowerCase()}, ${lighting.toLowerCase()}, matching ${style.toLowerCase()} art direction, realistic physics simulation.`,
+        motion_prompt: `Cinematic motion: ${motionStyle.toLowerCase()}, tracking ${shot.toLowerCase()}, ${lighting.toLowerCase()} lighting setup, matching ${style.toLowerCase()} art direction, realistic physics simulation.`,
         negative_prompt: "deformed, bad anatomy, bad quality, low resolution, extra limb, blurry, watermarks, signatures",
         metadata: {
           genre: "Cinematic Scene",
           style: style,
           camera_shot: shot,
           camera_angle: "Eye level",
-          lens: "Anamorphic 35mm",
+          lens: lens,
           lighting: lighting,
           mood: "Atmospheric (Fallback)",
           environment: selectedPlaceId !== 'none' && selectedPlace ? selectedPlace.name : 'Scenic Set',
-          motion_style: "Dynamic Panning"
+          motion_style: motionStyle,
+          camera: camera,
+          format: format
         }
       };
       setResult(literalResult);
@@ -586,9 +1124,9 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
           <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-accent-yellow/10 text-accent-yellow text-[9px] font-black tracking-widest rounded-full border border-accent-yellow/20 uppercase">
             <Sparkles className="w-3 h-3 animate-pulse" /> PREMIUM CINEMA SYSTEM
           </div>
-          <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight uppercase">VISUAL ENGINE</h2>
+          <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight uppercase">VISUAL ENGINE v2</h2>
           <p className="text-text-secondary text-xs sm:text-sm font-sans max-w-xl opacity-80 leading-relaxed">
-            Kompiler Prompt Sinematik Pro. Rancang menggunakan blueprint formula terstruktur, kecerdasan Gemini, atau arsitektur NVIDIA API.
+            Kompiler Prompt Sinematik Pro Generasi Baru. Mentransformasikan gagasan Anda menjadi prompt visual yang mengalir, natural, anti-kaku, dan kaya detail berbasis filmografi professional.
           </p>
         </div>
       </motion.div>
@@ -689,28 +1227,83 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
 
                 {/* Action/Pose Input */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
-                    🔥 Action / Pose Detail
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={action}
-                    onChange={(e) => setAction(e.target.value)}
-                    placeholder="Contoh: berdiri tersenyum, menatap tajam ke arah kamera..."
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl p-3 outline-none focus:border-accent-yellow text-xs resize-none text-white placeholder-text-secondary/40 font-sans"
-                  />
-                  <div className="flex flex-wrap gap-1">
-                    {ACTION_EXAMPLES.map((ex, idx) => (
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                    <label>🔥 Action / Pose Detail</label>
+                    {!isAddingPose ? (
                       <button
-                        key={idx}
                         type="button"
-                        onClick={() => setAction(ex.value)}
-                        className="px-2 py-1 bg-bg-tertiary text-[9px] text-text-secondary hover:text-white rounded-md border border-border-subtle"
+                        onClick={() => setIsAddingPose(true)}
+                        className="text-[10px] font-bold text-accent-yellow hover:underline cursor-pointer"
                       >
-                        {ex.label}
+                        + Tambah Preset
                       </button>
-                    ))}
+                    ) : null}
                   </div>
+
+                  {isAddingPose ? (
+                    <div className="p-3 bg-bg-tertiary border border-accent-yellow/40 rounded-xl space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Label Singkat (Misal: Berlari di Pantai)</label>
+                        <input
+                          type="text"
+                          value={newPoseLabel}
+                          onChange={(e) => setNewPoseLabel(e.target.value)}
+                          placeholder="Nama aksi..."
+                          className="w-full bg-bg-primary border border-border-subtle rounded p-2 text-xs text-white outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Detail Prompt Visual Bahasa Inggris</label>
+                        <textarea
+                          rows={2}
+                          value={newPoseValue}
+                          onChange={(e) => setNewPoseValue(e.target.value)}
+                          placeholder="Ketik deskripsi aksi visual..."
+                          className="w-full bg-bg-primary border border-border-subtle rounded p-2 text-xs text-white outline-none resize-none"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 text-[10px] font-bold uppercase">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingPose(false)}
+                          className="px-2.5 py-1.5 bg-bg-primary text-text-secondary rounded border border-border-subtle hover:text-white cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddNewPose}
+                          className="px-2.5 py-1.5 bg-accent-yellow text-bg-primary rounded font-black hover:bg-white cursor-pointer"
+                        >
+                          Simpan
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <select
+                        value={action}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setAction(e.target.value);
+                          }
+                        }}
+                        className="bg-bg-tertiary border border-border-subtle rounded-xl p-2.5 text-xs text-white cursor-pointer font-bold outline-none sm:w-1/3"
+                      >
+                        {poses.map((p, idx) => (
+                          <option key={idx} value={p.value}>{p.label}</option>
+                        ))}
+                      </select>
+                      
+                      <textarea
+                        rows={2}
+                        value={action}
+                        onChange={(e) => setAction(e.target.value)}
+                        placeholder="Atau deskripsikan aksi kustom di sini..."
+                        className="flex-1 bg-bg-tertiary border border-border-subtle rounded-xl p-3 outline-none focus:border-accent-yellow text-xs resize-none text-white placeholder-text-secondary/40 font-sans"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Place Selection */}
@@ -747,69 +1340,507 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
 
                 {/* Atmosphere Input */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
-                    ⛅️ Additional Backdrop Detail / Weather
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Contoh: rintik hujan lembut, kabut tebal, dsb."
-                    className="w-full bg-bg-tertiary border border-border-subtle rounded-xl p-3 outline-none focus:border-accent-yellow text-xs resize-none text-white placeholder-text-secondary/40 font-sans"
-                  />
-                  <div className="flex flex-wrap gap-1">
-                    {BACKDROP_EXAMPLES.map((ex, idx) => (
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                    <label>⛅️ Additional Backdrop Detail / Weather</label>
+                    {!isAddingBackdrop ? (
                       <button
-                        key={idx}
                         type="button"
-                        onClick={() => setLocation(ex.value)}
-                        className="px-2 py-1 bg-bg-tertiary text-[9px] text-text-secondary hover:text-white rounded-md border border-border-subtle"
+                        onClick={() => setIsAddingBackdrop(true)}
+                        className="text-[10px] font-bold text-accent-yellow hover:underline cursor-pointer"
                       >
-                        {ex.label}
+                        + Tambah Preset
                       </button>
-                    ))}
+                    ) : null}
                   </div>
+
+                  {isAddingBackdrop ? (
+                    <div className="p-3 bg-bg-tertiary border border-accent-yellow/40 rounded-xl space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Label Singkat (Misal: Kabut Pagi)</label>
+                        <input
+                          type="text"
+                          value={newBackdropLabel}
+                          onChange={(e) => setNewBackdropLabel(e.target.value)}
+                          placeholder="Nama suasana/cuaca..."
+                          className="w-full bg-bg-primary border border-border-subtle rounded p-2 text-xs text-white outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Detail Prompt Visual Bahasa Inggris</label>
+                        <textarea
+                          rows={2}
+                          value={newBackdropValue}
+                          onChange={(e) => setNewBackdropValue(e.target.value)}
+                          placeholder="Ketik detail backdrop/cuaca visual..."
+                          className="w-full bg-bg-primary border border-border-subtle rounded p-2 text-xs text-white outline-none resize-none"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 text-[10px] font-bold uppercase">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingBackdrop(false)}
+                          className="px-2.5 py-1.5 bg-bg-primary text-text-secondary rounded border border-border-subtle hover:text-white cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddNewBackdrop}
+                          className="px-2.5 py-1.5 bg-accent-yellow text-bg-primary rounded font-black hover:bg-white cursor-pointer"
+                        >
+                          Simpan
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setLocation(e.target.value);
+                          }
+                        }}
+                        className="bg-bg-tertiary border border-border-subtle rounded-xl p-2.5 text-xs text-white cursor-pointer font-bold outline-none sm:w-1/3"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>-- Pilih Cuaca/Backdrop --</option>
+                        {backdrops.map((b, idx) => (
+                          <option key={idx} value={b.value}>{b.label}</option>
+                        ))}
+                      </select>
+                      
+                      <textarea
+                        rows={2}
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Atau tambahkan detail backdrop/cuaca di sini..."
+                        className="flex-1 bg-bg-tertiary border border-border-subtle rounded-xl p-3 outline-none focus:border-accent-yellow text-xs resize-none text-white placeholder-text-secondary/40 font-sans"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {/* Cam Specs dropdowns */}
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Framing</label>
-                    <select
-                      value={shot}
-                      onChange={(e) => setShot(e.target.value)}
-                      className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none"
-                    >
-                      {SHOT_FRAMINGS.map((sh, idx) => (
-                        <option key={idx} value={sh}>{sh}</option>
-                      ))}
-                    </select>
+                {/* Cam Specs dropdowns and Adjustable Lens, Camera, and Format selectors */}
+                <div className="space-y-3">
+                  {/* Row 1 of Specs */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {/* Framing / Shot Selection */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Framing</label>
+                        {!isAddingFraming ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingFraming(true)}
+                            className="text-[8px] font-bold text-accent-yellow hover:underline cursor-pointer"
+                          >
+                            + Tambah
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isAddingFraming ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCustomFraming}
+                            onChange={(e) => setNewCustomFraming(e.target.value)}
+                            placeholder="Framing baru..."
+                            className="w-full bg-bg-tertiary border border-accent-yellow/40 rounded p-1.5 text-[9px] text-white outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddNewFraming();
+                              if (e.key === 'Escape') setIsAddingFraming(false);
+                            }}
+                          />
+                          <div className="flex justify-between items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingFraming(false)}
+                              className="bg-bg-tertiary hover:bg-bg-primary border border-border-subtle p-1 rounded text-[7px] text-text-secondary hover:text-white cursor-pointer uppercase font-black"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddNewFraming}
+                              className="bg-accent-yellow hover:bg-white text-bg-primary p-1 rounded text-[7px] font-black uppercase cursor-pointer"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={shot}
+                          onChange={(e) => setShot(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none cursor-pointer"
+                        >
+                          {framingPresets.map((sh, idx) => (
+                            <option key={idx} value={sh}>{sh}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Lighting Selection */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Lighting</label>
+                        {!isAddingLighting ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingLighting(true)}
+                            className="text-[8px] font-bold text-accent-yellow hover:underline cursor-pointer"
+                          >
+                            + Tambah
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isAddingLighting ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCustomLighting}
+                            onChange={(e) => setNewCustomLighting(e.target.value)}
+                            placeholder="Lighting baru..."
+                            className="w-full bg-bg-tertiary border border-accent-yellow/40 rounded p-1.5 text-[9px] text-white outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddNewLighting();
+                              if (e.key === 'Escape') setIsAddingLighting(false);
+                            }}
+                          />
+                          <div className="flex justify-between items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingLighting(false)}
+                              className="bg-bg-tertiary hover:bg-bg-primary border border-border-subtle p-1 rounded text-[7px] text-text-secondary hover:text-white cursor-pointer uppercase font-black"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddNewLighting}
+                              className="bg-accent-yellow hover:bg-white text-bg-primary p-1 rounded text-[7px] font-black uppercase cursor-pointer"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={lighting}
+                          onChange={(e) => setLighting(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none cursor-pointer"
+                        >
+                          {lightingPresets.map((li, idx) => (
+                            <option key={idx} value={li}>{li}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Art Style Selection */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Art Style</label>
+                        {!isAddingStyle ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingStyle(true)}
+                            className="text-[8px] font-bold text-accent-yellow hover:underline cursor-pointer"
+                          >
+                            + Tambah
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isAddingStyle ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCustomStyle}
+                            onChange={(e) => setNewCustomStyle(e.target.value)}
+                            placeholder="Style baru..."
+                            className="w-full bg-bg-tertiary border border-accent-yellow/40 rounded p-1.5 text-[9px] text-white outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddNewStyle();
+                              if (e.key === 'Escape') setIsAddingStyle(false);
+                            }}
+                          />
+                          <div className="flex justify-between items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingStyle(false)}
+                              className="bg-bg-tertiary hover:bg-bg-primary border border-border-subtle p-1 rounded text-[7px] text-text-secondary hover:text-white cursor-pointer uppercase font-black"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddNewStyle}
+                              className="bg-accent-yellow hover:bg-white text-bg-primary p-1 rounded text-[7px] font-black uppercase cursor-pointer"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={style}
+                          onChange={(e) => setStyle(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none cursor-pointer"
+                        >
+                          {stylePresets.map((st, idx) => (
+                            <option key={idx} value={st}>{st}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Lighting</label>
-                    <select
-                      value={lighting}
-                      onChange={(e) => setLighting(e.target.value)}
-                      className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none"
-                    >
-                      {LIGHTINGS.map((li, idx) => (
-                        <option key={idx} value={li}>{li}</option>
-                      ))}
-                    </select>
+                  {/* Row 2: Camera, Lens, Format (with custom inline "Add New" creation) */}
+                  <div className="grid grid-cols-3 gap-2.5 border-t border-border-subtle/20 pt-3">
+                    {/* Camera Select */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Kamera</label>
+                        {!isAddingCam ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingCam(true)}
+                            className="text-[8px] font-bold text-accent-yellow hover:underline cursor-pointer"
+                          >
+                            + Tambah
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isAddingCam ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCustomCam}
+                            onChange={(e) => setNewCustomCam(e.target.value)}
+                            placeholder="Kamera baru..."
+                            className="w-full bg-bg-tertiary border border-accent-yellow/40 rounded p-1.5 text-[9px] text-white outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddNewCam();
+                              if (e.key === 'Escape') setIsAddingCam(false);
+                            }}
+                          />
+                          <div className="flex justify-between items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingCam(false)}
+                              className="bg-bg-tertiary hover:bg-bg-primary border border-border-subtle p-1 rounded text-[7px] text-text-secondary hover:text-white cursor-pointer uppercase font-black"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddNewCam}
+                              className="bg-accent-yellow hover:bg-white text-bg-primary p-1 rounded text-[7px] font-black uppercase cursor-pointer"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={camera}
+                          onChange={(e) => setCamera(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none cursor-pointer"
+                        >
+                          {cameras.map((cam, idx) => (
+                            <option key={idx} value={cam}>{cam}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Lens Select */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Lensa</label>
+                        {!isAddingLens ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingLens(true)}
+                            className="text-[8px] font-bold text-accent-yellow hover:underline cursor-pointer"
+                          >
+                            + Tambah
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isAddingLens ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCustomLens}
+                            onChange={(e) => setNewCustomLens(e.target.value)}
+                            placeholder="Lensa baru..."
+                            className="w-full bg-bg-tertiary border border-accent-yellow/40 rounded p-1.5 text-[9px] text-white outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddNewLens();
+                              if (e.key === 'Escape') setIsAddingLens(false);
+                            }}
+                          />
+                          <div className="flex justify-between items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingLens(false)}
+                              className="bg-bg-tertiary hover:bg-bg-primary border border-border-subtle p-1 rounded text-[7px] text-text-secondary hover:text-white cursor-pointer uppercase font-black"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddNewLens}
+                              className="bg-accent-yellow hover:bg-white text-bg-primary p-1 rounded text-[7px] font-black uppercase cursor-pointer"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={lens}
+                          onChange={(e) => setLens(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none cursor-pointer"
+                        >
+                          {lenses.map((le, idx) => (
+                            <option key={idx} value={le}>{le}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Format / Aspect Ratio Select */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary font-display">Format / Ratio</label>
+                        {!isAddingFormat ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingFormat(true)}
+                            className="text-[8px] font-bold text-accent-yellow hover:underline cursor-pointer"
+                          >
+                            + Tambah
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isAddingFormat ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCustomFormat}
+                            onChange={(e) => setNewCustomFormat(e.target.value)}
+                            placeholder="Contoh: 16:9, 9:16..."
+                            className="w-full bg-bg-tertiary border border-accent-yellow/40 rounded p-1.5 text-[9px] text-white outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddNewFormat();
+                              if (e.key === 'Escape') setIsAddingFormat(false);
+                            }}
+                          />
+                          <div className="flex justify-between items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingFormat(false)}
+                              className="bg-bg-tertiary hover:bg-bg-primary border border-border-subtle p-1 rounded text-[7px] text-text-secondary hover:text-white cursor-pointer uppercase font-black"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddNewFormat}
+                              className="bg-accent-yellow hover:bg-white text-bg-primary p-1 rounded text-[7px] font-black uppercase cursor-pointer"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={format}
+                          onChange={(e) => setFormat(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none cursor-pointer"
+                        >
+                          {formats.map((f, idx) => (
+                            <option key={idx} value={f}>{f}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary">Art Style</label>
-                    <select
-                      value={style}
-                      onChange={(e) => setStyle(e.target.value)}
-                      className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none"
-                    >
-                      {STYLES.map((st, idx) => (
-                        <option key={idx} value={st}>{st}</option>
-                      ))}
-                    </select>
+                  {/* Row 3: Motion / Kamera Movement */}
+                  <div className="grid grid-cols-1 border-t border-border-subtle/20 pt-3">
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[8px] font-black uppercase tracking-widest text-text-secondary font-display">Motion / Kamera Movement</label>
+                        {!isAddingMotion ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingMotion(true)}
+                            className="text-[8px] font-bold text-accent-yellow hover:underline cursor-pointer"
+                          >
+                            + Tambah Custom Motion
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {isAddingMotion ? (
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCustomMotion}
+                            onChange={(e) => setNewCustomMotion(e.target.value)}
+                            placeholder="Contoh: Slow cinematic orbit, drone hovering..."
+                            className="w-full bg-bg-tertiary border border-accent-yellow/40 rounded p-1.5 text-[9px] text-white outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddNewMotion();
+                              if (e.key === 'Escape') setIsAddingMotion(false);
+                            }}
+                          />
+                          <div className="flex justify-between items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingMotion(false)}
+                              className="bg-bg-tertiary hover:bg-bg-primary border border-border-subtle p-1 rounded text-[7px] text-text-secondary hover:text-white cursor-pointer uppercase font-black"
+                            >
+                              Batal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddNewMotion}
+                              className="bg-accent-yellow hover:bg-white text-bg-primary p-1 rounded text-[7px] font-black uppercase cursor-pointer"
+                            >
+                              Simpan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={motionStyle}
+                          onChange={(e) => setMotionStyle(e.target.value)}
+                          className="w-full bg-bg-tertiary border border-border-subtle rounded-lg p-2 text-[10px] text-white font-bold outline-none cursor-pointer"
+                        >
+                          {motionPresets.map((m, idx) => (
+                            <option key={idx} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   </div>
                 </div>
 

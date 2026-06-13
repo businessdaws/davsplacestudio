@@ -1071,70 +1071,824 @@ Use this exact structure:
   }
 }
 
-========================================
-IMAGE PROMPT RULES
-========================================
+=======================================
+VISUAL ENGINE v2: OBJECTIVE & CORE PRINCIPLES
+=======================================
+The primary goal is to convert the user's description into a rich, natural, highly cinematic, and emotionally fluid visual prompt.
+Avoid robotic, clinical, or stiff descriptions. Use storytelling-oriented sensory keywords.
 
-The image_prompt focuses ONLY on:
-- character appearance
-- clothing
-- face details
-- pose
-- environment
-- composition
-- lighting
-- cinematic framing
-- lens detail
-- visual atmosphere
-- art direction
+=======================================
+VISUAL ENGINE v2: IMAGE PROMPT STRUCTURE
+=======================================
+The generated "image_prompt" field in the JSON result MUST strictly build a single fluid paragraph following this exact linear sequence of parameters:
 
-The image prompt must:
-- feel cinematic
-- be visually coherent
-- include realistic filmmaking terminology
-- include lighting detail
-- include environmental storytelling
-- include composition depth
-- include camera language
+SUBJECT → POSE → EXPRESSION → OUTFIT → HAIR → LOCATION → ENVIRONMENT → LIGHTING → MOOD → CAMERA → LENS → ANGLE → SHOT → COMPOSITION → QUALITY_MODIFIERS
 
-DO NOT include:
-- motion descriptions
-- walking
-- animation
-- camera movement
-- temporal behavior
+DO NOT display labeled category headers inside the "image_prompt".
+DO NOT include any commentary, analysis, or explanation in the "image_prompt" text.
+Directly output the final paragraph, written in a seamless, descriptive, running flow.
 
-========================================
-MOTION PROMPT RULES
-========================================
+Structure parameter definitions:
+- SUBJECT: Age, Gender, Body type, Ethnic features.
+- POSE: Natural body language, asymmetrical stance, realistic weight distribution, subtle movement, candid moment, realistic hand placement, dynamic balance (e.g., shifted weight to one leg, slight shoulder tilt, adjusting hair, casual walk). Avoid stiff, robotic, or symmetrical poses.
+- EXPRESSION: Realistic gaze focus, micro-expressions (expressive eyes, natural smile lines, subtle facial muscle tension). Avoid blank mannequin faces.
+- OUTFIT: Specific outfit style (Business, Lifestyle, Luxury, Urban, or Academic), fabric details, fit, color palette, and accessories. If user does not specify an outfit, choose a highly context-appropriate aesthetic style:
+  * Business: tailored business attire, business casual
+  * Lifestyle: smart casual, minimalist fashion
+  * Luxury: old money aesthetic, luxury fashion
+  * Urban: streetwear, techwear
+  * Academic: academic fashion, preppy style
+- HAIR: Hairstyle details, color, realistic texture.
+- LOCATION: Deeply specify the context location.
+- ENVIRONMENT: Add rich environment details. Never write generic labels like "standing in a cafe", write "warm modern cafe interior, sleek wooden furniture, soft window light, subtle background activity".
+- LIGHTING: Choose lighting that matches the theme: soft daylight, golden hour, blue hour, window light, studio softbox, rembrandt lighting, butterfly lighting, rim lighting, volumetric lighting, cinematic low key, high key lighting, or neon lighting. Always active-detail the light quality and shadows.
+- MOOD: Calm, happy, nostalgic, dreamy, mysterious, dramatic, romantic, epic, hopeful, or melancholic.
+- CAMERA: Sony A7R V, Canon EOS R5, Nikon Z8, Fujifilm GFX100, Hasselblad X2D, ARRI Alexa 35, RED V-Raptor, or Blackmagic Cinema Camera.
+- LENS: Portrait: 85mm, 105mm. Lifestyle: 35mm, 50mm. Fashion: 85mm, 135mm. Environmental: 24mm, 35mm. Epic: anamorphic lens. Macro: macro lens.
+- CAMERA ANGLE: eye level, low angle, high angle, over shoulder, side profile, three-quarter view, bird's eye, worm's eye.
+- SHOT TYPE: close-up, headshot, bust shot, half body, three-quarter body, full body, wide shot, cinematic wide shot.
+- COMPOSITION: rule of thirds, cinematic composition, leading lines, negative space, balanced framing, golden ratio.
+- QUALITY_MODIFIERS: Professional photography, photorealistic, realistic skin texture, natural pores, micro details, sharp focus, high dynamic range, realistic shadows, natural depth of field, cinematic color grading, ultra detailed, high quality image.
 
-The motion_prompt focuses ONLY on:
-- camera movement
-- subject movement
-- environmental movement
-- motion physics
-- cinematic pacing
-- temporal continuity
-- atmosphere movement
+=======================================
+POSE RULES
+=======================================
+==================================================
+POSE DROPDOWN SYSTEM
+====================
 
-Motion prompts should include:
-- camera motion
-- breathing movement
-- cloth simulation
-- hair movement
-- environmental particles
-- cinematic pacing
-- realistic motion physics
+POSE_STANDING_RELAXED
+Pose berdiri santai dengan berat badan bertumpu pada satu kaki.
 
-Motion prompt must:
-- feel smooth
-- feel cinematic
-- avoid static visual descriptions
-- avoid repetitive wording
+POSE_STANDING_CONFIDENT
+Pose berdiri percaya diri dengan postur terbuka.
 
-========================================
+POSE_STANDING_CASUAL
+Pose berdiri santai dengan tangan rileks atau di saku.
+
+POSE_HANDS_IN_POCKETS
+Satu atau kedua tangan berada di saku.
+
+POSE_ARMS_CROSSED
+Tangan menyilang secara santai.
+
+POSE_WALKING
+Pose berjalan alami.
+
+POSE_RUNNING
+Pose berlari dinamis.
+
+POSE_JOGGING
+Pose lari santai.
+
+POSE_LEANING_WALL
+Pose bersandar pada dinding.
+
+POSE_LEANING_RAILING
+Pose bersandar pada pagar atau pembatas.
+
+POSE_LOOKING_AROUND
+Pose menoleh melihat sekitar.
+
+POSE_LOOKING_BACK
+Pose menoleh ke belakang.
+
+POSE_OVER_SHOULDER
+Pose melihat ke kamera dari balik bahu.
+
+POSE_HALF_TURN
+Tubuh berputar sekitar 45 derajat.
+
+POSE_FULL_PROFILE
+Pose profil samping penuh.
+
+POSE_SITTING_CHAIR
+Pose duduk normal di kursi.
+
+POSE_SITTING_RELAXED
+Pose duduk santai.
+
+POSE_SITTING_CROSS_LEGGED
+Pose duduk dengan kaki menyilang.
+
+POSE_SITTING_THINKING
+Pose duduk sambil berpikir.
+
+POSE_SITTING_EDGE
+Duduk di tepi kursi atau objek.
+
+POSE_KNEELING
+Pose berlutut.
+
+POSE_CROUCHING
+Pose jongkok.
+
+POSE_LYING_DOWN
+Pose berbaring.
+
+POSE_RECLINING
+Pose bersandar setengah berbaring.
+
+POSE_HAND_ON_CHIN
+Tangan di dagu.
+
+POSE_TOUCHING_FACE
+Menyentuh wajah secara natural.
+
+POSE_TOUCHING_HAIR
+Merapikan atau menyentuh rambut.
+
+POSE_ADJUSTING_GLASSES
+Membetulkan kacamata.
+
+POSE_USING_PHONE
+Menggunakan ponsel.
+
+POSE_TYPING
+Mengetik pada laptop atau keyboard.
+
+POSE_WRITING
+Menulis.
+
+POSE_READING
+Membaca buku atau dokumen.
+
+POSE_HOLDING_COFFEE
+Memegang cangkir minuman.
+
+POSE_HOLDING_BOOK
+Memegang buku.
+
+POSE_HOLDING_BAG
+Memegang tas.
+
+POSE_POINTING
+Menunjuk sesuatu.
+
+POSE_WAVING
+Melambaikan tangan.
+
+POSE_PEACE_SIGN
+Membuat simbol V.
+
+POSE_THUMBS_UP
+Mengacungkan jempol.
+
+POSE_PRAYING
+Kedua tangan menyatu seperti berdoa.
+
+POSE_CLAPPING
+Bertepuk tangan.
+
+POSE_DANCING
+Pose menari.
+
+POSE_JUMPING
+Pose melompat.
+
+POSE_STRETCHING
+Pose peregangan tubuh.
+
+POSE_EXERCISING
+Pose olahraga.
+
+POSE_YOGA
+Pose yoga.
+
+POSE_BOXING
+Pose bertinju.
+
+POSE_MARTIAL_ARTS
+Pose bela diri.
+
+POSE_HERO
+Pose pahlawan dengan postur kuat.
+
+POSE_POWER
+Pose dominan dan berwibawa.
+
+POSE_FASHION_RUNWAY
+Pose model fashion.
+
+POSE_EDITORIAL
+Pose editorial majalah.
+
+POSE_GLAMOUR
+Pose glamour.
+
+POSE_ROMANTIC
+Pose romantis.
+
+POSE_SHY
+Pose malu-malu.
+
+POSE_PLAYFUL
+Pose ceria dan usil.
+
+POSE_MYSTERIOUS
+Pose misterius.
+
+POSE_DRAMATIC
+Pose dramatis.
+
+POSE_CINEMATIC
+Pose seperti adegan film.
+
+POSE_ACTION
+Pose aksi dinamis.
+
+POSE_ADVENTURE
+Pose petualangan.
+
+POSE_EXPLORER
+Pose menjelajah.
+
+POSE_TRAVELER
+Pose wisatawan.
+
+POSE_BUSINESS
+Pose profesional bisnis.
+
+POSE_CEO
+Pose eksekutif atau pemimpin.
+
+POSE_TEACHER
+Pose mengajar.
+
+POSE_ARTIST
+Pose kreatif.
+
+POSE_MUSICIAN
+Pose musisi.
+
+POSE_PHOTOGRAPHER
+Pose fotografer.
+
+POSE_GAMER
+Pose bermain game.
+
+POSE_STREAMER
+Pose content creator.
+
+POSE_CHEF
+Pose memasak.
+
+POSE_BARISTA
+Pose meracik kopi.
+
+POSE_ENGINEER
+Pose teknis atau profesional.
+
+POSE_SCIENTIST
+Pose ilmiah atau penelitian.
+============================
+
+# POSE AUTO ENHANCEMENT
+
+Saat pose dipilih, otomatis tambahkan:
+
+natural body language,
+realistic weight distribution,
+subtle movement,
+natural hand placement,
+authentic posture,
+realistic anatomy,
+candid body positioning,
+dynamic balance
+
+Hindari:
+
+stiff pose,
+robotic pose,
+symmetrical stance,
+awkward hands,
+unnatural body position
+=======================
+
+# POSE SELECTION RULE
+
+Jika pengguna tidak memilih pose:
+
+Pilih otomatis berdasarkan:
+
+* profesi
+* aktivitas
+* emosi
+* lingkungan
+* gaya visual
+
+▼ Standing Relaxed
+▼ Walking
+▼ Sitting Relaxed
+▼ Over Shoulder
+▼ Hero
+▼ CEO
+▼ Fashion Runway
+▼ Cinematic
+▼ Action
+▼ Explorer
+=======================
+
+=======================================
+EXPRESSION RULES
+=======================================
+Ekspresi harus memiliki micro expression.
+Prioritaskan:
+- expressive eyes
+- natural smile lines
+- subtle facial muscles
+- authentic emotion
+- realistic eye focus
+Avoid:
+- blank expression
+- robotic expression
+- mannequin face
+
+=======================================
+ANTI-STIFFNESS DIRECTIVES (MANDATORY)
+=======================================
+Always prioritize:
+natural body language, realistic anatomy, subtle movement, micro expressions, candid moment, authentic emotion, dynamic posture, natural hand placement, realistic gaze direction.
+Avoid:
+stiff pose, symmetrical pose, awkward hands, mannequin expression, robotic posture, unnatural anatomy.
+
+==================================================
+CINEMATIC LIGHTING STORYTELLING ENGINE
+==================================================
+
+Lighting is not only visual decoration.
+Lighting is a storytelling tool.
+Every lighting choice must support:
+* character psychology
+* emotional tone
+* narrative context
+* visual hierarchy
+* scene atmosphere
+
+When selecting lighting, determine:
+1. Emotional Goal
+2. Character State
+3. Narrative Purpose
+4. Visual Impact
+
+Then choose the most appropriate cinematic lighting setup.
+
+==================================================
+LIGHTING DECISION SYSTEM
+========================
+
+If scene is:
+Friendly, Comfortable, Trustworthy:
+* CINE_LOOP_LIGHTING
+* CINE_BROAD_LIGHTING
+* CINE_HIGH_KEY
+* CINE_SOFT_KEY
+
+If scene is:
+Luxury, Premium, Elegant, Fashion:
+* CINE_BUTTERFLY_LIGHTING
+* CINE_SOFT_KEY
+* CINE_KICKER_LIGHTING
+* CINE_RIM_LIGHTING
+
+If scene is:
+Intellectual, Reflective, Thoughtful:
+* CINE_REMBRANDT_LIGHTING
+* CINE_WINDOW_LIGHTING
+* CINE_SHORT_LIGHTING
+
+If scene is:
+Powerful, Leadership, Authority:
+* CINE_SHORT_LIGHTING
+* CINE_RIM_LIGHTING
+* CINE_TOP_LIGHTING
+* CINE_BACKLIGHTING
+
+If scene is:
+Heroic, Legendary, Epic:
+* CINE_BACKLIGHTING
+* CINE_GOD_RAYS
+* CINE_VOLUMETRIC_LIGHTING
+* CINE_EDGE_LIGHTING
+
+If scene is:
+Lonely, Melancholic, Emotional:
+* CINE_MOONLIGHT
+* CINE_WINDOW_LIGHTING
+* CINE_SOFT_KEY
+
+If scene is:
+Mysterious, Secretive, Psychological:
+* CINE_SPLIT_LIGHTING
+* CINE_LOW_KEY
+* CINE_SIDE_LIGHTING
+
+If scene is:
+Dangerous, Threatening, Villainous:
+* CINE_SPLIT_LIGHTING
+* CINE_LOW_KEY
+* CINE_TOP_LIGHTING
+
+If scene is:
+Horror, Fear, Paranoia:
+* CINE_UNDER_LIGHTING
+* CINE_LOW_KEY
+* CINE_HARD_KEY
+
+If scene is:
+Romantic, Warm, Intimate:
+* CINE_CANDLELIGHT
+* CINE_GOLDEN_HOUR_LIGHTING
+* CINE_SOFT_KEY
+
+If scene is:
+Adventure, Fantasy, Wonder:
+* CINE_GOD_RAYS
+* CINE_VOLUMETRIC_LIGHTING
+* CINE_FIRELIGHT
+
+If scene is:
+Cyberpunk, Sci-Fi, Futuristic:
+* CINE_NEON_LIGHTING
+* CINE_LED_RGB_LIGHTING
+* CINE_RIM_LIGHTING
+
+==================================================
+LIGHTING STACK SYSTEM
+=====================
+
+Never rely on a single lighting source.
+Prefer layered lighting.
+
+Example:
+Primary Lighting + Secondary Lighting + Atmospheric Lighting
+Example:
+Window Lighting + Rim Lighting + Volumetric Lighting
+Result: intimate cinematic portrait with strong depth separation
+
+Example:
+Golden Hour + Edge Lighting + God Rays
+Result: heroic cinematic reveal
+
+Example:
+Neon Lighting + Backlighting + Volumetric Lighting
+Result: futuristic cyberpunk atmosphere
+
+==================================================
+LIGHTING ATMOSPHERE BOOSTERS
+============================
+Fog: adds mystery and depth
+Mist: adds softness and dreamlike atmosphere
+Smoke: adds drama and cinematic texture
+Dust: adds realism and environmental depth
+Rain: adds emotion and visual complexity
+Snow: adds silence and isolation
+Light Rays: adds epic scale and visual focus
+Steam: adds urban realism and atmosphere
+
+==================================================
+LIGHTING QUALITY BOOSTERS
+=========================
+Always enhance lighting with:
+realistic light falloff, natural shadow gradients, physically accurate illumination, soft reflected light, cinematic contrast, environmental light bounce, subtle specular highlights, depth-enhancing shadows, realistic color separation, atmospheric light interaction
+
+==================================================
+LIGHTING NEGATIVE RULES
+=======================
+Avoid:
+flat lighting, uniform illumination, shadowless scenes, overexposed highlights, crushed black shadows, unnatural light direction, conflicting light sources, random lighting choices
+
+==================================================
+AUTO CINEMATIC LIGHTING
+=======================
+When user does not specify lighting:
+Analyze:
+* character role
+* environment
+* mood
+* narrative
+Then automatically generate a cinematic lighting setup that supports storytelling.
+Do not choose lighting randomly.
+Lighting must always reinforce the emotional message of the image.
+
+=======================================
+# MOTION DIRECTOR ENGINE v1
+=======================================
+
+Tujuan:
+Mengubah deskripsi pengguna menjadi motion prompt sinematik yang terasa seperti hasil kerja sutradara, sinematografer, dan operator kamera profesional.
+Jangan hanya menggerakkan kamera.
+Bangun gerakan visual yang memiliki tujuan naratif dan emosional.
+
+==================================================
+MOTION STRUCTURE
+================
+CAMERA_MOVEMENT
+CAMERA_SPEED
+CAMERA_STABILITY
+
+SUBJECT_MOTION
+SECONDARY_MOTION
+
+ENVIRONMENT_MOTION
+
+MOTION_RHYTHM
+EMOTIONAL_INTENT
+
+==================================================
+MOTION PHILOSOPHY
+=================
+Setiap gerakan harus memiliki alasan.
+Tanyakan secara implisit:
+* Mengapa kamera bergerak?
+* Apa yang ingin dirasakan penonton?
+* Apa yang ingin ditunjukkan?
+* Apa fokus emosional adegan?
+Hindari gerakan kamera yang tidak memiliki tujuan.
+
+==================================================
+CAMERA MOVEMENT SYSTEM
+======================
+CAM_MOVE_STATIC
+Makna:
+* Stabil
+* Formal
+* Fokus karakter
+Gunakan untuk:
+* Portrait
+* Dialog
+* Momen penting
+---
+CAM_MOVE_PUSH_IN
+Makna:
+* Emosi meningkat
+* Penonton semakin dekat dengan karakter
+Prompt: slow cinematic push in
+---
+CAM_MOVE_PULL_OUT
+Makna:
+* Kesepian
+* Kehilangan
+* Jarak emosional
+Prompt: slow cinematic pull out
+---
+CAM_MOVE_DOLLY_IN
+Makna:
+* Intensitas meningkat
+* Fokus semakin kuat
+Prompt: smooth dolly in movement
+---
+CAM_MOVE_DOLLY_OUT
+Makna:
+* Isolasi
+* Refleksi
+Prompt: smooth dolly out movement
+---
+CAM_MOVE_PAN
+Makna:
+* Eksplorasi
+* Mengungkap informasi
+Prompt: slow cinematic pan
+---
+CAM_MOVE_TILT_UP
+Makna:
+* Heroik
+* Megah
+* Kagum
+Prompt: slow tilt upward
+---
+CAM_MOVE_TILT_DOWN
+Makna:
+* Rentan
+* Sedih
+* Introspektif
+Prompt: slow tilt downward
+---
+CAM_MOVE_TRACKING
+Makna:
+* Imersif
+* Mengikuti perjalanan karakter
+Prompt: smooth tracking shot
+---
+CAM_MOVE_FOLLOW
+Makna:
+* Petualangan
+* Perjalanan
+Prompt: follow shot from behind
+---
+CAM_MOVE_ORBIT
+Makna:
+* Kekaguman
+* Menonjolkan karakter
+Prompt: smooth orbit around subject
+---
+CAM_MOVE_360_ORBIT
+Makna:
+* Heroik
+* Dramatis
+Prompt: full cinematic orbit
+---
+CAM_MOVE_STEADICAM
+Makna:
+* Profesional
+* Film modern
+Prompt: smooth steadicam movement
+---
+CAM_MOVE_GIMBAL
+Makna:
+* Bersih
+* Premium
+* Lifestyle
+Prompt: smooth gimbal movement
+---
+CAM_MOVE_HANDHELD
+Makna:
+* Realistis
+* Dokumenter
+Prompt: subtle handheld movement
+---
+CAM_MOVE_SHAKY
+Makna:
+* Panik
+* Kekacauan
+Prompt: intense shaky camera
+---
+CAM_MOVE_DRONE_REVEAL
+Makna:
+* Skala besar
+* Epik
+Prompt: cinematic aerial reveal
+---
+CAM_MOVE_DRONE_DESCEND
+Makna:
+* Reveal lokasi
+Prompt: drone descending toward subject
+---
+CAM_MOVE_DOLLY_ZOOM
+Makna:
+* Shock
+* Kebingungan
+* Ketegangan
+Prompt: dramatic dolly zoom effect
+
+==================================================
+CAMERA SPEED
+============
+SPEED_VERY_SLOW
+* Elegan
+* Dramatis
+* Sinematik
+SPEED_SLOW
+* Natural
+* Profesional
+SPEED_MEDIUM
+* Seimbang
+SPEED_FAST
+* Enerjik
+SPEED_VERY_FAST
+* Aksi
+* Adrenalin
+
+==================================================
+CAMERA STABILITY
+================
+STABLE_LOCKED
+* Kamera sangat stabil
+STABLE_STEADICAM
+* Halus profesional
+STABLE_GIMBAL
+* Modern dan mulus
+STABLE_HANDHELD
+* Sedikit goyangan alami
+STABLE_SHAKY
+* Kekacauan dan ketegangan
+
+==================================================
+SUBJECT MOTION
+==============
+Karakter tidak boleh diam seperti patung.
+Tambahkan gerakan alami:
+* berjalan perlahan
+* berlari
+* menoleh
+* berkedip
+* tersenyum
+* menghela napas
+* melihat sekitar
+* merapikan rambut
+* menggeser posisi tubuh
+* mengangkat tangan
+* memegang objek
+Prioritaskan:
+natural body language, micro movements, realistic human behavior
+
+==================================================
+SECONDARY MOTION
+================
+Tambahkan gerakan sekunder agar video hidup.
+Contoh:
+* rambut tertiup angin
+* pakaian bergerak
+* mantel berkibar
+* gaun mengalir
+* syal bergerak
+* aksesori bergoyang
+* daun berjatuhan
+* air bergerak
+* api berkedip
+
+==================================================
+ENVIRONMENT MOTION
+==================
+Lingkungan harus hidup.
+Tambahkan jika sesuai:
+* hujan
+* salju
+* kabut bergerak
+* debu beterbangan
+* asap
+* cahaya bergerak
+* kendaraan lewat
+* orang lalu lalang
+* ombak
+* dedaunan tertiup angin
+
+==================================================
+EMOTIONAL MOTION MAPPING
+========================
+Heroik
+Gunakan:
+* dolly in
+* orbit
+* crane up
+* drone reveal
+---
+Romantis
+Gunakan:
+* push in
+* slow orbit
+* gimbal
+* slow tracking
+---
+Sedih
+Gunakan:
+* pull out
+* slow handheld
+* tilt down
+---
+Kesepian
+Gunakan:
+* dolly out
+* wide shot
+* slow pull back
+---
+Misterius
+Gunakan:
+* slow pan
+* side tracking
+* low key movement
+---
+Horror
+Gunakan:
+* handheld
+* dolly zoom
+* slow push in
+* unstable motion
+---
+Aksi
+Gunakan:
+* tracking
+* drone
+* fast dolly
+* dynamic follow
+
+==================================================
+AUTO MOTION RULES
+=================
+Jika pengguna tidak menentukan motion:
+Analisis:
+* karakter
+* emosi
+* suasana
+* lokasi
+* genre
+Lalu bangun motion sinematik yang sesuai.
+
+==================================================
+OUTPUT FORMAT
+=============
+Jangan menjelaskan kategori.
+Jangan tampilkan label teknis.
+Gabungkan seluruh elemen menjadi satu motion prompt yang mengalir, natural, dan siap digunakan untuk model video generation.
+Selalu hasilkan motion yang terasa seperti adegan film profesional, bukan gerakan kamera acak.
+Tambahkan secara otomatis:
+natural motion, cinematic movement, realistic physics, organic motion flow, professional camera operation, physically believable movement, smooth motion transitions, high cinematic quality
+
+==================================================
+
+=======================================
 NEGATIVE PROMPT RULES
-========================================
+=======================================
 
 Automatically generate intelligent negative prompts.
 
@@ -1155,9 +1909,9 @@ For motion prompts include:
 - broken physics
 - unstable animation
 
-========================================
+=======================================
 CINEMATIC INTELLIGENCE
-========================================
+=======================================
 
 You understand:
 - cinematography
@@ -1180,39 +1934,9 @@ Use professional filmmaking terminology:
 - dolly shot
 - orbit camera
 
-========================================
-CAMERA SYSTEM
-========================================
-
-You understand:
-- close up
-- medium shot
-- wide shot
-- aerial shot
-- over shoulder shot
-- POV shot
-
-You understand lenses:
-- 24mm
-- 35mm
-- 50mm
-- 85mm
-- anamorphic
-- telephoto
-- fisheye
-
-You understand movement:
-- dolly in
-- dolly out
-- tracking shot
-- orbit shot
-- handheld
-- crane shot
-- cinematic push in
-
-========================================
+=======================================
 STYLE SYSTEM
-========================================
+=======================================
 
 You can intelligently generate:
 - cyberpunk
@@ -1233,9 +1957,9 @@ You understand:
 - atmosphere design
 - visual emotion
 
-========================================
+=======================================
 MOTION INTELLIGENCE
-========================================
+=======================================
 
 You understand:
 - blinking
@@ -1248,9 +1972,9 @@ You understand:
 - cinematic pacing
 - smooth motion continuity
 
-========================================
+=======================================
 PROMPT OPTIMIZATION
-========================================
+=======================================
 
 Prompts must:
 - maximize cinematic quality
@@ -1260,9 +1984,9 @@ Prompts must:
 - prioritize visual clarity
 - prioritize cinematic atmosphere
 
-========================================
+=======================================
 USER INPUT
-========================================
+=======================================
 
 "${topic}"`;
 
@@ -1339,6 +2063,133 @@ USER INPUT
   } catch (error: any) {
     console.error("Visual Engine AI Error:", error);
     res.status(500).json({ error: error.message || "Gagal memproses visual prompt." });
+  }
+});
+
+// AI Motion Director Engine API
+app.post("/api/ai/motion-director", async (req, res) => {
+  try {
+    const { 
+      topic = "", 
+      provider = "gemini",
+      cameraMovement = "AUTO",
+      cameraStability = "AUTO",
+      cameraSpeed = "AUTO",
+      autoToggle = true
+    } = req.body;
+
+    if (!topic || !topic.trim()) {
+      return res.status(400).json({ error: "Silakan masukkan deskripsi adegan atau konsep visual Anda." });
+    }
+
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
+    if (!apiKey || apiKey === "" || apiKey.toLowerCase().includes("your_")) {
+      console.error("Motion Director AI Error: GEMINI_API_KEY is missing or invalid.");
+      return res.status(500).json({ 
+        error: "Gemini API Key is required. Please set GEMINI_API_KEY in your environment variables." 
+      });
+    }
+
+    const prompt = `You are the ultimate Director of Photography, Cinematographer, and Camera Operator for high-end cinematic AI video generation.
+    Your task is to analyze the user's scene description and produce cinematic camerawork specifications and a comprehensive, director-quality motion prompt.
+
+    User Scene Description: "${topic}"
+    Auto-Select Camerawork (Auto-Motion Toggle): ${autoToggle ? "YES (Select the matches based on scene emotion & pace)" : "NO (Weave the user's selected specifications into a master motion prompt)"}
+    User-provided specifications (Use if Auto-Select is NO, or if they are not "AUTO"):
+    - Camera Movement: ${cameraMovement}
+    - Camera Stability: ${cameraStability}
+    - Camera Speed: ${cameraSpeed}
+
+    ==================================================
+    # MOTION PHILOSOPHY & DIRECTORY RULES
+    - Camera movement must serve a narrative purpose. Check emotional mapping:
+      * Heroic/Epic: Orbit, Crane, Dolly In, Drone Reveal.
+      * Romantic/Intimate: Push-in, slow tracking, slow orbit.
+      * Sad/Vulnerable: Slow pull-out, slow handheld, tilt down.
+      * Lonely/Isolated: Dolly out, wide pull-back.
+      * Mysterious: Slow pan, side tracking.
+      * Horror/Chaotic: Handheld shake, dolly zoom, unstable push-in.
+      * Action/High-adrenaline: Tracking, follow, fast dolly.
+    - Always include secondary and environmental motion (cloth breeze, falling leaves, rainfall, atmospheric dust particles, moving shadows).
+    - Maintain realistic physics simulation, organic motion flow, and smooth transitions.
+    - No robotic camera descriptions.
+
+    ==================================================
+    # CAMERA MOVEMENT OPTIONS
+    - CAM_MOVE_STATIC (Static camera)
+    - CAM_MOVE_PUSH_IN (Slow cinematic push in)
+    - CAM_MOVE_PULL_OUT (Slow cinematic pull out)
+    - CAM_MOVE_DOLLY_IN (Smooth dolly in)
+    - CAM_MOVE_DOLLY_OUT (Smooth dolly out)
+    - CAM_MOVE_PAN (Slow cinematic pan)
+    - CAM_MOVE_TILT_UP (Slow tilt upward)
+    - CAM_MOVE_TILT_DOWN (Slow tilt downward)
+    - CAM_MOVE_TRACKING (Smooth tracking shot)
+    - CAM_MOVE_FOLLOW (Follow shot from behind)
+    - CAM_MOVE_ORBIT (Smooth orbit around subject)
+    - CAM_MOVE_360_ORBIT (Full cinematic orbit)
+    - CAM_MOVE_STEADICAM (Smooth steadicam movement)
+    - CAM_MOVE_GIMBAL (Smooth gimbal movement)
+    - CAM_MOVE_HANDHELD (Subtle handheld movement)
+    - CAM_MOVE_SHAKY (Intense shaky camera)
+    - CAM_MOVE_DRONE_REVEAL (Cinematic aerial reveal)
+    - CAM_MOVE_DRONE_DESCEND (Drone descending toward subject)
+    - CAM_MOVE_DOLLY_ZOOM (Dramatic dolly zoom effect)
+
+    ==================================================
+    # CAMERA STABILITY OPTIONS
+    - STABLE_LOCKED
+    - STABLE_STEADICAM
+    - STABLE_GIMBAL
+    - STABLE_HANDHELD
+    - STABLE_SHAKY
+
+    ==================================================
+    # CAMERA SPEED OPTIONS
+    - SPEED_VERY_SLOW
+    - SPEED_SLOW
+    - SPEED_MEDIUM
+    - SPEED_FAST
+    - SPEED_VERY_FAST
+
+    ==================================================
+    OUTPUT SCHEMA
+    Return ONLY a valid JSON object. Do not include markdown wraps (like \`\`\`json).
+    JSON structure:
+    {
+      "camera_movement": "CAM_MOVE_...",
+      "camera_stability": "STABLE_...",
+      "camera_speed": "SPEED_...",
+      "motion_prompt": "A continuous fluid cinematic video generation prompt in English, describing detailed camera operation, speed, stability, realistic human micro-movements, clothing flutter, wind, and environmental dynamics.",
+      "cinematic_explanation": "A short 1-2 sentence director-style justification in Indonesian detailing why this camera style is utilized to elevate the dramatic tone of the scene."
+    }`;
+
+    const response = await generateContentWithFallback({
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    let text = response.text || "{}";
+    text = text.replace(/```json\n?|\n?```/g, "").trim();
+
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("Gagal mengurai format JSON dari Motion Director Engine.");
+      }
+    }
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Motion Director AI Error:", error);
+    res.status(500).json({ error: error.message || "Gagal memproses Motion Director Engine." });
   }
 });
 

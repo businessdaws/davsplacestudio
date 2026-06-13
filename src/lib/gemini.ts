@@ -138,3 +138,52 @@ export async function generateArticleContent(topic: string, style: string, provi
     throw error;
   }
 }
+
+export async function generateMotionDirectorContent(
+  topic: string,
+  cameraMovement: string,
+  cameraStability: string,
+  cameraSpeed: string,
+  autoToggle: boolean,
+  provider: "gemini" | "nvidia-nemotron" = "gemini"
+) {
+  try {
+    const response = await fetch("/api/ai/motion-director", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        topic, 
+        cameraMovement, 
+        cameraStability, 
+        cameraSpeed, 
+        autoToggle, 
+        provider 
+      }),
+    });
+
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+
+    if (!response.ok) {
+      let errorMessage = "Gagal memproses AI.";
+      if (isJson) {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } else {
+        errorMessage = `Server Error (${response.status}): Silakan coba beberapa saat lagi.`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (!isJson) {
+      throw new Error("Format respon server tidak valid (Bukan JSON).");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("AI motion director error:", error);
+    throw error;
+  }
+}

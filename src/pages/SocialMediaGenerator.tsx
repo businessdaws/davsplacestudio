@@ -23,7 +23,7 @@ import {
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
-import { generateSocialMediaContent, generateArticleContent } from '../lib/gemini';
+import { generateSocialMediaContent, generateArticleContent, generateMotionDirectorContent } from '../lib/gemini';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { MobileTopbar, MobileBottomNavbar } from '../components/MobileNavigation';
@@ -38,8 +38,12 @@ export default function SocialMediaGenerator() {
   const [saving, setSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [topic, setTopic] = useState('');
-  const [generatorType, setGeneratorType] = useState<'social-media' | 'article'>('social-media');
+  const [generatorType, setGeneratorType] = useState<'social-media' | 'article' | 'motion-director'>('social-media');
   const [writingStyle, setWritingStyle] = useState('professional');
+  const [cameraMovement, setCameraMovement] = useState('AUTO');
+  const [cameraStability, setCameraStability] = useState('AUTO');
+  const [cameraSpeed, setCameraSpeed] = useState('AUTO');
+  const [autoMotionToggle, setAutoMotionToggle] = useState(true);
   const [result, setResult] = useState<any>(null);
   const [selectedProvider, setSelectedProvider] = useState<'gemini' | 'nvidia-nemotron'>('gemini');
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +100,8 @@ export default function SocialMediaGenerator() {
       let data;
       if (generatorType === 'article') {
         data = await generateArticleContent(topic, writingStyle, selectedProvider);
+      } else if (generatorType === 'motion-director') {
+        data = await generateMotionDirectorContent(topic, cameraMovement, cameraStability, cameraSpeed, autoMotionToggle, selectedProvider);
       } else {
         data = await generateSocialMediaContent(topic, selectedProvider);
       }
@@ -117,14 +123,21 @@ export default function SocialMediaGenerator() {
         user_id: user.uid,
         topic: topic,
         type: generatorType,
-        headline: result.headline || result.title_options?.[0],
-        caption: result.caption || result.content,
+        headline: generatorType === 'motion-director' 
+          ? `Cinematic Motion Plan: ${result.camera_movement || 'Auto'}` 
+          : (result.headline || result.title_options?.[0] || 'Untitled'),
+        caption: generatorType === 'motion-director' 
+          ? `${result.motion_prompt || ''}\n\nDirector's Cut Notes:\n${result.cinematic_explanation || ''}` 
+          : (result.caption || result.content || ''),
         hashtags: result.hashtags || [],
         sources: result.sources || [],
         image_prompt: result.image_prompt || '',
         provider: selectedProvider,
         writing_style: writingStyle,
-        created_at: serverTimestamp()
+        created_at: serverTimestamp(),
+        camera_movement: result.camera_movement || '',
+        camera_stability: result.camera_stability || '',
+        camera_speed: result.camera_speed || ''
       });
       setIsSaved(true);
     } catch (err: any) {
@@ -233,6 +246,21 @@ export default function SocialMediaGenerator() {
                     Artikel Generator
                     <span className="px-1.5 py-0.5 bg-bg-primary text-accent-yellow text-[8px] rounded uppercase">Beta</span>
                   </button>
+                  <button
+                    onClick={() => {
+                      setGeneratorType('motion-director');
+                      setResult(null);
+                    }}
+                    className={cn(
+                      "flex-1 py-3 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative flex items-center justify-center gap-2",
+                      generatorType === 'motion-director' 
+                        ? "bg-accent-yellow text-bg-primary shadow-lg shadow-accent-yellow/20" 
+                        : "text-text-secondary hover:text-white"
+                    )}
+                  >
+                    Motion Director
+                    <span className="px-1.5 py-0.5 bg-bg-primary text-accent-yellow text-[8px] rounded uppercase font-bold animate-pulse">v1</span>
+                  </button>
                 </div>
 
                 {/* Trial Notice */}
@@ -257,16 +285,136 @@ export default function SocialMediaGenerator() {
                   <form onSubmit={handleGenerate} className="space-y-6">
                     <div className="space-y-3">
                       <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
-                        Apa topik yang ingin kamu jadikan konten?
+                        {generatorType === 'motion-director' ? "Deskripsikan Adegan atau Visual Intent Anda" : "Apa topik yang ingin kamu jadikan konten?"}
                       </label>
                       <textarea 
                         rows={3}
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
-                        placeholder={generatorType === 'article' ? "Contoh: Panduan lengkap memulai investasi kripto untuk pemula..." : "Contoh: Manfaat desain minimalis untuk branding startup..."}
+                        placeholder={
+                          generatorType === 'motion-director'
+                            ? "Contoh: Pria berjas noir berjalan santai di gang sempit Tokyo dengan lampu neon merah muda dan papan iklan yang memantul di aspal basah rintik hujan..."
+                            : (generatorType === 'article' 
+                                ? "Contoh: Panduan lengkap memulai investasi kripto untuk pemula..." 
+                                : "Contoh: Manfaat desain minimalis untuk branding startup...")
+                        }
                         className="w-full bg-bg-tertiary border border-border-subtle rounded-2xl p-6 outline-none focus:border-accent-yellow transition-all text-lg font-sans resize-none"
                       />
                     </div>
+
+                    {/* Motion Director Options */}
+                    {generatorType === 'motion-director' && (
+                      <div className="p-6 bg-bg-tertiary border border-border-subtle rounded-3xl space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-display font-black uppercase tracking-wide text-white">Generate Auto-Motion</h4>
+                            <p className="text-[10px] text-text-secondary leading-normal">
+                              Analisis deskripsi adegan secara real-time untuk menentukan pergerakan kamera terbaik secara otomatis.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAutoMotionToggle(!autoMotionToggle)}
+                            className={cn(
+                              "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                              autoMotionToggle ? "bg-accent-yellow" : "bg-bg-primary border-border-subtle"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                autoMotionToggle ? "translate-x-5 bg-bg-primary" : "translate-x-0"
+                              )}
+                            />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                          {/* Camera Movement */}
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                              Camera Movement
+                            </label>
+                            <select
+                              disabled={autoMotionToggle}
+                              value={cameraMovement}
+                              onChange={(e) => setCameraMovement(e.target.value)}
+                              className={cn(
+                                "w-full bg-bg-primary border border-border-subtle rounded-xl p-3.5 outline-none text-xs font-bold transition-all appearance-none cursor-pointer text-white",
+                                autoMotionToggle ? "opacity-30 cursor-not-allowed" : "focus:border-accent-yellow"
+                              )}
+                            >
+                              <option value="AUTO">✨ Auto-Detect (Otomatis)</option>
+                              <option value="CAM_MOVE_STATIC">Static / Locked</option>
+                              <option value="CAM_MOVE_PUSH_IN">Slow Push-In</option>
+                              <option value="CAM_MOVE_PULL_OUT">Slow Pull-Out</option>
+                              <option value="CAM_MOVE_DOLLY_IN">Smooth Dolly-In</option>
+                              <option value="CAM_MOVE_DOLLY_OUT">Smooth Dolly-Out</option>
+                              <option value="CAM_MOVE_PAN">Slow Pan</option>
+                              <option value="CAM_MOVE_TILT_UP">Tilt Upward</option>
+                              <option value="CAM_MOVE_TILT_DOWN">Tilt Downward</option>
+                              <option value="CAM_MOVE_TRACKING">Tracking Shot</option>
+                              <option value="CAM_MOVE_FOLLOW">Follow from Behind</option>
+                              <option value="CAM_MOVE_ORBIT">Orbit Subject</option>
+                              <option value="CAM_MOVE_360_ORBIT">360 Orbit</option>
+                              <option value="CAM_MOVE_STEADICAM">Steadicam</option>
+                              <option value="CAM_MOVE_GIMBAL">Gimbal</option>
+                              <option value="CAM_MOVE_HANDHELD">Natural Handheld</option>
+                              <option value="CAM_MOVE_SHAKY">Intense Shake</option>
+                              <option value="CAM_MOVE_DRONE_REVEAL">Aerial Reveal</option>
+                              <option value="CAM_MOVE_DRONE_DESCEND">Drone Descending</option>
+                              <option value="CAM_MOVE_DOLLY_ZOOM">Dramatic Dolly Zoom</option>
+                            </select>
+                          </div>
+
+                          {/* Stability */}
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                              Stability
+                            </label>
+                            <select
+                              disabled={autoMotionToggle}
+                              value={cameraStability}
+                              onChange={(e) => setCameraStability(e.target.value)}
+                              className={cn(
+                                "w-full bg-bg-primary border border-border-subtle rounded-xl p-3.5 outline-none text-xs font-bold transition-all appearance-none cursor-pointer text-white",
+                                autoMotionToggle ? "opacity-30 cursor-not-allowed" : "focus:border-accent-yellow"
+                              )}
+                            >
+                              <option value="AUTO">✨ Auto-Detect (Otomatis)</option>
+                              <option value="STABLE_LOCKED">Locked / Very Stable</option>
+                              <option value="STABLE_STEADICAM">Steadicam - Professional</option>
+                              <option value="STABLE_GIMBAL">Gimbal - Smooth Modern</option>
+                              <option value="STABLE_HANDHELD">Handheld - Slight Shake</option>
+                              <option value="STABLE_SHAKY">Shaky - Chaos/Tension</option>
+                            </select>
+                          </div>
+
+                          {/* Speed */}
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">
+                              Speed
+                            </label>
+                            <select
+                              disabled={autoMotionToggle}
+                              value={cameraSpeed}
+                              onChange={(e) => setCameraSpeed(e.target.value)}
+                              className={cn(
+                                "w-full bg-bg-primary border border-border-subtle rounded-xl p-3.5 outline-none text-xs font-bold transition-all appearance-none cursor-pointer text-white",
+                                autoMotionToggle ? "opacity-30 cursor-not-allowed" : "focus:border-accent-yellow"
+                              )}
+                            >
+                              <option value="AUTO">✨ Auto-Detect (Otomatis)</option>
+                              <option value="SPEED_VERY_SLOW">Very Slow - Dramatic</option>
+                              <option value="SPEED_SLOW">Slow - Natural</option>
+                              <option value="SPEED_MEDIUM">Medium - Balanced</option>
+                              <option value="SPEED_FAST">Fast - Energetic</option>
+                              <option value="SPEED_VERY_FAST">Very Fast - Action</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {generatorType === 'article' && (
                       <div className="space-y-3">
@@ -387,38 +535,74 @@ export default function SocialMediaGenerator() {
                         </button>
                       </div>
 
-                       {/* Headline/Title Card */}
-                      <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem] group">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
+                       {/* Camerawork Specs Card */}
+                      {generatorType === 'motion-director' && (
+                        <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                          <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
                               <Zap className="w-5 h-5" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
-                              {generatorType === 'social-media' ? 'Headline' : 'Rekomendasi Judul'}
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary animate-pulse text-white">
+                              ✨ Cinema Camerawork Specs
                             </span>
                           </div>
-                          <button 
-                            onClick={() => copyToClipboard(generatorType === 'social-media' ? result.headline : result.title_options?.join('\n'), 'headline')}
-                            className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
-                          >
-                            {copied === 'headline' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
-                          </button>
-                        </div>
-                        {generatorType === 'social-media' ? (
-                          <h3 className="text-2xl md:text-3xl font-display font-bold leading-tight uppercase">
-                            {result.headline}
-                          </h3>
-                        ) : (
-                          <div className="space-y-4">
-                            {result.title_options?.map((title: string, i: number) => (
-                              <div key={i} className="p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
-                                <p className="font-display font-bold text-lg uppercase leading-tight">{title}</p>
-                              </div>
-                            ))}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="p-5 bg-bg-tertiary border border-border-subtle rounded-2xl flex flex-col gap-1 hover:border-accent-yellow/30 transition-all">
+                              <span className="text-[9px] uppercase font-black text-text-secondary tracking-widest">Movement</span>
+                              <span className="text-xs font-display font-black text-white uppercase mt-1">
+                                {(result.camera_movement || 'AUTO').replace('CAM_MOVE_', '').replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <div className="p-5 bg-bg-tertiary border border-border-subtle rounded-2xl flex flex-col gap-1 hover:border-accent-yellow/30 transition-all">
+                              <span className="text-[9px] uppercase font-black text-text-secondary tracking-widest">Stability</span>
+                              <span className="text-xs font-display font-black text-white uppercase mt-1">
+                                {(result.camera_stability || 'AUTO').replace('STABLE_', '').replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <div className="p-5 bg-bg-tertiary border border-border-subtle rounded-2xl flex flex-col gap-1 hover:border-accent-yellow/30 transition-all">
+                              <span className="text-[9px] uppercase font-black text-text-secondary tracking-widest">Speed</span>
+                              <span className="text-xs font-display font-black text-white uppercase mt-1">
+                                {(result.camera_speed || 'AUTO').replace('SPEED_', '').replace(/_/g, ' ')}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+
+                       {/* Headline/Title Card */}
+                      {generatorType !== 'motion-director' && (
+                        <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem] group">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                                <Zap className="w-5 h-5" />
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                                {generatorType === 'social-media' ? 'Headline' : 'Rekomendasi Judul'}
+                              </span>
+                            </div>
+                            <button 
+                              onClick={() => copyToClipboard(generatorType === 'social-media' ? result.headline : result.title_options?.join('\n'), 'headline')}
+                              className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
+                            >
+                              {copied === 'headline' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                            </button>
+                          </div>
+                          {generatorType === 'social-media' ? (
+                            <h3 className="text-2xl md:text-3xl font-display font-bold leading-tight uppercase text-white">
+                              {result.headline}
+                            </h3>
+                          ) : (
+                            <div className="space-y-4">
+                              {result.title_options?.map((title: string, i: number) => (
+                                <div key={i} className="p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                                  <p className="font-display font-bold text-lg uppercase leading-tight text-white">{title}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Caption/Content Card */}
                       <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
@@ -427,52 +611,80 @@ export default function SocialMediaGenerator() {
                             <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
                               <FileText className="w-5 h-5" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
-                              {generatorType === 'social-media' ? 'Caption' : 'Konten Artikel'}
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary text-white">
+                              {generatorType === 'motion-director' ? "Director's Motion Prompt" : (generatorType === 'social-media' ? 'Caption' : 'Konten Artikel')}
                             </span>
                           </div>
                           <button 
-                            onClick={() => copyToClipboard(generatorType === 'social-media' ? result.caption : result.content, 'caption')}
+                            onClick={() => copyToClipboard(generatorType === 'motion-director' ? result.motion_prompt : (generatorType === 'social-media' ? result.caption : result.content), 'caption')}
                             className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
                           >
                             {copied === 'caption' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
                           </button>
                         </div>
                         <div className={cn(
-                          "text-text-secondary font-sans leading-relaxed whitespace-pre-wrap",
-                          generatorType === 'article' && "prose prose-invert max-w-none text-lg"
+                          "leading-relaxed whitespace-pre-wrap",
+                          generatorType === 'article' && "prose prose-invert max-w-none text-lg text-text-secondary"
                         )}>
-                          {generatorType === 'social-media' ? result.caption : result.content}
+                          {generatorType === 'motion-director' ? (
+                            <div className="p-6 bg-bg-tertiary border border-border-subtle rounded-2xl font-mono text-sm leading-relaxed italic text-accent-yellow relative group">
+                              <span className="absolute top-2 right-3 text-[8px] font-black tracking-widest text-[#555] group-hover:text-accent-yellow/50 transition-colors uppercase">EN PROMPT</span>
+                              "{result.motion_prompt}"
+                            </div>
+                          ) : (
+                            <span className="text-text-secondary">
+                              {generatorType === 'social-media' ? result.caption : result.content}
+                            </span>
+                          )}
                         </div>
                       </div>
+
+                      {/* Director's Notes / Dramatic Cut Notes Card */}
+                      {generatorType === 'motion-director' && result.cinematic_explanation && (
+                        <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow animate-pulse">
+                              <Sparkles className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary text-white">
+                              🎬 Director's Cut Notes
+                            </span>
+                          </div>
+                          <p className="text-sm font-sans text-text-secondary leading-relaxed font-semibold">
+                            {result.cinematic_explanation}
+                          </p>
+                        </div>
+                      )}
 
                       {/* Hashtags Card */}
-                      <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
-                              <Hash className="w-5 h-5" />
+                      {generatorType !== 'motion-director' && result.hashtags && result.hashtags.length > 0 && (
+                        <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-accent-yellow/10 rounded-xl flex items-center justify-center text-accent-yellow">
+                                <Hash className="w-5 h-5" />
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Hashtags</span>
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Hashtags</span>
+                            <button 
+                              onClick={() => copyToClipboard(result.hashtags.join(' '), 'hashtags')}
+                              className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
+                            >
+                              {copied === 'hashtags' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                            </button>
                           </div>
-                          <button 
-                            onClick={() => copyToClipboard(result.hashtags.join(' '), 'hashtags')}
-                            className="p-3 bg-bg-tertiary rounded-xl hover:text-accent-yellow transition-all"
-                          >
-                            {copied === 'hashtags' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            {result.hashtags.map((tag: string, i: number) => (
+                              <span key={i} className="px-3 py-1.5 bg-bg-tertiary border border-border-subtle rounded-lg text-xs font-bold text-accent-yellow">
+                                {tag.startsWith('#') ? tag : `#${tag}`}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {result.hashtags.map((tag: string, i: number) => (
-                            <span key={i} className="px-3 py-1.5 bg-bg-tertiary border border-border-subtle rounded-lg text-xs font-bold text-accent-yellow">
-                              {tag.startsWith('#') ? tag : `#${tag}`}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                      )}
 
                       {/* Image Prompt Card */}
-                      {result.image_prompt && (
+                      {generatorType !== 'motion-director' && result.image_prompt && (
                         <div className="bg-bg-secondary border border-border-subtle p-8 rounded-[2rem]">
                           <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
