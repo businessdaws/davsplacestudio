@@ -104,9 +104,14 @@ export default function TentangSection() {
               <span className="text-accent-yellow">CREATIVE</span> <br />
               ENGINE.
             </h2>
-            <p className="text-base sm:text-lg md:text-xl leading-relaxed mb-8 sm:mb-12 max-w-xl font-sans font-medium text-text-secondary">
-              Davsplace Studio adalah creative engine yang berfokus pada transformasi digital. Kami membantu brand dan kreator lokal naik kelas melalui desain futuristik, produksi konten premium, dan strategi pemasaran digital yang berdampak nyata. 
-            </p>
+            <div className="space-y-6 text-base sm:text-lg lg:text-[1.1rem] leading-relaxed mb-8 sm:mb-12 max-w-xl font-sans font-medium text-text-secondary">
+              <p>
+                Davsplace Studio adalah creative engine yang berfokus pada transformasi digital. Kami membantu brand dan kreator lokal naik kelas melalui desain futuristik, produksi konten premium, dan strategi pemasaran digital yang berdampak nyata.
+              </p>
+              <p className="text-sm sm:text-base text-text-secondary/85 leading-relaxed font-sans font-normal">
+                Davsplace Studio hadir sebagai agensi media kreatif yang melayani perumusan identitas merek, desain visual, hingga pengembangan ekosistem digital perusahaan. Kami memadukan pemikiran analitis dengan standar estetika yang elegan dan adaptif terhadap berbagai kebutuhan industri modern. Tidak sekadar bertindak sebagai vendor pengeksekusi, kami mengambil alih seluruh kerumitan operasional di balik layar untuk memastikan setiap aset digital selaras dengan target bisnis Anda, sehingga Anda dapat berfokus sepenuhnya pada langkah ekspansi dan pertumbuhan perusahaan.
+              </p>
+            </div>
             
             {/* Quick Link Hub */}
             <div className="mb-10 sm:mb-16">

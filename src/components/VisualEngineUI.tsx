@@ -14,13 +14,17 @@ import {
   Video, 
   Camera, 
   Eye, 
+  EyeOff,
   ArrowRight,
   Clapperboard,
   Save,
   User,
   Globe,
   X,
-  Plus
+  Plus,
+  Download,
+  Image,
+  Tv
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db } from '../lib/firebase';
@@ -282,6 +286,7 @@ interface VisualEngineResult {
   image_prompt: string;
   motion_prompt: string;
   negative_prompt: string;
+  generated_image_url?: string;
   metadata: {
     genre: string;
     style: string;
@@ -313,6 +318,73 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
   const [history, setHistory] = useState<VisualEngineResult[]>([]);
   const [savingContent, setSavingContent] = useState(false);
   const [isSavedSuccessfully, setIsSavedSuccessfully] = useState(false);
+
+  // Storyboard Preview & HUD State for Premium Cinema System v2
+  const [renderedImageUrl, setRenderedImageUrl] = useState<string | null>(null);
+  const [renderingImage, setRenderingImage] = useState(false);
+  const [renderingError, setRenderingError] = useState<string | null>(null);
+  const [showHUD, setShowHUD] = useState(true);
+
+  useEffect(() => {
+    if (result) {
+      setRenderedImageUrl(result.generated_image_url || null);
+    } else {
+      setRenderedImageUrl(null);
+    }
+    setRenderingError(null);
+  }, [result]);
+
+  const handleRenderStoryboard = async () => {
+    if (!result) return;
+    setRenderingImage(true);
+    setRenderingError(null);
+
+    // Formulate ASPECT for NVIDIA NIM
+    const formatString = result.metadata.format || '';
+    let aspect = "1:1";
+    if (formatString.includes("16:9")) aspect = "16:9";
+    else if (formatString.includes("9:16")) aspect = "9:16";
+    else if (formatString.includes("4:3")) aspect = "4:3";
+    else if (formatString.includes("3:4")) aspect = "3:4";
+    else if (formatString.includes("2.39:1")) aspect = "16:9"; // standard landscape wrap
+
+    try {
+      const response = await fetch('/api/ai/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: result.image_prompt,
+          aspectRatio: aspect
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Gagal merender storyboard.");
+      }
+
+      const data = await response.json();
+      if (data.imageUrl) {
+        setRenderedImageUrl(data.imageUrl);
+        
+        // Dynamic in-memory session update for current result
+        const updatedResult = { ...result, generated_image_url: data.imageUrl };
+        setResult(updatedResult);
+        
+        // Update history cache so it is loaded instantly too
+        const updatedHistory = history.map(h => h.title === result.title ? { ...h, generated_image_url: data.imageUrl } : h);
+        setHistory(updatedHistory);
+        localStorage.setItem(`visual_engine_history_${user?.uid || 'guest'}`, JSON.stringify(updatedHistory));
+      } else {
+        throw new Error("Respons NVIDIA NIM tidak menyertakan data URL dasar base64.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setRenderingError(err.message || "Koneksi NVIDIA NIM error.");
+    } finally {
+      setRenderingImage(false);
+    }
+  };
 
   // --- Formula Builder States ---
   const [characters, setCharacters] = useState<CharacterBlueprint[]>(() => {
@@ -1081,7 +1153,7 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
         motion_prompt: result.motion_prompt,
         negative_prompt: result.negative_prompt,
         metadata: result.metadata,
-        generated_image_url: '',
+        generated_image_url: renderedImageUrl || '',
         created_at: serverTimestamp()
       });
       setIsSavedSuccessfully(true);
@@ -2014,6 +2086,171 @@ export default function VisualEngineUI({ user, profile, onIncrementTrial }: Visu
                       <p className="text-[9px] font-black text-white capitalize mt-0.5 truncate">{value}</p>
                     </div>
                   ))}
+                </div>
+
+                {/* 🎥 Storyboard Monitor Core v2 (NVIDIA SDXL integration) */}
+                <div className="bg-black rounded-[2rem] border border-border-subtle p-4 space-y-3.5 relative overflow-hidden group shadow-2xl">
+                  {/* Monitor Header with Film Overlay Style */}
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex items-center justify-center">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse animate-none"></span>
+                        <span className="absolute w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-white tracking-wider font-mono">
+                        DIRECTOR MONITOR // LIVE PREVIEW v2
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 font-mono text-[8px] text-white/50 tracking-wider">
+                      {renderedImageUrl && (
+                        <button
+                          onClick={() => setShowHUD(!showHUD)}
+                          className="px-2 py-0.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded hover:text-white transition cursor-pointer flex items-center gap-1"
+                          title="Toggle Camera HUD Overlay"
+                        >
+                          {showHUD ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+                          HUD {showHUD ? "ON" : "OFF"}
+                        </button>
+                      )}
+                      <span>LUT: REC709_LOG-C</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span className="hidden sm:inline">FPS: 24.00</span>
+                    </div>
+                  </div>
+
+                  {/* Storyboard Render Canvas */}
+                  <div className="relative w-full overflow-hidden rounded-xl bg-neutral-900 border border-white/5">
+                    {/* Computed Active Aspect-Ratio Box */}
+                    <div 
+                      className={cn(
+                        "relative w-full flex items-center justify-center overflow-hidden transition-all duration-300",
+                        result.metadata.format?.includes("16:9") ? "aspect-video" :
+                        result.metadata.format?.includes("9:16") ? "aspect-[9/16] max-h-[460px] mx-auto" :
+                        result.metadata.format?.includes("4:3") ? "aspect-[4/3]" :
+                        result.metadata.format?.includes("3:4") ? "aspect-[3/4] max-h-[420px] mx-auto" :
+                        result.metadata.format?.includes("2.39:1") ? "aspect-[2.39/1]" : "aspect-square"
+                      )}
+                    >
+                      {/* 1. Loading active state */}
+                      {renderingImage && (
+                        <div className="absolute inset-0 bg-neutral-950/90 z-20 flex flex-col items-center justify-center p-6 text-center font-mono">
+                          <Loader2 className="w-8 h-8 text-accent-yellow animate-spin mb-3" />
+                          <p className="text-[10px] text-accent-yellow uppercase tracking-widest font-black font-mono">
+                            [RENDERING_SCENE_SEQUENCE]
+                          </p>
+                          <p className="text-[8px] text-zinc-500 mt-1 max-w-xs uppercase leading-relaxed font-semibold">
+                            Calibrating NVIDIA SDXL engines &amp; developing high-fidelity camera optics...
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 2. No Image Generated state */}
+                      {!renderedImageUrl && !renderingImage && (
+                        <div className="absolute inset-0 bg-neutral-950/80 z-10 flex flex-col items-center justify-center p-6 text-center">
+                          <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
+                            <Tv className="w-5 h-5 text-zinc-400 group-hover:text-accent-yellow transition-colors" />
+                          </div>
+                          <h4 className="text-[10px] font-black uppercase text-zinc-300 tracking-wider">
+                            No Storyboard Frame Loaded
+                          </h4>
+                          <p className="text-[9px] text-zinc-500 max-w-xs mt-1 font-semibold leading-relaxed">
+                            Render the exact prompt coordinates compiled below into high quality concept art storyboard draft.
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={handleRenderStoryboard}
+                            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-500 text-white border border-red-500/30 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all transform hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer shadow-lg shadow-red-950/45"
+                          >
+                            <Camera className="w-3.5 h-3.5 fill-white" />
+                            Render Storyboard Preview
+                          </button>
+                        </div>
+                      )}
+
+                      {/* 3. Rendered Image state */}
+                      {renderedImageUrl && !renderingImage && (
+                        <img 
+                          src={renderedImageUrl}
+                          alt={result.title}
+                          className="w-full h-full object-cover select-none animate-fade-in"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+
+                      {/* CAMERA FIELD MONITOR HUD OVERLAY */}
+                      {showHUD && (
+                        <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 font-mono text-[8px] text-white/70 select-none">
+                          {/* Inner boundary Safe Box */}
+                          <div className="absolute inset-2 border border-dashed border-white/10 rounded pointer-events-none"></div>
+
+                          {/* Outer Camera Corners HUD */}
+                          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-white/30"></div>
+                          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-white/30"></div>
+                          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-white/30"></div>
+                          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-white/30"></div>
+
+                          {/* Reticle crosshair inside center */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-40">
+                            <Plus className="w-4 h-4 text-emerald-400 font-bold" />
+                          </div>
+
+                          <div className="flex justify-between items-start">
+                            <span className="bg-black/55 px-1 py-0.5 rounded leading-none backdrop-blur-sm">
+                              CAM: {result.metadata.camera ? result.metadata.camera.replace(' camera', '') : "ARRI ALEXA 35"}
+                            </span>
+                            <span className="bg-black/55 px-1 py-0.5 rounded leading-none backdrop-blur-sm">
+                              LENS: {result.metadata.lens}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-end mt-auto">
+                            <div className="flex items-center gap-1.5 bg-black/55 px-1.5 py-0.5 rounded backdrop-blur-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse animate-none"></span>
+                              <span>ONLINE NIM SDXL</span>
+                            </div>
+                            <span className="bg-black/55 px-1 py-0.5 rounded leading-none backdrop-blur-sm">
+                              {result.metadata.format ? result.metadata.format.split(' ')[0] : '16:9'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Rendering Error block */}
+                  {renderingError && (
+                    <div className="p-3 bg-red-950/35 border border-red-900/40 text-red-400 text-[9px] font-semibold leading-relaxed rounded-xl">
+                      ⚠️ Gagal Merender: {renderingError}
+                    </div>
+                  )}
+
+                  {/* Secondary buttons bar when image is rendered */}
+                  {renderedImageUrl && !renderingImage && (
+                    <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2 text-[9px]">
+                      <div className="text-zinc-500 font-mono">
+                        Storyboard dikompilasi via NVIDIA AI Engine
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleRenderStoryboard}
+                          className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-zinc-300 font-black rounded uppercase cursor-pointer border border-white/10 tracking-widest text-[8px]"
+                        >
+                          Re-Render Frame 🔄
+                        </button>
+                        <a
+                          href={renderedImageUrl}
+                          download={`${result.title.replace(/\s+/g, '_').toLowerCase()}_storyboard.png`}
+                          className="px-3 py-1.5 bg-accent-yellow text-bg-primary font-black rounded uppercase tracking-widest text-[8px] flex items-center gap-1 cursor-pointer transition-all hover:bg-white"
+                        >
+                          <Download className="w-2.5 h-2.5" />
+                          Simpan Gambar (JPG)
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-bg-tertiary/40 border border-border-subtle p-3 rounded-xl flex items-center gap-3">

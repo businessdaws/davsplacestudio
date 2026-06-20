@@ -119,53 +119,53 @@ export default function ArticlesPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mb-12 sm:mb-20"
+              className="mb-12 sm:mb-16"
             >
               <div className="group relative grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 bg-bg-secondary rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden border border-border-subtle hover:border-accent-yellow transition-all duration-500">
-                <div className="relative aspect-[16/10] lg:aspect-auto h-[220px] xs:h-[280px] lg:h-auto overflow-hidden bg-bg-tertiary">
+                <div className="relative aspect-[16/10] lg:aspect-auto h-[200px] xs:h-[260px] lg:h-[350px] overflow-hidden bg-bg-tertiary">
                   <img 
                     src={featuredArticle.cover_image || featuredArticle.image_url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop'} 
                     alt={featuredArticle.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
-                    <span className="px-4 py-1.5 sm:px-5 sm:py-2 bg-accent-yellow text-bg-primary text-[9px] sm:text-xs font-black rounded-lg sm:rounded-xl uppercase tracking-widest">
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3.5 py-1.5 bg-accent-yellow text-bg-primary text-[8px] sm:text-xs font-black rounded-lg uppercase tracking-widest">
                       Featured Article
                     </span>
                   </div>
                 </div>
                 
-                <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center">
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-[10px] sm:text-xs text-text-secondary font-bold mb-4 sm:mb-6 uppercase tracking-widest">
-                    <span className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
+                <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[9px] sm:text-[10px] text-text-secondary font-bold mb-3 sm:mb-4 uppercase tracking-widest">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-accent-yellow" />
                       {new Date(featuredArticle.created_at).toLocaleDateString('id-ID')}
                     </span>
-                    <span className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-yellow" />
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-accent-yellow" />
                       {featuredArticle.author || 'Admin Davs'}
                     </span>
                   </div>
 
-                  <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-extrabold mb-4 sm:mb-6 leading-tight group-hover:text-accent-yellow transition-colors">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-display font-extrabold mb-3 sm:mb-4 leading-tight group-hover:text-accent-yellow transition-colors">
                     <Link to={`/artikel/${featuredArticle.slug}`}>{featuredArticle.title}</Link>
                   </h2>
                   
-                  <p className="text-text-secondary text-sm sm:text-lg leading-relaxed mb-6 sm:mb-8 font-sans line-clamp-3 sm:line-clamp-none">
+                  <p className="text-text-secondary text-xs sm:text-sm leading-relaxed mb-5 sm:mb-6 font-sans line-clamp-3">
                     {featuredArticle.excerpt}
                   </p>
 
-                  <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between pt-6 sm:pt-8 border-t border-border-subtle">
-                    <Link to={`/artikel/${featuredArticle.slug}`} className="flex items-center gap-2 text-accent-yellow font-black uppercase text-xs sm:text-sm tracking-widest cursor-pointer group/link">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between pt-4 sm:pt-6 border-t border-border-subtle">
+                    <Link to={`/artikel/${featuredArticle.slug}`} className="flex items-center gap-2 text-accent-yellow font-black uppercase text-xs tracking-widest cursor-pointer group/link">
                       Baca Selengkapnya
-                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover/link:translate-x-2 transition-transform" />
+                      <ArrowRight className="w-4 h-4 group-hover/link:translate-x-2 transition-transform" />
                     </Link>
                     <button 
                       onClick={() => handleShare(featuredArticle.slug)}
-                      className="p-2.5 sm:p-3 bg-bg-tertiary text-text-secondary rounded-xl hover:bg-accent-yellow hover:text-bg-primary transition-all active:scale-95 flex items-center justify-center gap-2 w-max"
+                      className="p-2 sm:p-2.5 bg-bg-tertiary text-text-secondary rounded-lg hover:bg-accent-yellow hover:text-bg-primary transition-all active:scale-95 flex items-center justify-center gap-2 w-max"
                     >
-                      {copiedId === featuredArticle.slug ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Share</span>
+                      {copiedId === featuredArticle.slug ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest">Share</span>
                     </button>
                   </div>
                 </div>

@@ -1991,6 +1991,7 @@ USER INPUT
 "${topic}"`;
 
     let text = "";
+    let isNvidiaAttemptFailed = false;
 
     if (provider === "nvidia" || provider === "nvidia-nemotron") {
       const apiKey = (process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY || "").trim();
@@ -2019,10 +2020,20 @@ USER INPUT
             max_tokens: 2048,
           });
 
-          text = completion.choices[0].message.content || "";
-          text = text.replace(/<thought>[\s\S]*?<\/thought>/g, "").trim();
+          let tempText = completion.choices[0].message.content || "";
+          tempText = tempText.replace(/<thought>[\s\S]*?<\/thought>/g, "").trim();
+          
+          // Verify if tempText contains valid JSON and has image_prompt
+          const parsedCheck = robustJSONParse(tempText);
+          if (parsedCheck && parsedCheck.image_prompt) {
+            text = tempText;
+          } else {
+            console.warn("NVIDIA Nemotron returned invalid or incomplete JSON. Falling back to Gemini...");
+            isNvidiaAttemptFailed = true;
+          }
         } catch (nvidiaError: any) {
           console.error("NVIDIA Visual Engine prompt failed, fallback to Gemini:", nvidiaError);
+          isNvidiaAttemptFailed = true;
         }
       }
     }
@@ -2038,22 +2049,66 @@ USER INPUT
         contents: systemPrompt,
         config: {
           responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              image_prompt: { type: Type.STRING },
+              motion_prompt: { type: Type.STRING },
+              negative_prompt: { type: Type.STRING },
+              metadata: {
+                type: Type.OBJECT,
+                properties: {
+                  genre: { type: Type.STRING },
+                  style: { type: Type.STRING },
+                  camera_shot: { type: Type.STRING },
+                  camera_angle: { type: Type.STRING },
+                  lens: { type: Type.STRING },
+                  lighting: { type: Type.STRING },
+                  mood: { type: Type.STRING },
+                  environment: { type: Type.STRING },
+                  motion_style: { type: Type.STRING }
+                },
+                required: ["genre", "style", "camera_shot", "camera_angle", "lens", "lighting", "mood", "environment", "motion_style"]
+              }
+            },
+            required: ["title", "image_prompt", "motion_prompt", "negative_prompt", "metadata"]
+          }
         }
       });
 
       text = response.text || "";
     }
 
-    text = text.replace(/```json\n?|\n?```/g, "").trim();
+    let result = robustJSONParse(text);
 
-    let result;
-    try {
-      result = JSON.parse(text || "{}");
-    } catch (parseError) {
-      console.error("Failed to parse Visual Engine JSON:", text);
+    if (!result || !result.image_prompt) {
+      console.warn("Robust JSON parse returned empty or invalid structure. Text: ", text);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
+        try {
+          result = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          // Attempt custom structural parsing if it's incomplete
+          console.error("JSON parse of regex match failed. Constructing clean recovery fallback model.");
+          result = {
+            title: topic.substring(0, 40) || "Cinematic Scene",
+            image_prompt: topic || "Cinematic photography shot, realistic details, volumetric lighting.",
+            motion_prompt: "Subtle handheld lens vibration with realistic cinematic drift.",
+            negative_prompt: "low quality, bad hands, blurry, draft, bad faces",
+            metadata: {
+              genre: "Drama",
+              style: "Cinematic Realism",
+              camera_shot: "medium shot",
+              camera_angle: "eye level",
+              lens: "50mm",
+              lighting: "soft window light",
+              mood: "calm",
+              environment: topic || "cinematic scene",
+              motion_style: "subtle"
+            }
+          };
+        }
       } else {
         throw new Error("Sistem AI menghasilkan format JSON yang tidak valid.");
       }

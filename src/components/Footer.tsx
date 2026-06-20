@@ -109,7 +109,16 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto pt-10 border-t border-border-subtle flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-text-secondary font-medium">
         <p>&copy; {currentYear} Davsplace Studio. All rights reserved.</p>
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-8 flex-wrap">
+          <button 
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('restore-chatbot'));
+              alert('AI Chatbot telah diaktifkan kembali di pojok kiri bawah layar!');
+            }}
+            className="hover:text-accent-yellow transition-colors font-semibold"
+          >
+            Aktifkan AI Chat 💬
+          </button>
           <a href="#" className="hover:text-accent-yellow transition-colors">Syarat & Ketentuan</a>
           <a href="#" className="hover:text-accent-yellow transition-colors">Kebijakan Privasi</a>
           <Link to="/admin/login" className="flex items-center justify-center p-2 text-text-secondary hover:text-accent-yellow transition-all opacity-20 hover:opacity-100">

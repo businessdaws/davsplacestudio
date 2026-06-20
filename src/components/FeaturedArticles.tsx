@@ -56,43 +56,43 @@ export default function FeaturedArticles() {
               className="group flex flex-col h-full"
             >
               <Link to={`/artikel/${article.slug}`} className="flex flex-col h-full">
-                <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden mb-8 bg-bg-tertiary shadow-2xl border border-border-subtle group-hover:border-accent-yellow transition-all duration-500">
+                <div className="relative aspect-[16/10] max-h-56 rounded-[1.5rem] overflow-hidden mb-6 bg-bg-tertiary shadow-xl border border-border-subtle group-hover:border-accent-yellow transition-all duration-500">
                   <img 
                     src={article.cover_image || article.image_url || 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=600&h=400&auto=format&fit=crop'} 
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute top-6 left-6">
-                    <span className="px-4 py-2 bg-accent-yellow text-bg-primary text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 bg-accent-yellow text-bg-primary text-[9px] font-black rounded-lg uppercase tracking-widest shadow-md">
                       {article.category || 'Insight'}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex-1 flex flex-col px-2">
-                  <div className="flex items-center gap-6 text-[10px] text-text-secondary font-black mb-6 uppercase tracking-[0.2em]">
-                    <span className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-accent-yellow" />
+                <div className="flex-1 flex flex-col px-1">
+                  <div className="flex items-center gap-4 text-[9px] text-text-secondary font-black mb-4 uppercase tracking-[0.2em]">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-accent-yellow" />
                       {formatDate(article.created_at)}
                     </span>
-                    <span className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-accent-yellow" />
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-accent-yellow" />
                       {article.author || 'Admin'}
                     </span>
                   </div>
                   
-                  <h3 className="text-2xl md:text-3xl font-display font-black mb-6 group-hover:text-accent-yellow transition-colors line-clamp-2 leading-tight uppercase tracking-tight">
+                  <h3 className="text-lg md:text-xl font-display font-black mb-4 group-hover:text-accent-yellow transition-colors line-clamp-2 leading-tight uppercase tracking-tight">
                     {article.title}
                   </h3>
                   
-                  <p className="text-text-secondary text-sm md:text-base leading-relaxed line-clamp-3 mb-8 font-sans font-medium">
+                  <p className="text-text-secondary text-xs md:text-sm leading-relaxed line-clamp-2 mb-6 font-sans font-medium">
                     {article.excerpt}
                   </p>
 
-                  <div className="mt-auto pt-8 border-t border-border-subtle flex items-center justify-between group-hover:border-accent-yellow transition-colors">
-                    <span className="text-[10px] font-black text-accent-yellow uppercase tracking-[0.3em]">READ ARTICLE</span>
-                    <div className="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center group-hover:bg-accent-yellow group-hover:text-bg-primary transition-all">
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div className="mt-auto pt-4 border-t border-border-subtle flex items-center justify-between group-hover:border-accent-yellow transition-colors">
+                    <span className="text-[9px] font-black text-accent-yellow uppercase tracking-[0.3em]">READ ARTICLE</span>
+                    <div className="w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center group-hover:bg-accent-yellow group-hover:text-bg-primary transition-all">
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </div>
