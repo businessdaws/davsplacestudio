@@ -40,6 +40,7 @@ import {
   Clock,
   Zap,
   CheckCircle,
+  Receipt,
   AlertCircle,
   RefreshCw,
   Search,
@@ -80,8 +81,10 @@ import { cn, formatDate } from '../../lib/utils';
 import ImagePromptGenerator from '../../components/ImagePromptGenerator';
 import AdminContentGeneratorUI from '../../components/AdminContentGeneratorUI';
 import HealthMonitorManager from '../../components/HealthMonitorManager';
+import ProspectsManager from '../../components/ProspectsManager';
+import BillingManager from '../../components/BillingManager';
 
-type Tab = 'overview' | 'leads' | 'content_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings' | 'subscriptions' | 'health_monitor';
+type Tab = 'overview' | 'leads' | 'content_generator' | 'articles' | 'events' | 'communities' | 'portfolios' | 'links' | 'categories' | 'logos' | 'settings' | 'subscriptions' | 'health_monitor' | 'prospects' | 'billing';
 
 // ✅ Matching list from Login.tsx
 const ADMIN_EMAILS = [
@@ -294,6 +297,8 @@ export default function AdminDashboard() {
         {[
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
           { id: 'leads', icon: MessageSquare, label: 'Inbound Leads' },
+          { id: 'prospects', icon: TrendingUp, label: 'Prospect Tier List' },
+          { id: 'billing', icon: Receipt, label: 'Billing & Penagihan' },
           { id: 'content_generator', icon: Sparkles, label: 'Konten Generator' },
           { id: 'articles', icon: FileText, label: 'Content Articles' },
           { id: 'portfolios', icon: Briefcase, label: 'Project Showcase' },
@@ -471,6 +476,8 @@ export default function AdminDashboard() {
                   <h1 className="text-2xl sm:text-3xl md:text-5xl font-display font-black uppercase tracking-tighter leading-[0.9] break-words">
                     {activeTab === 'overview' && (<>SYSTEM <span className="text-accent-yellow italic">OVERVIEW</span></>)}
                     {activeTab === 'leads' && (<>INBOUND <span className="text-accent-yellow italic">LEADS</span></>)}
+                    {activeTab === 'prospects' && (<>PROSPECT <span className="text-accent-yellow italic">TIER LIST</span></>)}
+                    {activeTab === 'billing' && (<>PROJECT <span className="text-accent-yellow italic">BILLING & STRUK</span></>)}
                     {activeTab === 'content_generator' && (<>KONTEN <span className="text-accent-yellow italic">GENERATOR</span></>)}
                     {activeTab === 'articles' && (<>CONTENT <span className="text-accent-yellow italic">ARTICLES</span></>)}
                     {activeTab === 'portfolios' && (<>PROJECT <span className="text-accent-yellow italic">SHOWCASE</span></>)}
@@ -491,6 +498,8 @@ export default function AdminDashboard() {
 
               {activeTab === 'overview' && <OverviewGrid />}
               {activeTab === 'leads' && <LeadsManager />}
+              {activeTab === 'prospects' && <ProspectsManager />}
+              {activeTab === 'billing' && <BillingManager />}
               {activeTab === 'content_generator' && <AdminContentGeneratorUI onGenerateAI={generateAIContent} />}
               {activeTab === 'articles' && <ContentManager type="articles" onGenerateAI={generateAIContent} />}
               {activeTab === 'portfolios' && <ContentManager type="portfolios" onGenerateAI={generateAIContent} />}
@@ -3070,6 +3079,7 @@ function CommandPalette({ isOpen, onClose, setActiveTab }: { isOpen: boolean, on
   const items = [
     { id: 'overview', icon: LayoutDashboard, label: 'Overview', category: 'General' },
     { id: 'leads', icon: MessageSquare, label: 'Inbound Leads', category: 'CRM' },
+    { id: 'prospects', icon: TrendingUp, label: 'Prospect Tier List', category: 'CRM' },
     { id: 'content_generator', icon: Sparkles, label: 'Konten Generator', category: 'Engagement' },
     { id: 'articles', icon: FileText, label: 'Articles & Content', category: 'CMS' },
     { id: 'portfolios', icon: Briefcase, label: 'Portfolios', category: 'CMS' },

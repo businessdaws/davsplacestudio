@@ -260,8 +260,14 @@ Anda HARUS mengembalikan respons dalam format JSON valid (TANPA dibungkus markdo
       try {
         await addDoc(collection(db, 'saved_prompts'), newPrompt);
       } catch (_) {
-        // Fallback local storage
-        const updated = [newPrompt, ...savedPrompts];
+        // Fallback local storage with a safe stringifyable date and id
+        const fallbackPrompt = {
+          id: 'prompt_' + Math.random().toString(36).substring(2, 11),
+          prompt: promptString,
+          title: promptString.substring(0, 45) + '...',
+          created_at: new Date().toISOString()
+        };
+        const updated = [fallbackPrompt, ...savedPrompts];
         localStorage.setItem('admin_saved_prompts', JSON.stringify(updated));
       }
 
@@ -382,7 +388,17 @@ Anda HARUS mengembalikan respons dalam format JSON valid (TANPA dibungkus markdo
       try {
         await addDoc(collection(db, 'saved_analyses'), payload);
       } catch (_) {
-        const updated = [payload, ...savedAnalyses];
+        const fallbackPayload = {
+          id: 'analysis_' + Math.random().toString(36).substring(2, 11),
+          title: analyzerMode === 'file' ? (analyzerFile ? analyzerFile.name : 'Analisis Berkas') : analyzerFileUrl,
+          summary: analysisResult.summary || '',
+          insights: analysisResult.insights || [],
+          cinematic_suggestions: analysisResult.cinematicSuggestions || [],
+          creative_prompts: analysisResult.creativePrompts || [],
+          mode: analyzerMode,
+          created_at: new Date().toISOString()
+        };
+        const updated = [fallbackPayload, ...savedAnalyses];
         localStorage.setItem('admin_saved_analyses', JSON.stringify(updated));
       }
 
@@ -961,8 +977,8 @@ Anda HARUS mengembalikan respons dalam format JSON valid (TANPA dibungkus markdo
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 select-none custom-scrollbar">
-                  {savedPrompts.map((item) => (
-                    <div key={item.id} className="p-3.5 bg-bg-tertiary border border-border-subtle rounded-xl text-xs space-y-2 group hover:border-accent-yellow/40 transition-all">
+                  {savedPrompts.map((item, idx) => (
+                    <div key={item.id || `prompt-${idx}`} className="p-3.5 bg-bg-tertiary border border-border-subtle rounded-xl text-xs space-y-2 group hover:border-accent-yellow/40 transition-all">
                       <p className="text-white font-sans line-clamp-2 leading-relaxed font-medium">{item.prompt}</p>
                       
                       <div className="flex items-center justify-between pt-1 border-t border-border-subtle/50">
@@ -1003,9 +1019,9 @@ Anda HARUS mengembalikan respons dalam format JSON valid (TANPA dibungkus markdo
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
-                  {savedAnalyses.map((item) => (
+                  {savedAnalyses.map((item, idx) => (
                     <button
-                      key={item.id}
+                      key={item.id || `analysis-${idx}`}
                       onClick={() => setAnalysisResult({
                         summary: item.summary,
                         insights: item.insights,

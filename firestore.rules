@@ -27,19 +27,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
-    // Check if user is an admin by looking up the profiles collection
+    // Check if user is an admin by looking up the profiles collection or checking whitelisted emails first
     function isAdmin() {
       return isSignedIn() && (
+        (request.auth.token.email != null && (
+          request.auth.token.email.matches('(?i)^(davsplacestudio|businessdaws|buainessdaws|fajarmuniri)@gmail\\.com$') ||
+          request.auth.token.email.matches('(?i)^admin@davs\\.studio$')
+        )) ||
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin') ||
-        (request.auth.token.email_verified == true && 
-         request.auth.token.email in [
-           'davsplacestudio@gmail.com', 
-           'businessdaws@gmail.com', 
-           'buainessdaws@gmail.com',
-           'admin@davs.studio', 
-           'fajarmuniri@gmail.com'
-         ])
+         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
@@ -137,6 +133,26 @@ service cloud.firestore {
              data.id is string && data.id.size() <= 128 &&
              data.name is string && data.name.size() <= 128 &&
              data.uid == request.auth.uid;
+    }
+
+    function isValidProspect(data) {
+      return data.keys().hasAll(['prospect_name', 'category', 'pain_points', 'opportunity_rate', 'action_plan']) &&
+             data.prospect_name is string && data.prospect_name.size() > 0 &&
+             data.category is string && data.category.size() > 0 &&
+             data.pain_points is string && data.pain_points.size() > 0 &&
+             data.opportunity_rate is string && data.opportunity_rate.size() > 0 &&
+             data.action_plan is string && data.action_plan.size() > 0 &&
+             (data.get('channel_link', '') is string);
+    }
+
+    function isValidBillingDoc(data) {
+      return data.keys().hasAll(['type', 'doc_number', 'client_name', 'project_name', 'total', 'status']) &&
+             data.type is string &&
+             data.doc_number is string &&
+             data.client_name is string &&
+             data.project_name is string &&
+             data.total is number &&
+             data.status is string;
     }
 
     // --- COLLECTION RULES ---
@@ -248,6 +264,16 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidWatermarkTemplate(incoming());
       allow update: if isSignedIn() && isOwner(existing().uid) && isValidWatermarkTemplate(incoming());
       allow delete: if isSignedIn() && (isOwner(existing().uid) || isAdmin());
+    }
+
+    match /prospects/{prospectId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && isValidProspect(incoming());
+    }
+
+    match /billing_docs/{docId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin() && isValidBillingDoc(incoming());
     }
   }
 }
